@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #111827;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --border: #e5e7eb;
+  --sidebar-background: #ffffff;
+  --sidebar-border: #e5e7eb;
+  --sidebar-heading: #0f172a;
+  --sidebar-muted: #64748b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: #111827;
+    --foreground: #f9fafb;
+    --muted: #1f2937;
+    --muted-foreground: #9ca3af;
+    --border: #374151;
+    --sidebar-background: #020617;
+    --sidebar-border: #1e293b;
+    --sidebar-heading: #f8fafc;
+    --sidebar-muted: #94a3b8;
+  }
+}
+
+:root.dark {
+  color-scheme: dark;
+  --background: #111827;
+  --foreground: #f9fafb;
+  --muted: #1f2937;
+  --muted-foreground: #9ca3af;
+  --border: #374151;
+  --sidebar-background: #020617;
+  --sidebar-border: #1e293b;
+  --sidebar-heading: #f8fafc;
+  --sidebar-muted: #94a3b8;
+}
+
+:root.light {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #111827;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --border: #e5e7eb;
+  --sidebar-background: #ffffff;
+  --sidebar-border: #e5e7eb;
+  --sidebar-heading: #0f172a;
+  --sidebar-muted: #64748b;
+}
+
+.backoffice-sidebar {
+  background-color: var(--sidebar-background) !important;
+  border-color: var(--sidebar-border) !important;
+  color: var(--sidebar-muted);
+}
+
+.backoffice-sidebar .border-slate-800 {
+  border-color: var(--sidebar-border);
+}
+
+.backoffice-sidebar .text-white {
+  color: var(--sidebar-heading);
+}
+
+.backoffice-sidebar .text-slate-400 {
+  color: var(--sidebar-muted);
+}
+
+.backoffice-sidebar .hover\:bg-slate-800:hover {
+  background-color: color-mix(in srgb, var(--sidebar-heading) 8%, transparent);
+}
+
+.backoffice-sidebar .hover\:text-white:hover {
+  color: var(--sidebar-heading);
+}
+
+@layer base {
+  body {
+    min-width: 320px;
+    margin: 0;
+    background-color: var(--background);
+    color: var(--foreground);
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+}
