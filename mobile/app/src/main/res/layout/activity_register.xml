@@ -24,12 +24,13 @@
                 android:paddingTop="36dp"
                 android:paddingBottom="24dp">
 
+                <!-- LOGO SIZE: Adjust layout_width and layout_height below to resize logo -->
                 <FrameLayout
-                    android:layout_width="68dp"
-                    android:layout_height="68dp"
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
                     android:background="@drawable/bg_logo_glow"
                     android:elevation="6dp"
-                    android:padding="10dp">
+                    android:padding="6dp">
 
                     <ImageView
                         android:id="@+id/ivRegisterLogo"
@@ -139,17 +140,21 @@
                     <!-- Role Dropdown / Input -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilRole"
-                        style="@style/Widget.SmartSolar.TextInputLayout"
+                        style="@style/Widget.SmartSolar.TextInputLayout.ExposedDropdown"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
-                        android:hint="@string/role_hint">
+                        android:hint="@string/role_hint"
+                        app:startIconDrawable="@drawable/ic_role"
+                        app:startIconTint="@color/slate_400">
 
                         <com.google.android.material.textfield.MaterialAutoCompleteTextView
                             android:id="@+id/actRole"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="none"
+                            android:paddingTop="16dp"
+                            android:paddingBottom="16dp"
                             android:textColor="@color/slate_900"
                             android:textSize="15sp" />
                     </com.google.android.material.textfield.TextInputLayout>
