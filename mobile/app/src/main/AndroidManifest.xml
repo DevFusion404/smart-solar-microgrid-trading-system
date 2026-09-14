@@ -20,9 +20,9 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/logo3"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/logo3"
         android:supportsRtl="true"
         android:theme="@style/Theme.SmartSolarMobile"
         android:usesCleartextTraffic="true"
@@ -35,7 +35,7 @@
 
         <!-- Splash Screen (App Entry Point) -->
         <activity
-            android:name=".ui.activity.SplashActivity"
+            android:name="com.smartsolar.mobile.ui.activity.SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.SmartSolarMobile.Splash">
             <intent-filter>
@@ -46,17 +46,23 @@
 
         <!-- Login Screen -->
         <activity
-            android:name=".ui.activity.LoginActivity"
+            android:name="com.smartsolar.mobile.ui.activity.LoginActivity"
             android:exported="false"
             android:theme="@style/Theme.SmartSolarMobile"
             android:windowSoftInputMode="adjustResize" />
 
         <!-- Register Screen -->
         <activity
-            android:name=".ui.activity.RegisterActivity"
+            android:name="com.smartsolar.mobile.ui.activity.RegisterActivity"
             android:exported="false"
             android:theme="@style/Theme.SmartSolarMobile"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- Main Screen (Navigation Drawer Container) -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.MainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
 
     </application>
 
