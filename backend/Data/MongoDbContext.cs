@@ -19,6 +19,16 @@ public class MongoDbContext
     }
 
     /// <summary>
+    /// Protected constructor for unit testing only.
+    /// Injects a pre-built IMongoDatabase so no real MongoDB
+    /// connection is opened during tests.
+    /// </summary>
+    protected MongoDbContext(IMongoDatabase database)
+    {
+        _database = database;
+    }
+
+    /// <summary>
     /// Returns a typed collection handle.
     /// Convention: collection name defaults to the lowercase plural of <typeparamref name="T"/>.
     /// </summary>

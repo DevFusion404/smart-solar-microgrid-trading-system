@@ -1,0 +1,270 @@
+{
+  "info": {
+    "name": "Smart Solar Microgrid Trading System",
+    "description": "API collection for Stations and Slots endpoints.\nImport this file into Postman: File → Import → select this JSON.\n\nSet the base_url variable to your local server (default: http://localhost:5000).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5295",
+      "type": "string"
+    },
+    {
+      "key": "station_id",
+      "value": "",
+      "description": "Paste a MongoDB _id here after creating a station",
+      "type": "string"
+    },
+    {
+      "key": "slot_id",
+      "value": "",
+      "description": "Paste a MongoDB _id here after creating a slot",
+      "type": "string"
+    },
+    {
+      "key": "station_station_id",
+      "value": "ST-001",
+      "description": "The StationId field (not the Mongo _id) used in slot routes",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Stations",
+      "item": [
+        {
+          "name": "POST  Create Station",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/stations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stations"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stationId\": \"ST-001\",\n  \"stationName\": \"Colombo Solar Hub\",\n  \"address\": \"No. 12, Galle Road, Colombo 03\",\n  \"latitude\": 6.9271,\n  \"longitude\": 79.8612,\n  \"energyCapacity\": 500.0,\n  \"batteryStorageCapacity\": 1200.0,\n  \"operationalSchedule\": \"Mon-Fri 06:00-18:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "GET  List All Stations",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/stations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stations"]
+            }
+          }
+        },
+        {
+          "name": "GET  Get Station by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/stations/{{station_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stations", "{{station_id}}"]
+            }
+          }
+        },
+        {
+          "name": "PUT  Update Station",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/stations/{{station_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stations", "{{station_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stationName\": \"Colombo Solar Hub (Updated)\",\n  \"address\": \"No. 12, Galle Road, Colombo 03\",\n  \"latitude\": 6.9271,\n  \"longitude\": 79.8612,\n  \"energyCapacity\": 600.0,\n  \"batteryStorageCapacity\": 1500.0,\n  \"operationalSchedule\": \"Mon-Sat 06:00-20:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "PUT  Update Station Schedule",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/stations/{{station_id}}/schedule",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stations", "{{station_id}}", "schedule"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"operationalSchedule\": \"Mon-Sun 07:00-19:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "PUT  Deactivate Station",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{base_url}}/api/stations/{{station_id}}/deactivate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stations", "{{station_id}}", "deactivate"]
+            }
+          }
+        },
+        {
+          "name": "GET  Search Stations",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/stations/search?location=Colombo&available=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stations", "search"],
+              "query": [
+                {
+                  "key": "location",
+                  "value": "Colombo",
+                  "description": "Partial address keyword (case-insensitive)"
+                },
+                {
+                  "key": "available",
+                  "value": "true",
+                  "description": "Pass true to return only Active stations"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET  Map Pins (active stations)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/stations/map",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stations", "map"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Slots",
+      "item": [
+        {
+          "name": "POST  Create Slot",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/stations/{{station_station_id}}/slots",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stations", "{{station_station_id}}", "slots"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slotId\": \"SLOT-001\",\n  \"date\": \"2026-09-20T00:00:00Z\",\n  \"startTime\": \"08:00:00\",\n  \"endTime\": \"10:00:00\",\n  \"totalCapacity\": 100.0,\n  \"availableCapacity\": 100.0,\n  \"status\": \"Available\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "GET  List Slots for Station",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/stations/{{station_station_id}}/slots?date=2026-09-20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stations", "{{station_station_id}}", "slots"],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-09-20",
+                  "description": "Optional — filter to a specific date (YYYY-MM-DD)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET  Get Slot by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/slots/{{slot_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "slots", "{{slot_id}}"]
+            }
+          }
+        },
+        {
+          "name": "PUT  Update Slot",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/slots/{{slot_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "slots", "{{slot_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-09-20T00:00:00Z\",\n  \"startTime\": \"09:00:00\",\n  \"endTime\": \"11:00:00\",\n  \"totalCapacity\": 120.0,\n  \"availableCapacity\": 80.0,\n  \"status\": \"Available\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "PUT  Adjust Slot Capacity  [Booking Flow]",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/slots/{{slot_id}}/capacity",
+              "host": ["{{base_url}}"],
+              "path": ["api", "slots", "{{slot_id}}", "capacity"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"availableCapacity\": 60.0\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET  DB Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/health/db",
+              "host": ["{{base_url}}"],
+              "path": ["health", "db"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

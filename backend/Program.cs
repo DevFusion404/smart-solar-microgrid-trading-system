@@ -1,8 +1,12 @@
 using backend.Configuration;
 using backend.Data;
 using MongoDB.Driver;
+using backend.Interfaces;
+using backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Register microgrid station service
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 // Priority (highest → lowest):
@@ -24,8 +28,21 @@ var mongoDbSettings = builder.Configuration
 
 // ─── Services ─────────────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    var xmlFile =
+        $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+
+    var xmlPath =
+        Path.Combine(AppContext.BaseDirectory, xmlFile);
+
+    options.IncludeXmlComments(xmlPath);
+});
 builder.Services.AddControllers();
+
+builder.Services.AddScoped<IMicrogridStationService, MicrogridStationService>();
+builder.Services.AddScoped<IEnergySlotService, EnergySlotService>();
+
 
 // Register MongoDB settings as a singleton
 builder.Services.AddSingleton(mongoDbSettings);
