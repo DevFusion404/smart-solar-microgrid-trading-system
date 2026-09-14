@@ -1,6 +1,5 @@
 import {
   BatteryCharging,
-  CalendarDays,
   ChevronDown,
   CircleUserRound,
   Cpu,
@@ -57,32 +56,17 @@ const navigationGroups = [
     icon: BatteryCharging,
     items: [
       {
-        label: 'Slot Management',
+        label: 'Energy Slot Dashboard',
         to: '/backoffice/energy-slots',
         end: true,
       },
       {
-        label: 'Availability',
-        to: '/backoffice/energy-slots/availability',
-      },
-    ],
-  },
-  {
-    label: 'Reservations',
-    icon: CalendarDays,
-    items: [
-      {
-        label: 'All Reservations',
-        to: '/backoffice/reservations',
-        end: true,
+        label: 'Manage Energy Slots',
+        to: '/backoffice/energy-slots/manage',
       },
       {
-        label: 'Pending Reservations',
-        to: '/backoffice/reservations/pending',
-      },
-      {
-        label: 'Reservation History',
-        to: '/backoffice/reservations/history',
+        label: 'Reservations',
+        to: '/backoffice/energy-slots/reservations',
       },
     ],
   },
