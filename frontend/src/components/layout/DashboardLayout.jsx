@@ -13,11 +13,9 @@ const pageNames = {
   '/backoffice/nodes': 'Microgrid Nodes',
   '/backoffice/nodes/new': 'Add New Node',
   '/backoffice/nodes/schedules': 'Node Schedules',
-  '/backoffice/energy-slots': 'Energy Slots',
-  '/backoffice/energy-slots/availability': 'Energy Availability',
-  '/backoffice/reservations': 'Reservations',
-  '/backoffice/reservations/pending': 'Pending Reservations',
-  '/backoffice/reservations/history': 'Reservation History',
+  '/backoffice/energy-slots': 'Energy Slot Dashboard',
+  '/backoffice/energy-slots/manage': 'Manage Energy Slots',
+  '/backoffice/energy-slots/reservations': 'Reservations',
   '/backoffice/profile': 'My Profile',
   '/backoffice/settings': 'Settings',
 }
@@ -25,7 +23,7 @@ const pageNames = {
 function DashboardHeader({ onOpenMenu, isDark, onToggleTheme }) {
   const location = useLocation()
   const navigate = useNavigate()
-  const title = pageNames[location.pathname] || 'Back office'
+  const title = pageNames[location.pathname] || (location.pathname.startsWith('/backoffice/energy-slots/reservations/') ? 'Reservation Details' : 'Back office')
 
   return (
     <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur md:px-8 dark:border-slate-800 dark:bg-slate-950/90">

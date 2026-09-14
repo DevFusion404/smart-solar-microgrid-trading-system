@@ -82,6 +82,24 @@
   color: var(--sidebar-heading);
 }
 
+.reservation-node-select {
+  color-scheme: light;
+}
+
+.reservation-node-select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+:root.dark .reservation-node-select {
+  color-scheme: dark;
+}
+
+:root.dark .reservation-node-select option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
 @layer base {
   body {
     min-width: 320px;

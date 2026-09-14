@@ -4,6 +4,9 @@ import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
 import { DashboardPage } from './pages/backoffice/DashboardPage'
 import { PlaceholderPage } from './pages/backoffice/PlaceholderPage'
+import { EnergySlotDashboard } from './pages/Reservation/EnergySlotDashboard'
+import { ManageEnergySlots } from './pages/Reservation/ManageEnergySlots'
+import { EnergySlotReservations } from './pages/Reservation/EnergySlotReservations'
 import { OperatorDashboard } from './pages/operator/OperatorDashboard'
 import { OperatorLayout } from './components/layout/OperatorLayout'
 
@@ -16,6 +19,10 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/backoffice" element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="energy-slots" element={<EnergySlotDashboard />} />
+          <Route path="energy-slots/manage" element={<ManageEnergySlots />} />
+          <Route path="energy-slots/reservations" element={<EnergySlotReservations />} />
+          <Route path="energy-slots/reservations/:reservationId" element={<EnergySlotReservations />} />
           <Route path="*" element={<PlaceholderPage />} />
         </Route>
         <Route path="/operator" element={<OperatorLayout />}>
