@@ -9,6 +9,10 @@
     <!-- Splash Screen -->
     <string name="splash_loading">Initializing energy grid…</string>
 
+    <!-- Navigation Header Defaults -->
+    <string name="default_user_name">User Profile</string>
+    <string name="default_user_role">Solar Member</string>
+
     <!-- Login Screen -->
     <string name="login_title">Welcome Back</string>
     <string name="login_subtitle">Sign in to manage your microgrid nodes and energy slots</string>
@@ -28,7 +32,7 @@
     <string name="full_name_label">Full Name</string>
     <string name="full_name_hint">Enter your full name</string>
     <string name="role_label">Account Role</string>
-    <string name="role_hint">Select your role (Prosumer / Consumer / Operator)</string>
+    <string name="role_hint">Select Account Role</string>
     <string name="confirm_password_label">Confirm Password</string>
     <string name="confirm_password_hint">Re-enter your password</string>
     <string name="btn_register">Create Account</string>
