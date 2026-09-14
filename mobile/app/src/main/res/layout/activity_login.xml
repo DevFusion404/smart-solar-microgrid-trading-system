@@ -24,12 +24,13 @@
                 android:paddingTop="48dp"
                 android:paddingBottom="36dp">
 
+                <!-- LOGO SIZE: Adjust layout_width and layout_height below to resize logo -->
                 <FrameLayout
-                    android:layout_width="84dp"
-                    android:layout_height="84dp"
+                    android:layout_width="110dp"
+                    android:layout_height="110dp"
                     android:background="@drawable/bg_logo_glow"
                     android:elevation="6dp"
-                    android:padding="12dp">
+                    android:padding="8dp">
 
                     <ImageView
                         android:id="@+id/ivLoginLogo"
