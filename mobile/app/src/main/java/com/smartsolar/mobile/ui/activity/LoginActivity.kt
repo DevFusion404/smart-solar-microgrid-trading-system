@@ -34,10 +34,13 @@ class LoginActivity : AppCompatActivity() {
                 val email = binding.etEmail.text.toString().trim()
                 Toast.makeText(
                     this,
-                    "Signing in as $email…",
+                    "Welcome, Sithmaka!",
                     Toast.LENGTH_SHORT
                 ).show()
-                // Future: Integrate with ViewModel / Retrofit ApiService login endpoint
+                val intent = Intent(this, MainActivity::class.java)
+                startActivity(intent)
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                finish()
             }
         }
 
