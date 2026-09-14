@@ -1,3 +1,10 @@
+// ===============================================
+// SE4040 - Enterprise Application Development
+// Smart Solar Microgrid Trading System
+// File: JwtSettings.cs
+// Description: Strongly-typed configuration model for JWT token generation and validation parameters.
+// ===============================================
+
 namespace backend.Configuration;
 
 public class JwtSettings

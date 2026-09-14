@@ -1,4 +1,12 @@
+// ===============================================
+// SE4040 - Enterprise Application Development
+// Smart Solar Microgrid Trading System
+// File: MongoDbContext.cs
+// Description: MongoDB context class managing database connection pool and collection index initializations.
+// ===============================================
+
 using backend.Configuration;
+using backend.Models;
 using MongoDB.Driver;
 
 namespace backend.Data;
@@ -12,11 +20,20 @@ public class MongoDbContext
 {
     private readonly IMongoDatabase _database;
 
+    // Initializes MongoDB client connection and ensures unique index constraints
     public MongoDbContext(MongoDbSettings settings)
     {
         var client = new MongoClient(settings.ConnectionString);
         _database = client.GetDatabase(settings.DatabaseName);
+
+        // Initialize Users collection indexes
+        EnsureIndexes();
     }
+
+    /// <summary>
+    /// Gets the UserDetails collection.
+    /// </summary>
+    public IMongoCollection<UserDetails> Users => _database.GetCollection<UserDetails>("UserDetails");
 
     /// <summary>
     /// Protected constructor for unit testing only.
@@ -39,4 +56,39 @@ public class MongoDbContext
     /// Exposes the raw <see cref="IMongoDatabase"/> for advanced scenarios.
     /// </summary>
     public IMongoDatabase Database => _database;
+
+    // Creates required unique and compound database indexes for UserDetails collection
+    private void EnsureIndexes()
+    {
+        try
+        {
+            var users = Users;
+
+            // Username unique index
+            var usernameKeys = Builders<UserDetails>.IndexKeys.Ascending(u => u.Username);
+            users.Indexes.CreateOne(new CreateIndexModel<UserDetails>(
+                usernameKeys, new CreateIndexOptions { Unique = true, Name = "idx_username_unique" }));
+
+            // Email unique index
+            var emailKeys = Builders<UserDetails>.IndexKeys.Ascending(u => u.Email);
+            users.Indexes.CreateOne(new CreateIndexModel<UserDetails>(
+                emailKeys, new CreateIndexOptions { Unique = true, Name = "idx_email_unique" }));
+
+            // NIC sparse unique index
+            var nicKeys = Builders<UserDetails>.IndexKeys.Ascending(u => u.Nic);
+            users.Indexes.CreateOne(new CreateIndexModel<UserDetails>(
+                nicKeys, new CreateIndexOptions { Unique = true, Sparse = true, Name = "idx_nic_unique" }));
+
+            // Role + Status compound index
+            var roleStatusKeys = Builders<UserDetails>.IndexKeys
+                .Ascending(u => u.Role)
+                .Ascending(u => u.Status);
+            users.Indexes.CreateOne(new CreateIndexModel<UserDetails>(
+                roleStatusKeys, new CreateIndexOptions { Name = "idx_role_status" }));
+        }
+        catch
+        {
+            // Ignore index initialization errors if database connection is pending startup
+        }
+    }
 }
