@@ -48,6 +48,20 @@
         <item name="android:textColorHint">@color/slate_400</item>
     </style>
 
+    <!-- Exposed Dropdown Style matching rounded input boxes -->
+    <style name="Widget.SmartSolar.TextInputLayout.ExposedDropdown" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        <item name="boxCornerRadiusTopStart">14dp</item>
+        <item name="boxCornerRadiusTopEnd">14dp</item>
+        <item name="boxCornerRadiusBottomStart">14dp</item>
+        <item name="boxCornerRadiusBottomEnd">14dp</item>
+        <item name="boxStrokeColor">@color/slate_300_selector</item>
+        <item name="boxStrokeWidth">1.5dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+        <item name="hintTextColor">@color/slate_500</item>
+        <item name="android:textColorHint">@color/slate_400</item>
+        <item name="endIconTint">@color/solar_primary_dark</item>
+    </style>
+
     <!-- Primary Solar Button Style -->
     <style name="Widget.SmartSolar.Button.Primary" parent="Widget.MaterialComponents.Button">
         <item name="android:background">@drawable/bg_btn_primary_gradient</item>
@@ -59,6 +73,14 @@
         <item name="android:paddingTop">14dp</item>
         <item name="android:paddingBottom">14dp</item>
         <item name="elevation">4dp</item>
+    </style>
+
+    <!-- Navigation Drawer Category Subheader Style (Fixes white text on white background) -->
+    <style name="Widget.SmartSolar.NavigationView.Subheader" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textColor">@color/slate_500</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.08</item>
     </style>
 
 </resources>
