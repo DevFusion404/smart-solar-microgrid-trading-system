@@ -1,3 +1,10 @@
+// ===============================================
+// SE4040 - Enterprise Application Development
+// Smart Solar Microgrid Trading System
+// File: MongoDbSettings.cs
+// Description: Strongly-typed settings model for MongoDB connection string and database configuration.
+// ===============================================
+
 namespace backend.Configuration;
 
 /// <summary>
