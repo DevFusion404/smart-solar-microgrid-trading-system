@@ -21,6 +21,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 using System.Text;
+using backend.Interfaces;
+using backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,7 +53,7 @@ if (string.IsNullOrEmpty(jwtSettings.SecretKey) || jwtSettings.SecretKey.Contain
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// Swagger setup with JWT Bearer authentication support
+// Swagger setup with JWT Bearer authentication support and XML comments
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -88,7 +90,18 @@ builder.Services.AddSwaggerGen(options =>
 
     // Operation filter to automatically append required roles to every endpoint in Swagger UI
     options.OperationFilter<SwaggerAuthorizeOperationFilter>();
+
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath);
+    }
 });
+
+// Register Microgrid Services
+builder.Services.AddScoped<IMicrogridStationService, MicrogridStationService>();
+builder.Services.AddScoped<IEnergySlotService, EnergySlotService>();
 
 // Register Configuration Singletons
 builder.Services.AddSingleton(mongoDbSettings);

@@ -1,0 +1,265 @@
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : Microgrid Node and Energy Slot Management
+File          : MicrogridStationService.cs
+Description   : Handles business logic and MongoDB
+                operations related to solar stations
+Author        : Sithmaka
+=====================================================
+*/
+
+
+using backend.Data;
+using backend.DTOs;
+using backend.Interfaces;
+using backend.Models;
+
+using MongoDB.Driver;
+
+namespace backend.Services;
+public class MicrogridStationService : IMicrogridStationService
+{
+    private readonly IMongoCollection<SolarStationInfo> _stations;
+    private readonly IMongoCollection<EnergyBookingSlot> _slots;
+
+    // Constructor initializes MongoDB collections
+    public MicrogridStationService(MongoDbContext context)
+    {
+
+        _stations = context.Database
+            .GetCollection<SolarStationInfo>("SolarStationInfo");
+
+        _slots = context.Database
+            .GetCollection<EnergyBookingSlot>("EnergyBookingSlot");
+
+    }
+
+    // Retrieves all active and inactive microgrid stations
+    public async Task<List<SolarStationInfo>> GetAllStations()
+    {
+        return await _stations
+            .Find(_ => true)
+            .ToListAsync();
+    }
+
+    // Retrieves a single microgrid station using MongoDB ID
+    public async Task<SolarStationInfo?> GetStationById(string id)
+    {
+        return await _stations
+            .Find(x => x.Id == id)
+            .FirstOrDefaultAsync();
+    }
+
+
+
+
+    // Creates a new microgrid station after validating data
+    public async Task<SolarStationInfo> CreateStation(
+        SolarStationInfo station)
+    {
+        // Validate station name
+        if(string.IsNullOrWhiteSpace(station.StationName))
+        {
+            throw new Exception(
+                "Station name is required");
+        }
+
+        // Validate GPS latitude
+        if(station.Latitude < -90 ||
+           station.Latitude > 90)
+        {
+            throw new Exception(
+                "Invalid latitude value");
+        }
+
+        // Validate GPS longitude
+        if(station.Longitude < -180 ||
+           station.Longitude > 180)
+        {
+            throw new Exception(
+                "Invalid longitude value");
+        }
+
+        // Validate energy capacity
+        if(station.EnergyCapacity <= 0)
+        {
+            throw new Exception(
+                "Energy capacity must be greater than zero");
+        }
+
+        // Prevent duplicate station creation
+        var existingStation =
+            await _stations
+            .Find(x =>
+                x.StationId == station.StationId)
+            .FirstOrDefaultAsync();
+
+        if(existingStation != null)
+        {
+            throw new Exception(
+                "Station already exists");
+        }
+
+        // Default status for newly created station
+        if(string.IsNullOrEmpty(station.Status))
+        {
+            station.Status = "Active";
+        }
+
+        await _stations.InsertOneAsync(station);
+        return station;
+
+    }
+
+    // Updates existing microgrid station information
+    public async Task<bool> UpdateStation(
+        string id,
+        SolarStationInfo station)
+    {
+        // Validate GPS values before update
+        if(station.Latitude < -90 ||
+           station.Latitude > 90)
+        {
+            throw new Exception(
+                "Invalid latitude value");
+        }
+
+        if(station.Longitude < -180 ||
+           station.Longitude > 180)
+        {
+            throw new Exception(
+                "Invalid longitude value");
+        }
+
+        var result =
+            await _stations.ReplaceOneAsync(
+                x => x.Id == id,
+                station);
+        return result.ModifiedCount > 0;
+
+    }
+
+    // Updates only the operational schedule of a station
+    public async Task<bool> UpdateSchedule(
+        string id,
+        string schedule)
+    {
+        if(string.IsNullOrWhiteSpace(schedule))
+        {
+            throw new Exception(
+                "Operational schedule is required");
+        }
+
+        var update =
+            Builders<SolarStationInfo>.Update
+            .Set(x => x.OperationalSchedule, schedule);
+
+        var result =
+            await _stations.UpdateOneAsync(
+                x => x.Id == id,
+                update);
+
+        return result.ModifiedCount > 0;
+
+    }
+
+    // Deactivates a microgrid station.
+    // Blocked if there are any Available booking slots linked to it.
+    public async Task<bool> DeactivateStation(string id)
+    {
+        // Retrieve the station to get its StationId field
+        var station =
+            await _stations
+            .Find(x => x.Id == id)
+            .FirstOrDefaultAsync();
+
+        if(station == null)
+        {
+            throw new Exception("Station not found");
+        }
+
+        // Block deactivation if active booking slots exist
+        var activeSlotCount =
+            await _slots
+            .CountDocumentsAsync(x =>
+                x.StationId == station.StationId &&
+                x.Status == "Available");
+
+        if(activeSlotCount > 0)
+        {
+            throw new Exception(
+                "Cannot deactivate station: " +
+                $"{activeSlotCount} active booking slot(s) still exist");
+        }
+
+        var update =
+            Builders<SolarStationInfo>.Update
+            .Set(x => x.Status, "Deactivated");
+
+
+        var result =
+            await _stations.UpdateOneAsync(
+                x => x.Id == id,
+                update);
+
+        return result.ModifiedCount > 0;
+
+    }
+
+    // Searches stations by location keyword and/or availability
+    public async Task<List<SolarStationInfo>> SearchStations(
+        string? location,
+        bool? available)
+    {
+        // Start with a match-all filter and narrow it down
+        var filter =
+            Builders<SolarStationInfo>.Filter.Empty;
+
+        // Filter by partial address match if location is provided
+        if(!string.IsNullOrWhiteSpace(location))
+        {
+            filter = filter &
+                Builders<SolarStationInfo>.Filter.Regex(
+                    x => x.Address,
+                    new MongoDB.Bson.BsonRegularExpression(
+                        location, "i"));
+        }
+
+        // Filter to only Active stations if available flag is true
+        if(available == true)
+        {
+            filter = filter &
+                Builders<SolarStationInfo>.Filter.Eq(
+                    x => x.Status, "Active");
+        }
+
+        return await _stations
+            .Find(filter)
+            .ToListAsync();
+
+    }
+
+    // Returns lightweight map pin data for all active stations
+    public async Task<List<StationMapDto>> GetMapPins()
+    {
+        var activeStations =
+            await _stations
+            .Find(x => x.Status == "Active")
+            .ToListAsync();
+
+        // Project only the fields needed for map markers
+        return activeStations
+            .Select(x => new StationMapDto
+            {
+                Id   = x.Id,
+                Name = x.StationName,
+                Lat  = x.Latitude,
+                Lng  = x.Longitude
+            })
+            .ToList();
+
+    }
+
+
+}
