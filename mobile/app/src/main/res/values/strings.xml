@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App & Brand -->
+    <string name="app_name">SmartSolar</string>
+    <string name="brand_name">SolarGrid</string>
+    <string name="brand_tagline">Smart Microgrid Trading Platform</string>
+    <string name="splash_slogan">Connect, Trade, and Optimize Renewable Energy</string>
+
+    <!-- Splash Screen -->
+    <string name="splash_loading">Initializing energy grid…</string>
+
+    <!-- Navigation Header Defaults -->
+    <string name="default_user_name">User Profile</string>
+    <string name="default_user_role">Solar Member</string>
+
+    <!-- Login Screen -->
+    <string name="login_title">Welcome Back</string>
+    <string name="login_subtitle">Sign in to manage your microgrid nodes and energy slots</string>
+    <string name="email_label">Email Address</string>
+    <string name="email_hint">Enter your email</string>
+    <string name="password_label">Password</string>
+    <string name="password_hint">Enter your password</string>
+    <string name="remember_me">Remember me</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="btn_login">Sign In</string>
+    <string name="dont_have_account">Don\'t have an account? </string>
+    <string name="btn_register_link">Register</string>
+
+    <!-- Register Screen -->
+    <string name="register_title">Create Account</string>
+    <string name="register_subtitle">Join the decentralized solar microgrid trading ecosystem</string>
+    <string name="full_name_label">Full Name</string>
+    <string name="full_name_hint">Enter your full name</string>
+    <string name="role_label">Account Role</string>
+    <string name="role_hint">Select Account Role</string>
+    <string name="confirm_password_label">Confirm Password</string>
+    <string name="confirm_password_hint">Re-enter your password</string>
+    <string name="btn_register">Create Account</string>
+    <string name="already_have_account">Already have an account? </string>
+    <string name="btn_login_link">Sign In</string>
+    <string name="terms_agreement">By registering, you agree to our Terms of Service and Privacy Policy</string>
+
+    <!-- Validation & Alerts -->
+    <string name="err_empty_email">Email address is required</string>
+    <string name="err_empty_password">Password is required</string>
+    <string name="err_empty_name">Full name is required</string>
+    <string name="err_password_mismatch">Passwords do not match</string>
+</resources>

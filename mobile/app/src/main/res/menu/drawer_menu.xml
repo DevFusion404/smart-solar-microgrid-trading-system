@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group
+        android:id="@+id/group_primary"
+        android:checkableBehavior="single">
+
+        <item
+            android:id="@+id/nav_home"
+            android:icon="@drawable/ic_nav_home"
+            android:title="Home"
+            android:checked="true" />
+
+        <item
+            android:id="@+id/nav_stations"
+            android:icon="@drawable/ic_nav_station"
+            android:title="Microgrid Stations" />
+
+        <item
+            android:id="@+id/nav_slots"
+            android:icon="@drawable/ic_nav_energy"
+            android:title="Energy Slots" />
+
+        <item
+            android:id="@+id/nav_reservations"
+            android:icon="@drawable/ic_nav_calendar"
+            android:title="My Reservations" />
+
+        <item
+            android:id="@+id/nav_history"
+            android:icon="@drawable/ic_nav_chart"
+            android:title="Energy History" />
+
+        <item
+            android:id="@+id/nav_sync"
+            android:icon="@drawable/ic_nav_sync"
+            android:title="Sync Status" />
+
+    </group>
+
+    <item android:title="Preferences">
+        <menu>
+            <item
+                android:id="@+id/nav_settings"
+                android:icon="@drawable/ic_nav_settings"
+                android:title="Settings" />
+
+            <item
+                android:id="@+id/nav_logout"
+                android:icon="@drawable/ic_nav_logout"
+                android:title="Logout" />
+        </menu>
+    </item>
+
+</menu>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Base Application Theme -->
+    <style name="Theme.SmartSolarMobile" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary Brand Colors -->
+        <item name="colorPrimary">@color/solar_primary</item>
+        <item name="colorPrimaryVariant">@color/solar_primary_dark</item>
+        <item name="colorOnPrimary">@color/slate_950</item>
+
+        <!-- Secondary Brand Colors -->
+        <item name="colorSecondary">@color/cyan_accent</item>
+        <item name="colorSecondaryVariant">@color/cyan_accent_dark</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <!-- Status & Navigation Bars -->
+        <item name="android:statusBarColor">@color/slate_950</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:navigationBarColor">@color/slate_950</item>
+
+        <!-- Background & Surface -->
+        <item name="android:windowBackground">@color/background_light</item>
+        <item name="colorSurface">@color/surface_light</item>
+        <item name="colorOnSurface">@color/slate_900</item>
+
+        <!-- Custom Widget Styles -->
+        <item name="textInputStyle">@style/Widget.SmartSolar.TextInputLayout</item>
+    </style>
+
+    <!-- Full-screen Theme for Splash Screen -->
+    <style name="Theme.SmartSolarMobile.Splash" parent="Theme.SmartSolarMobile">
+        <item name="android:statusBarColor">@color/slate_950</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:navigationBarColor">@color/slate_950</item>
+        <item name="android:windowBackground">@drawable/bg_splash_gradient</item>
+    </style>
+
+    <!-- Rounded Material Outlined Input Style -->
+    <style name="Widget.SmartSolar.TextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxCornerRadiusTopStart">14dp</item>
+        <item name="boxCornerRadiusTopEnd">14dp</item>
+        <item name="boxCornerRadiusBottomStart">14dp</item>
+        <item name="boxCornerRadiusBottomEnd">14dp</item>
+        <item name="boxStrokeColor">@color/slate_300_selector</item>
+        <item name="boxStrokeWidth">1.5dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+        <item name="hintTextColor">@color/slate_500</item>
+        <item name="android:textColorHint">@color/slate_400</item>
+    </style>
+
+    <!-- Exposed Dropdown Style matching rounded input boxes -->
+    <style name="Widget.SmartSolar.TextInputLayout.ExposedDropdown" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        <item name="boxCornerRadiusTopStart">14dp</item>
+        <item name="boxCornerRadiusTopEnd">14dp</item>
+        <item name="boxCornerRadiusBottomStart">14dp</item>
+        <item name="boxCornerRadiusBottomEnd">14dp</item>
+        <item name="boxStrokeColor">@color/slate_300_selector</item>
+        <item name="boxStrokeWidth">1.5dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+        <item name="hintTextColor">@color/slate_500</item>
+        <item name="android:textColorHint">@color/slate_400</item>
+        <item name="endIconTint">@color/solar_primary_dark</item>
+    </style>
+
+    <!-- Primary Solar Button Style -->
+    <style name="Widget.SmartSolar.Button.Primary" parent="Widget.MaterialComponents.Button">
+        <item name="android:background">@drawable/bg_btn_primary_gradient</item>
+        <item name="backgroundTint">@null</item>
+        <item name="android:textColor">@color/slate_950</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">16sp</item>
+        <item name="cornerRadius">14dp</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+        <item name="elevation">4dp</item>
+    </style>
+
+    <!-- Navigation Drawer Category Subheader Style (Fixes white text on white background) -->
+    <style name="Widget.SmartSolar.NavigationView.Subheader" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textColor">@color/slate_500</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.08</item>
+    </style>
+
+</resources>
