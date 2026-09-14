@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.smartsolarmobile"
+    namespace = "com.smartsolar.mobile"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.smartsolarmobile"
+        applicationId = "com.smartsolar.mobile"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
@@ -18,6 +18,7 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        manifestPlaceholders["MAPS_API_KEY"] = "YOUR_GOOGLE_MAPS_API_KEY_HERE"
     }
 
     buildTypes {
@@ -38,6 +39,7 @@ android {
     }
     buildFeatures {
         compose = true
+        viewBinding = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
