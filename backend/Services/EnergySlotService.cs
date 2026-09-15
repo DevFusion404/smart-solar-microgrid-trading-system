@@ -21,17 +21,21 @@ namespace backend.Services;
 public class EnergySlotService : IEnergySlotService
 {
     private readonly IMongoCollection<EnergyBookingSlot> _slots;
+    private readonly IMongoCollection<SolarStationInfo> _stations;
 
     // Constructor initializes MongoDB collection
     public EnergySlotService(MongoDbContext context)
     {
         _slots = context.Database
             .GetCollection<EnergyBookingSlot>("EnergyBookingSlot");
+        _stations = context.Database
+            .GetCollection<SolarStationInfo>("SolarStationInfo");
     }
 
     /// <summary>
     /// Creates a new energy booking slot after validating
     /// time range, capacity, and uniqueness.
+    /// AvailableCapacity starts equal to TotalCapacity.
     /// </summary>
     public async Task<EnergyBookingSlot> CreateSlot(
         EnergyBookingSlot slot)
@@ -50,11 +54,33 @@ public class EnergySlotService : IEnergySlotService
                 "Total capacity must be greater than zero");
         }
 
-        // Available capacity cannot exceed the total capacity
-        if(slot.AvailableCapacity > slot.TotalCapacity)
+        // Rule: totalCapacity is set once, availableCapacity starts equal to it
+        if(slot.AvailableCapacity <= 0)
+        {
+            slot.AvailableCapacity = slot.TotalCapacity;
+        }
+        else if(slot.AvailableCapacity > slot.TotalCapacity)
         {
             throw new Exception(
                 "Available capacity cannot exceed total capacity");
+        }
+
+        // Validate that the station exists and is active
+        if(_stations != null)
+        {
+            var station = await _stations
+                .Find(x => x.StationId == slot.StationId || x.Id == slot.StationId)
+                .FirstOrDefaultAsync();
+
+            if(station == null)
+            {
+                throw new Exception("Station not found");
+            }
+
+            if(station.Status == "Deactivated")
+            {
+                throw new Exception("Cannot create slots for a deactivated station");
+            }
         }
 
         // Prevent duplicate slot identifiers
@@ -160,6 +186,7 @@ public class EnergySlotService : IEnergySlotService
     /// <summary>
     /// Adjusts only the available capacity of a slot.
     /// Called by the booking service when a reservation is placed.
+    /// Supports lookup by MongoDB document Id or business SlotId.
     /// </summary>
     public async Task<bool> AdjustCapacity(
         string id,
@@ -172,13 +199,30 @@ public class EnergySlotService : IEnergySlotService
                 "Available capacity cannot be negative");
         }
 
+        // Support lookup by MongoDB Id or human-readable SlotId
+        var slot = await _slots
+            .Find(x => x.Id == id || x.SlotId == id)
+            .FirstOrDefaultAsync();
+
+        if(slot == null)
+        {
+            return false;
+        }
+
+        // Available capacity cannot exceed total capacity
+        if(availableCapacity > slot.TotalCapacity)
+        {
+            throw new Exception(
+                "Available capacity cannot exceed total capacity");
+        }
+
         var update =
             Builders<EnergyBookingSlot>.Update
             .Set(x => x.AvailableCapacity, availableCapacity);
 
         var result =
             await _slots.UpdateOneAsync(
-                x => x.Id == id,
+                x => x.Id == slot.Id,
                 update);
 
         return result.ModifiedCount > 0;
