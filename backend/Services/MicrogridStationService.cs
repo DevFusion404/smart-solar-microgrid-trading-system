@@ -15,6 +15,7 @@ using backend.DTOs;
 using backend.Interfaces;
 using backend.Models;
 
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace backend.Services;
@@ -22,6 +23,7 @@ public class MicrogridStationService : IMicrogridStationService
 {
     private readonly IMongoCollection<SolarStationInfo> _stations;
     private readonly IMongoCollection<EnergyBookingSlot> _slots;
+    private readonly IMongoCollection<BsonDocument> _reservations;
 
     // Constructor initializes MongoDB collections
     public MicrogridStationService(MongoDbContext context)
@@ -32,6 +34,9 @@ public class MicrogridStationService : IMicrogridStationService
 
         _slots = context.Database
             .GetCollection<EnergyBookingSlot>("EnergyBookingSlot");
+
+        _reservations = context.Database
+            .GetCollection<BsonDocument>("EnergyReservations");
 
     }
 
@@ -165,7 +170,7 @@ public class MicrogridStationService : IMicrogridStationService
     }
 
     // Deactivates a microgrid station.
-    // Blocked if there are any Available booking slots linked to it.
+    // Blocked if there are any Available booking slots or active reservations linked to it.
     public async Task<bool> DeactivateStation(string id)
     {
         // Retrieve the station to get its StationId field
@@ -191,6 +196,35 @@ public class MicrogridStationService : IMicrogridStationService
             throw new Exception(
                 "Cannot deactivate station: " +
                 $"{activeSlotCount} active booking slot(s) still exist");
+        }
+
+        // Block deactivation if active reservations exist in EnergyReservations collection
+        if(_reservations != null)
+        {
+            // Find all slots belonging to this station
+            var stationSlots = await _slots
+                .Find(x => x.StationId == station.StationId)
+                .ToListAsync();
+
+            var slotIds = stationSlots.Select(x => x.SlotId).ToList();
+
+            var activeReservationStatuses = new[] { "Pending", "Approved", "Confirmed", "Active" };
+
+            var filterBuilder = Builders<BsonDocument>.Filter;
+            var stationOrSlotFilter = filterBuilder.Or(
+                filterBuilder.Eq("StationId", station.StationId),
+                filterBuilder.In("SlotId", slotIds)
+            );
+            var statusFilter = filterBuilder.In("Status", activeReservationStatuses);
+
+            var activeReservationCount = await _reservations.CountDocumentsAsync(
+                filterBuilder.And(stationOrSlotFilter, statusFilter));
+
+            if(activeReservationCount > 0)
+            {
+                throw new Exception(
+                    $"Cannot deactivate station: {activeReservationCount} active reservation(s) still exist");
+            }
         }
 
         var update =
