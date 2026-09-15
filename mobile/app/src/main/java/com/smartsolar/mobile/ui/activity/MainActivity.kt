@@ -8,9 +8,13 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
+import androidx.fragment.app.Fragment
 import com.google.android.material.navigation.NavigationView
 import com.smartsolar.mobile.R
 import com.smartsolar.mobile.databinding.ActivityMainBinding
+import com.smartsolar.mobile.ui.fragment.MyReservationsFragment
+import com.smartsolar.mobile.ui.fragment.ReservationHistoryFragment
+import com.smartsolar.mobile.ui.fragment.ReserveEnergyFragment
 import com.smartsolar.mobile.utils.NetworkUtils
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
@@ -85,24 +89,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
 
             R.id.nav_slots -> {
-                binding.topToolbar.title = "Energy Slots"
-                binding.tvCurrentScreenTitle.text = "Energy Booking Slots"
-                binding.tvScreenDescription.text = "Select time slots and trade available renewable solar capacity."
-                Toast.makeText(this, "Opening Energy Slots…", Toast.LENGTH_SHORT).show()
+                showReservationScreen(ReserveEnergyFragment(), "Reserve Energy")
             }
 
             R.id.nav_reservations -> {
-                binding.topToolbar.title = "My Reservations"
-                binding.tvCurrentScreenTitle.text = "My Reservations"
-                binding.tvScreenDescription.text = "Track your confirmed and pending energy slot bookings."
-                Toast.makeText(this, "Opening Reservations…", Toast.LENGTH_SHORT).show()
+                showReservationScreen(MyReservationsFragment(), "My Reservations")
             }
 
             R.id.nav_history -> {
-                binding.topToolbar.title = "Energy History"
-                binding.tvCurrentScreenTitle.text = "Energy Trading History"
-                binding.tvScreenDescription.text = "Review your historical energy consumption and solar credit sales."
-                Toast.makeText(this, "Opening Energy History…", Toast.LENGTH_SHORT).show()
+                showReservationScreen(ReservationHistoryFragment(), "Reservation History")
             }
 
             R.id.nav_sync -> {
@@ -136,6 +131,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         // Close drawer smoothly after selection
         binding.drawerLayout.closeDrawer(GravityCompat.START)
         return true
+    }
+
+    private fun showReservationScreen(fragment: Fragment, title: String) {
+        binding.topToolbar.title = title
+        supportFragmentManager.beginTransaction()
+            .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
+            .replace(R.id.fragmentContainer, fragment)
+            .commit()
     }
 
     private fun setupBackPressHandler() {
