@@ -39,6 +39,18 @@
     <color name="status_red">#EF4444</color>
     <color name="status_yellow">#EAB308</color>
 
+    <!-- Reservation Experience Surfaces -->
+    <color name="reservation_green">#047857</color>
+    <color name="reservation_green_tint">#D1FAE5</color>
+    <color name="reservation_blue">#0E7490</color>
+    <color name="reservation_blue_tint">#CFFAFE</color>
+    <color name="reservation_violet">#6D28D9</color>
+    <color name="reservation_violet_tint">#EDE9FE</color>
+    <color name="reservation_pending">#B45309</color>
+    <color name="reservation_pending_tint">#FEF3C7</color>
+    <color name="reservation_danger">#BE123C</color>
+    <color name="reservation_danger_tint">#FFE4E6</color>
+
     <!-- Basic -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
