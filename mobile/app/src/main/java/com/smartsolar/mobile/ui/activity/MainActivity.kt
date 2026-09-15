@@ -9,13 +9,18 @@ import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.navigation.NavigationView
 import com.smartsolar.mobile.R
+import com.smartsolar.mobile.data.repository.SlotRepository
+import com.smartsolar.mobile.data.repository.StationRepository
 import com.smartsolar.mobile.databinding.ActivityMainBinding
 import com.smartsolar.mobile.ui.fragment.MyReservationsFragment
 import com.smartsolar.mobile.ui.fragment.ReservationHistoryFragment
 import com.smartsolar.mobile.ui.fragment.ReserveEnergyFragment
+import com.smartsolar.mobile.ui.fragment.StationsFragment
 import com.smartsolar.mobile.utils.NetworkUtils
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -82,10 +87,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
 
             R.id.nav_stations -> {
-                binding.topToolbar.title = "Microgrid Stations"
-                binding.tvCurrentScreenTitle.text = "Microgrid Stations"
-                binding.tvScreenDescription.text = "Browse, search, and view live stations across the community grid."
-                Toast.makeText(this, "Opening Microgrid Stations…", Toast.LENGTH_SHORT).show()
+                showReservationScreen(StationsFragment(), "Microgrid Stations")
             }
 
             R.id.nav_slots -> {
@@ -101,13 +103,28 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
 
             R.id.nav_sync -> {
-                val isOnline = NetworkUtils.isNetworkAvailable(this)
-                val statusMessage = if (isOnline) {
-                    "✓ Local SQLite database is synced with Cloud Backend"
-                } else {
-                    "⚠ Working Offline — Changes will sync when connected"
+                lifecycleScope.launch {
+                    Toast.makeText(this@MainActivity, "Syncing data with Cloud Backend...", Toast.LENGTH_SHORT).show()
+                    val stationRepo = StationRepository(this@MainActivity)
+                    val slotRepo = SlotRepository(this@MainActivity)
+
+                    val stationsSync = stationRepo.syncStations()
+                    if (stationsSync.isSuccess) {
+                        val count = stationsSync.getOrDefault(0)
+                        val localStations = stationRepo.getStations(false).getOrDefault(emptyList())
+                        val slotsSync = slotRepo.syncAllSlots(localStations)
+                        val slotCount = slotsSync.getOrDefault(0)
+
+                        Toast.makeText(
+                            this@MainActivity,
+                            "✓ Sync Complete: $count stations & $slotCount slots saved to local SQLite",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        val err = stationsSync.exceptionOrNull()?.message ?: "Sync failed"
+                        Toast.makeText(this@MainActivity, "⚠ Sync Warning: $err", Toast.LENGTH_LONG).show()
+                    }
                 }
-                Toast.makeText(this, statusMessage, Toast.LENGTH_LONG).show()
             }
 
             R.id.nav_settings -> {
