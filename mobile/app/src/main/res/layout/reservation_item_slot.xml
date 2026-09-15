@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardEnergySlot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardBackgroundColor="@color/surface_light"
+    app:cardCornerRadius="18dp"
+    app:cardElevation="2dp"
+    app:rippleColor="@color/solar_amber_subtle"
+    app:strokeColor="@color/surface_stroke"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <FrameLayout
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_reservation_icon_amber"
+                android:padding="10dp">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="Energy slot"
+                    android:src="@drawable/ic_nav_energy"
+                    app:tint="@color/solar_primary_dark" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvSlotTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="09:00 AM - 10:00 AM"
+                    android:textColor="@color/slate_900"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvSlotReference"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="Slot SLT-018"
+                    android:textColor="@color/slate_500"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvSlotAvailability"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_reservation_status_available"
+                android:text="Available"
+                android:textColor="@color/reservation_green"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Available capacity"
+                android:textColor="@color/slate_500"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvSlotCapacity"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="210 / 420 kWh"
+                android:textColor="@color/slate_900"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/progressSlotCapacity"
+            android:layout_width="match_parent"
+            android:layout_height="7dp"
+            android:layout_marginTop="8dp"
+            android:progress="50"
+            app:indicatorColor="@color/solar_primary"
+            app:trackColor="@color/solar_amber_subtle"
+            app:trackCornerRadius="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnReserveEnergySlot"
+            style="@style/Widget.SmartSolar.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:gravity="center"
+            android:minHeight="56dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:text="Reserve this slot"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            app:icon="@drawable/ic_nav_calendar"
+            app:iconGravity="textStart"
+            app:iconSize="22dp"
+            app:iconTint="@color/slate_950"
+            android:insetBottom="0dp"
+            android:insetTop="0dp" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
