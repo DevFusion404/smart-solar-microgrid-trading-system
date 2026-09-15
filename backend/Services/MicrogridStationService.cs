@@ -48,12 +48,21 @@ public class MicrogridStationService : IMicrogridStationService
             .ToListAsync();
     }
 
-    // Retrieves a single microgrid station using MongoDB ID
+    // Retrieves a single microgrid station using MongoDB ID or StationId
     public async Task<SolarStationInfo?> GetStationById(string id)
     {
-        return await _stations
-            .Find(x => x.Id == id)
+        var station = await _stations
+            .Find(x => x.StationId == id)
             .FirstOrDefaultAsync();
+
+        if(station == null && ObjectId.TryParse(id, out _))
+        {
+            station = await _stations
+                .Find(x => x.Id == id)
+                .FirstOrDefaultAsync();
+        }
+
+        return station;
     }
 
 
@@ -137,9 +146,17 @@ public class MicrogridStationService : IMicrogridStationService
                 "Invalid longitude value");
         }
 
+        var existing = await GetStationById(id);
+        if(existing == null)
+        {
+            return false;
+        }
+
+        station.Id = existing.Id;
+
         var result =
             await _stations.ReplaceOneAsync(
-                x => x.Id == id,
+                x => x.Id == existing.Id,
                 station);
         return result.ModifiedCount > 0;
 
@@ -156,13 +173,19 @@ public class MicrogridStationService : IMicrogridStationService
                 "Operational schedule is required");
         }
 
+        var existing = await GetStationById(id);
+        if(existing == null)
+        {
+            return false;
+        }
+
         var update =
             Builders<SolarStationInfo>.Update
             .Set(x => x.OperationalSchedule, schedule);
 
         var result =
             await _stations.UpdateOneAsync(
-                x => x.Id == id,
+                x => x.Id == existing.Id,
                 update);
 
         return result.ModifiedCount > 0;
@@ -173,11 +196,19 @@ public class MicrogridStationService : IMicrogridStationService
     // Blocked if there are any Available booking slots or active reservations linked to it.
     public async Task<bool> DeactivateStation(string id)
     {
-        // Retrieve the station to get its StationId field
+        // Retrieve the station by StationId or ObjectId
         var station =
             await _stations
-            .Find(x => x.Id == id)
+            .Find(x => x.StationId == id)
             .FirstOrDefaultAsync();
+
+        if(station == null && ObjectId.TryParse(id, out _))
+        {
+            station =
+                await _stations
+                .Find(x => x.Id == id)
+                .FirstOrDefaultAsync();
+        }
 
         if(station == null)
         {
@@ -234,7 +265,7 @@ public class MicrogridStationService : IMicrogridStationService
 
         var result =
             await _stations.UpdateOneAsync(
-                x => x.Id == id,
+                x => x.Id == station.Id,
                 update);
 
         return result.ModifiedCount > 0;
