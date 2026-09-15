@@ -12,6 +12,11 @@ import { ProsumerRequestsPage } from './pages/backoffice/ProsumerRequestsPage'
 import { ProsumerDetailPage } from './pages/backoffice/ProsumerDetailPage'
 import { UserManagementPage } from './pages/backoffice/UserManagementPage'
 
+// Microgrid Node pages (Component 2 - Sithmaka)
+import { NodesListPage } from './pages/backoffice/nodes/NodesListPage'
+import { AddNodePage } from './pages/backoffice/nodes/AddNodePage'
+import { NodeSchedulesPage } from './pages/backoffice/nodes/NodeSchedulesPage'
+
 // Energy slot / reservation pages (existing)
 import { EnergySlotDashboard } from './pages/Reservation/EnergySlotDashboard'
 import { ManageEnergySlots } from './pages/Reservation/ManageEnergySlots'
@@ -45,6 +50,11 @@ function App() {
           <Route path="prosumers" element={<ProsumersPage />} />
           <Route path="prosumers/requests" element={<ProsumerRequestsPage />} />
           <Route path="prosumers/:nic" element={<ProsumerDetailPage />} />
+
+          {/* Microgrid Nodes (Component 2 - Sithmaka) */}
+          <Route path="nodes" element={<NodesListPage />} />
+          <Route path="nodes/new" element={<AddNodePage />} />
+          <Route path="nodes/schedules" element={<NodeSchedulesPage />} />
 
           {/* Energy slots (existing) */}
           <Route path="energy-slots" element={<EnergySlotDashboard />} />
