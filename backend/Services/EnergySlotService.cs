@@ -14,6 +14,7 @@ using backend.Data;
 using backend.Interfaces;
 using backend.Models;
 
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace backend.Services;
@@ -69,8 +70,15 @@ public class EnergySlotService : IEnergySlotService
         if(_stations != null)
         {
             var station = await _stations
-                .Find(x => x.StationId == slot.StationId || x.Id == slot.StationId)
+                .Find(x => x.StationId == slot.StationId)
                 .FirstOrDefaultAsync();
+
+            if(station == null && ObjectId.TryParse(slot.StationId, out _))
+            {
+                station = await _stations
+                    .Find(x => x.Id == slot.StationId)
+                    .FirstOrDefaultAsync();
+            }
 
             if(station == null)
             {
@@ -80,6 +88,12 @@ public class EnergySlotService : IEnergySlotService
             if(station.Status == "Deactivated")
             {
                 throw new Exception("Cannot create slots for a deactivated station");
+            }
+
+            // Standardize StationId to business StationId
+            if(!string.IsNullOrEmpty(station.StationId))
+            {
+                slot.StationId = station.StationId;
             }
         }
 
@@ -114,10 +128,22 @@ public class EnergySlotService : IEnergySlotService
         string stationId,
         DateTime? date)
     {
-        // Build filter starting from station match
+        string resolvedStationId = stationId;
+        if(_stations != null && ObjectId.TryParse(stationId, out _))
+        {
+            var stn = await _stations.Find(x => x.Id == stationId).FirstOrDefaultAsync();
+            if(stn != null && !string.IsNullOrEmpty(stn.StationId))
+            {
+                resolvedStationId = stn.StationId;
+            }
+        }
+
+        // Build filter supporting both business stationId and document ObjectId
         var filter =
-            Builders<EnergyBookingSlot>.Filter.Eq(
-                x => x.StationId, stationId);
+            Builders<EnergyBookingSlot>.Filter.Or(
+                Builders<EnergyBookingSlot>.Filter.Eq(x => x.StationId, resolvedStationId),
+                Builders<EnergyBookingSlot>.Filter.Eq(x => x.StationId, stationId)
+            );
 
         // Narrow to the requested calendar date if provided
         if(date.HasValue)
@@ -138,13 +164,22 @@ public class EnergySlotService : IEnergySlotService
     }
 
     /// <summary>
-    /// Retrieves a single energy slot using its MongoDB document id.
+    /// Retrieves a single energy slot using its MongoDB document id or business SlotId.
     /// </summary>
     public async Task<EnergyBookingSlot?> GetSlotById(string id)
     {
-        return await _slots
-            .Find(x => x.Id == id)
+        var slot = await _slots
+            .Find(x => x.SlotId == id)
             .FirstOrDefaultAsync();
+
+        if(slot == null && ObjectId.TryParse(id, out _))
+        {
+            slot = await _slots
+                .Find(x => x.Id == id)
+                .FirstOrDefaultAsync();
+        }
+
+        return slot;
     }
 
     /// <summary>
@@ -174,9 +209,17 @@ public class EnergySlotService : IEnergySlotService
                 "Available capacity cannot exceed total capacity");
         }
 
+        var existing = await GetSlotById(id);
+        if(existing == null)
+        {
+            return false;
+        }
+
+        slot.Id = existing.Id;
+
         var result =
             await _slots.ReplaceOneAsync(
-                x => x.Id == id,
+                x => x.Id == existing.Id,
                 slot);
 
         return result.ModifiedCount > 0;
@@ -199,10 +242,17 @@ public class EnergySlotService : IEnergySlotService
                 "Available capacity cannot be negative");
         }
 
-        // Support lookup by MongoDB Id or human-readable SlotId
+        // Support lookup by business SlotId or MongoDB Id
         var slot = await _slots
-            .Find(x => x.Id == id || x.SlotId == id)
+            .Find(x => x.SlotId == id)
             .FirstOrDefaultAsync();
+
+        if(slot == null && ObjectId.TryParse(id, out _))
+        {
+            slot = await _slots
+                .Find(x => x.Id == id)
+                .FirstOrDefaultAsync();
+        }
 
         if(slot == null)
         {
