@@ -37,7 +37,8 @@ public class SlotsController : ControllerBase
         string stationId,
         [FromBody] SlotCreateDto dto)
     {
-        // Build the domain object, binding stationId from the route
+        // Build the domain object, binding stationId from the route.
+        // TotalCapacity is set once; AvailableCapacity starts equal to it.
         var slot = new EnergyBookingSlot
         {
             SlotId            = dto.SlotId,
@@ -46,8 +47,8 @@ public class SlotsController : ControllerBase
             StartTime         = dto.StartTime,
             EndTime           = dto.EndTime,
             TotalCapacity     = dto.TotalCapacity,
-            AvailableCapacity = dto.AvailableCapacity,
-            Status            = dto.Status
+            AvailableCapacity = dto.TotalCapacity,
+            Status            = string.IsNullOrEmpty(dto.Status) ? "Available" : dto.Status
         };
 
         try
@@ -95,8 +96,9 @@ public class SlotsController : ControllerBase
     }
 
     /// <summary>
-    /// Updates all editable fields of an existing slot —
-    /// times, total capacity, available capacity, and status.
+    /// Updates editable fields of an existing slot — times and status.
+    /// Total capacity is fixed once set; available capacity is managed
+    /// via the capacity-adjustment endpoint.
     /// Returns 404 if no slot matches the given id.
     /// </summary>
     [HttpPut("api/slots/{id}")]
@@ -113,12 +115,11 @@ public class SlotsController : ControllerBase
         }
 
         // Overlay DTO values onto the existing document
-        existing.Date              = dto.Date;
-        existing.StartTime         = dto.StartTime;
-        existing.EndTime           = dto.EndTime;
-        existing.TotalCapacity     = dto.TotalCapacity;
-        existing.AvailableCapacity = dto.AvailableCapacity;
-        existing.Status            = dto.Status;
+        // TotalCapacity is set once; AvailableCapacity is managed via the capacity endpoint
+        existing.Date      = dto.Date;
+        existing.StartTime = dto.StartTime;
+        existing.EndTime   = dto.EndTime;
+        existing.Status    = dto.Status;
 
         try
         {
