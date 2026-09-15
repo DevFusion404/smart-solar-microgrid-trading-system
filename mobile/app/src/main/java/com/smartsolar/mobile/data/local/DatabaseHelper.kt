@@ -230,17 +230,47 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
         )
     }
 
+    fun insertSlots(slots: List<EnergySlot>) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            for (slot in slots) {
+                insertOrUpdateSlot(slot)
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
     fun getSlotsByStation(stationId: String): List<EnergySlot> {
+        return getSlotsByStationAndDate(stationId, null)
+    }
+
+    fun getSlotsByStationAndDate(stationId: String, date: String?): List<EnergySlot> {
         val list = mutableListOf<EnergySlot>()
         val db = readableDatabase
+
+        val selection: String?
+        val selectionArgs: Array<String>?
+
+        if (date != null && date.isNotBlank()) {
+            val datePrefix = date.take(10)
+            selection = "$COL_STATION_ID = ? AND $COL_DATE LIKE ?"
+            selectionArgs = arrayOf(stationId, "$datePrefix%")
+        } else {
+            selection = "$COL_STATION_ID = ?"
+            selectionArgs = arrayOf(stationId)
+        }
+
         val cursor = db.query(
             TABLE_SLOTS,
             null,
-            "$COL_STATION_ID = ?",
-            arrayOf(stationId),
+            selection,
+            selectionArgs,
             null,
             null,
-            "$COL_START_TIME ASC"
+            "$COL_DATE ASC, $COL_START_TIME ASC"
         )
 
         cursor.use {
