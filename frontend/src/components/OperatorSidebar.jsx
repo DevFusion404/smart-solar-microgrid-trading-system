@@ -15,6 +15,7 @@ import {
 import clsx from 'clsx'
 import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import logoImg from '../assets/logo3.png'
 
 const groups = [
   {
@@ -62,8 +63,8 @@ export function OperatorSidebar({ collapsed = false, onToggleCollapse, onLogout,
       collapsed ? 'w-20' : 'w-72',
     )}>
       <div className={clsx('relative flex h-20 shrink-0 items-center border-b border-slate-800', collapsed ? 'justify-center' : 'gap-3 px-5')}>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-slate-950">
-          <Zap className="h-6 w-6" strokeWidth={2.5} />
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 p-1 ring-1 ring-amber-400/30">
+          <img src={logoImg} alt="Smart Solar Logo" className="h-full w-full object-contain" />
         </div>
         {!collapsed && <div className="min-w-0"><p className="truncate text-sm font-bold text-white">Smart Solar</p><p className="truncate text-xs text-slate-400">Microgrid Operator</p></div>}
         {onToggleCollapse && <button type="button" onClick={onToggleCollapse} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} className={clsx('rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white', collapsed ? 'absolute bottom-1 right-1' : 'ml-auto')}>

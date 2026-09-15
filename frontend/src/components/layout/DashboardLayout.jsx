@@ -4,6 +4,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { BackOfficeSidebar, MobileSidebarToggle } from '../BackOfficeSidebar'
 import { IconButton } from '../common/IconButton'
+import logoImg from '../../assets/logo3.png'
 
 const pageNames = {
   '/backoffice': 'Dashboard',
@@ -31,6 +32,7 @@ function DashboardHeader({ onOpenMenu, isDark, onToggleTheme }) {
         <div className="xl:hidden">
           <MobileSidebarToggle onClick={onOpenMenu} />
         </div>
+        <img src={logoImg} alt="Smart Solar" className="h-9 w-9 shrink-0 rounded-xl object-contain bg-amber-400/10 p-1 ring-1 ring-amber-400/30 xl:hidden" />
         <div className="min-w-0">
           <p className="truncate text-lg font-semibold text-slate-950 dark:text-white">{title}</p>
           <p className="hidden text-xs text-slate-500 sm:block dark:text-slate-400">Monitor your energy network at a glance</p>
