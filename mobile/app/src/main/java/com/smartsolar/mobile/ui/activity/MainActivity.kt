@@ -115,6 +115,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 Toast.makeText(this, statusMessage, Toast.LENGTH_LONG).show()
             }
 
+            R.id.nav_profile -> {
+                binding.topToolbar.title = "My Account"
+                loadFragment(
+                    com.smartsolar.mobile.ui.fragment.ProfileFragment(),
+                    "profile"
+                )
+            }
+
             R.id.nav_settings -> {
                 binding.topToolbar.title = "Settings"
                 binding.tvCurrentScreenTitle.text = "System Settings"
@@ -136,6 +144,23 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         // Close drawer smoothly after selection
         binding.drawerLayout.closeDrawer(GravityCompat.START)
         return true
+    }
+
+    /**
+     * Replaces the fragment inside [R.id.fragmentContainer] with a fade animation.
+     * Uses the tag to identify already-loaded instances.
+     */
+    private fun loadFragment(fragment: androidx.fragment.app.Fragment, tag: String) {
+        supportFragmentManager.beginTransaction()
+            .setCustomAnimations(
+                android.R.anim.fade_in,
+                android.R.anim.fade_out,
+                android.R.anim.fade_in,
+                android.R.anim.fade_out
+            )
+            .replace(R.id.fragmentContainer, fragment, tag)
+            .addToBackStack(null)
+            .commit()
     }
 
     private fun setupBackPressHandler() {

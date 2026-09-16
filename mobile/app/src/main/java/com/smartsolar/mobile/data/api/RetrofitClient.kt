@@ -35,6 +35,13 @@ object RetrofitClient {
         get() = getClient().create(ApiService::class.java)
 
     /**
+     * Exposes the underlying Retrofit instance so other services (e.g. AccountApiService)
+     * can be created via RetrofitClient.instance.create(MyService::class.java).
+     */
+    val instance: retrofit2.Retrofit
+        get() = getClient()
+
+    /**
      * Updates the base URL dynamically (e.g., when switching from Emulator IP 10.0.2.2 to LAN IP).
      */
     fun updateBaseUrl(newUrl: String) {

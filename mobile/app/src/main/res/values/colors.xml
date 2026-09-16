@@ -43,4 +43,27 @@
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
     <color name="transparent">#00000000</color>
-</resources>
+    <!-- ── Status Badge Colors (used by StatusBadgeView component) ──────────── -->
+    <!-- Green — Active / Available / Confirmed / Completed -->
+    <color name="badge_bg_green">#D1FAE5</color>
+    <color name="badge_text_green">#065F46</color>
+    <!-- Amber — PendingActivation / Booked -->
+    <color name="badge_bg_amber">#FEF3C7</color>
+    <color name="badge_text_amber">#92400E</color>
+    <!-- Orange — DeactivationRequested -->
+    <color name="badge_bg_orange">#FFEDD5</color>
+    <color name="badge_text_orange">#9A3412</color>
+    <!-- Red — Deactivated / Cancelled -->
+    <color name="badge_bg_red">#FEE2E2</color>
+    <color name="badge_text_red">#991B1B</color>
+    <!-- Slate — Unknown / fallback -->
+    <color name="badge_bg_slate">#F1F5F9</color>
+    <color name="badge_text_slate">#475569</color>
+
+    <!-- ── Info Row Icon Tint ─────────────────────────────────────────────────── -->
+    <color name="icon_tint_muted">#94A3B8</color>
+
+    <!-- ── Divider ───────────────────────────────────────────────────────────── -->
+    <color name="divider_light">#E2E8F0</color>
+
+</resources>

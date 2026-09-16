@@ -45,4 +45,38 @@
     <string name="err_empty_password">Password is required</string>
     <string name="err_empty_name">Full name is required</string>
     <string name="err_password_mismatch">Passwords do not match</string>
-</resources>
+    <!-- Profile & Account Management -->
+    <string name="profile_title">My Account</string>
+    <string name="profile_subtitle">View and manage your profile details</string>
+    <string name="edit_profile_title">Edit Details</string>
+    <string name="account_info_title">Account Information</string>
+    <string name="account_actions_title">Account Actions</string>
+    <string name="btn_edit_profile">Edit Profile</string>
+    <string name="btn_save_changes">Save Changes</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_change_password">Change Password</string>
+    <string name="btn_request_deactivation">Request Account Deactivation</string>
+    <string name="change_password_title">Change Password</string>
+    <string name="change_password_subtitle">Create a strong, unique password</string>
+    <string name="label_full_name">Full Name</string>
+    <string name="label_username">Username</string>
+    <string name="label_email">Email Address</string>
+    <string name="label_phone">Phone Number</string>
+    <string name="label_address">Address</string>
+    <string name="label_nic">NIC</string>
+    <string name="label_role">Role</string>
+    <string name="label_status">Status</string>
+    <string name="label_current_password">Current Password</string>
+    <string name="label_new_password">New Password</string>
+    <string name="label_confirm_password">Confirm New Password</string>
+    <string name="btn_update_password">Update Password</string>
+    <string name="msg_profile_saved">✓  Profile updated successfully.</string>
+    <string name="msg_password_changed">✓  Password changed successfully.</string>
+    <string name="err_field_required">This field is required</string>
+    <string name="err_password_too_short">Password must be at least 6 characters</string>
+    <string name="deactivation_dialog_title">Request Account Deactivation</string>
+    <string name="deactivation_dialog_message">Are you sure you want to request deactivation? An administrator will review your request.</string>
+    <string name="deactivation_reason_hint">Reason for deactivation (optional)</string>
+    <string name="btn_submit_request">Submit Request</string>
+
+</resources>
