@@ -78,19 +78,25 @@ class StationRepository(
         }
 
     /**
-     * Searches stations by location keyword and/or availability flag.
+     * Explicitly synchronizes all stations from cloud backend into local SQLite.
+     * Returns the count of synchronized stations.
      */
-    suspend fun searchStations(location: String?, available: Boolean?): Result<List<Station>> =
-        withContext(Dispatchers.IO) {
-            try {
-                val response = apiService.searchStations(location, available)
-                if (response.isSuccessful && response.body() != null) {
-                    Result.success(response.body()!!)
-                } else {
-                    Result.failure(Exception("Search failed with code ${response.code()}"))
-                }
-            } catch (e: Exception) {
-                Result.failure(e)
+    suspend fun syncStations(): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            if (!NetworkUtils.isNetworkAvailable(context)) {
+                return@withContext Result.failure(Exception("No internet connection available for sync"))
             }
+
+            val response = apiService.getStations()
+            if (response.isSuccessful && response.body() != null) {
+                val stations = response.body()!!
+                dbHelper.insertStations(stations)
+                Result.success(stations.size)
+            } else {
+                Result.failure(Exception("Backend returned code ${response.code()} during sync"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
+    }
 }

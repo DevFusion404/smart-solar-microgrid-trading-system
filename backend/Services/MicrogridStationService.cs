@@ -15,6 +15,7 @@ using backend.DTOs;
 using backend.Interfaces;
 using backend.Models;
 
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace backend.Services;
@@ -22,6 +23,7 @@ public class MicrogridStationService : IMicrogridStationService
 {
     private readonly IMongoCollection<SolarStationInfo> _stations;
     private readonly IMongoCollection<EnergyBookingSlot> _slots;
+    private readonly IMongoCollection<BsonDocument> _reservations;
 
     // Constructor initializes MongoDB collections
     public MicrogridStationService(MongoDbContext context)
@@ -33,6 +35,9 @@ public class MicrogridStationService : IMicrogridStationService
         _slots = context.Database
             .GetCollection<EnergyBookingSlot>("EnergyBookingSlot");
 
+        _reservations = context.Database
+            .GetCollection<BsonDocument>("EnergyReservations");
+
     }
 
     // Retrieves all active and inactive microgrid stations
@@ -43,12 +48,21 @@ public class MicrogridStationService : IMicrogridStationService
             .ToListAsync();
     }
 
-    // Retrieves a single microgrid station using MongoDB ID
+    // Retrieves a single microgrid station using MongoDB ID or StationId
     public async Task<SolarStationInfo?> GetStationById(string id)
     {
-        return await _stations
-            .Find(x => x.Id == id)
+        var station = await _stations
+            .Find(x => x.StationId == id)
             .FirstOrDefaultAsync();
+
+        if(station == null && ObjectId.TryParse(id, out _))
+        {
+            station = await _stations
+                .Find(x => x.Id == id)
+                .FirstOrDefaultAsync();
+        }
+
+        return station;
     }
 
 
@@ -132,9 +146,17 @@ public class MicrogridStationService : IMicrogridStationService
                 "Invalid longitude value");
         }
 
+        var existing = await GetStationById(id);
+        if(existing == null)
+        {
+            return false;
+        }
+
+        station.Id = existing.Id;
+
         var result =
             await _stations.ReplaceOneAsync(
-                x => x.Id == id,
+                x => x.Id == existing.Id,
                 station);
         return result.ModifiedCount > 0;
 
@@ -151,13 +173,19 @@ public class MicrogridStationService : IMicrogridStationService
                 "Operational schedule is required");
         }
 
+        var existing = await GetStationById(id);
+        if(existing == null)
+        {
+            return false;
+        }
+
         var update =
             Builders<SolarStationInfo>.Update
             .Set(x => x.OperationalSchedule, schedule);
 
         var result =
             await _stations.UpdateOneAsync(
-                x => x.Id == id,
+                x => x.Id == existing.Id,
                 update);
 
         return result.ModifiedCount > 0;
@@ -165,14 +193,22 @@ public class MicrogridStationService : IMicrogridStationService
     }
 
     // Deactivates a microgrid station.
-    // Blocked if there are any Available booking slots linked to it.
+    // Blocked if there are any Available booking slots or active reservations linked to it.
     public async Task<bool> DeactivateStation(string id)
     {
-        // Retrieve the station to get its StationId field
+        // Retrieve the station by StationId or ObjectId
         var station =
             await _stations
-            .Find(x => x.Id == id)
+            .Find(x => x.StationId == id)
             .FirstOrDefaultAsync();
+
+        if(station == null && ObjectId.TryParse(id, out _))
+        {
+            station =
+                await _stations
+                .Find(x => x.Id == id)
+                .FirstOrDefaultAsync();
+        }
 
         if(station == null)
         {
@@ -193,6 +229,35 @@ public class MicrogridStationService : IMicrogridStationService
                 $"{activeSlotCount} active booking slot(s) still exist");
         }
 
+        // Block deactivation if active reservations exist in EnergyReservations collection
+        if(_reservations != null)
+        {
+            // Find all slots belonging to this station
+            var stationSlots = await _slots
+                .Find(x => x.StationId == station.StationId)
+                .ToListAsync();
+
+            var slotIds = stationSlots.Select(x => x.SlotId).ToList();
+
+            var activeReservationStatuses = new[] { "Pending", "Approved", "Confirmed", "Active" };
+
+            var filterBuilder = Builders<BsonDocument>.Filter;
+            var stationOrSlotFilter = filterBuilder.Or(
+                filterBuilder.Eq("StationId", station.StationId),
+                filterBuilder.In("SlotId", slotIds)
+            );
+            var statusFilter = filterBuilder.In("Status", activeReservationStatuses);
+
+            var activeReservationCount = await _reservations.CountDocumentsAsync(
+                filterBuilder.And(stationOrSlotFilter, statusFilter));
+
+            if(activeReservationCount > 0)
+            {
+                throw new Exception(
+                    $"Cannot deactivate station: {activeReservationCount} active reservation(s) still exist");
+            }
+        }
+
         var update =
             Builders<SolarStationInfo>.Update
             .Set(x => x.Status, "Deactivated");
@@ -200,7 +265,7 @@ public class MicrogridStationService : IMicrogridStationService
 
         var result =
             await _stations.UpdateOneAsync(
-                x => x.Id == id,
+                x => x.Id == station.Id,
                 update);
 
         return result.ModifiedCount > 0;

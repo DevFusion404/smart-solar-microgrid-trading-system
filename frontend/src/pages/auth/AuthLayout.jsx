@@ -1,6 +1,7 @@
 import { ArrowLeft, Moon, Sun } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import logoImg from '../../assets/logo3.png'
 
 function SolarIllustration() {
   return (
@@ -9,8 +10,8 @@ function SolarIllustration() {
       <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-amber-300/20 blur-3xl" />
       <div className="relative w-full max-w-lg">
         <div className="mb-12 flex items-center gap-4">
-          <div className="rounded-2xl bg-amber-300 p-3 text-slate-950 shadow-lg shadow-amber-300/20">
-            <Sun className="h-8 w-8" />
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-300/20 p-2 shadow-lg shadow-amber-300/20 ring-1 ring-amber-400/40">
+            <img src={logoImg} alt="SolarGrid Logo" className="h-full w-full object-contain" />
           </div>
           <div>
             <p className="text-xl font-semibold text-white">SolarGrid</p>

@@ -21,7 +21,7 @@
         <item
             android:id="@+id/nav_slots"
             android:icon="@drawable/ic_nav_energy"
-            android:title="Energy Slots" />
+            android:title="Reserve Energy" />
 
         <item
             android:id="@+id/nav_reservations"
@@ -31,7 +31,7 @@
         <item
             android:id="@+id/nav_history"
             android:icon="@drawable/ic_nav_chart"
-            android:title="Energy History" />
+            android:title="Reservation History" />
 
         <item
             android:id="@+id/nav_sync"

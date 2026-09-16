@@ -15,6 +15,7 @@ import {
 import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
+import logoImg from '../assets/logo3.png'
 
 const navigationGroups = [
   {
@@ -152,8 +153,8 @@ export function BackOfficeSidebar({
             : 'gap-3 px-5'
         )}
       >
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-slate-950">
-          <Zap className="h-6 w-6" strokeWidth={2.5} />
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 p-1 ring-1 ring-amber-400/30">
+          <img src={logoImg} alt="Smart Solar Logo" className="h-full w-full object-contain" />
         </div>
 
         {!collapsed && (

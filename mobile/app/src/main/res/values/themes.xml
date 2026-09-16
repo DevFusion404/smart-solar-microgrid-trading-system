@@ -75,6 +75,14 @@
         <item name="elevation">4dp</item>
     </style>
 
+    <style name="Widget.SmartSolar.ReservationFilterChip" parent="Widget.MaterialComponents.Chip.Choice">
+        <item name="chipBackgroundColor">@color/reservation_filter_chip_background</item>
+        <item name="chipStrokeColor">@color/reservation_filter_chip_stroke</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="android:textColor">@color/reservation_filter_chip_text</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
     <!-- Navigation Drawer Category Subheader Style (Fixes white text on white background) -->
     <style name="Widget.SmartSolar.NavigationView.Subheader" parent="TextAppearance.MaterialComponents.Body2">
         <item name="android:textColor">@color/slate_500</item>

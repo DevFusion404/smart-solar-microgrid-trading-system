@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import { NavLink, useNavigate } from 'react-router-dom'
+import logoImg from '../assets/logo3.png'
 
 const linkClass = ({ isActive }) =>
   clsx(
@@ -46,8 +47,8 @@ export function ProsumerSidebar({ collapsed = false, onToggleCollapse, onLogout,
           collapsed ? 'justify-center' : 'gap-3 px-5'
         )}
       >
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white">
-          <Zap className="h-6 w-6" strokeWidth={2.5} />
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 p-1 ring-1 ring-emerald-500/30">
+          <img src={logoImg} alt="Smart Solar Logo" className="h-full w-full object-contain" />
         </div>
         {!collapsed && (
           <div className="min-w-0">

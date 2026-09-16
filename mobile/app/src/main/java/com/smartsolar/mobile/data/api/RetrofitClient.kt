@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private var currentBaseUrl: String = Constants.BASE_URL
+    private var currentBaseUrl: String = ApiConfig.BASE_URL
     private var retrofitInstance: Retrofit? = null
 
     private val okHttpClient: OkHttpClient by lazy {
