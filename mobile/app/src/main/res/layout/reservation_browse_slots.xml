@@ -122,6 +122,7 @@
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/tvSelectedStationName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Colombo Solar Hub"
@@ -130,6 +131,7 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/tvSelectedStationAddress"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="3dp"
@@ -198,6 +200,51 @@
                 android:layout_height="wrap_content"
                 android:text="Afternoon" />
         </com.google.android.material.chip.ChipGroup>
+
+        <ProgressBar
+            android:id="@+id/pbSlotsLoading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="24dp"
+            android:indeterminateTint="@color/solar_primary"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/layoutEmptySlots"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="No slots"
+                android:src="@drawable/ic_nav_energy"
+                app:tint="@color/slate_300" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:fontFamily="sans-serif-bold"
+                android:text="No Available Slots"
+                android:textColor="@color/slate_700"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/tvEmptySlotsReason"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:text="No energy booking slots are open for this station on the selected date."
+                android:textColor="@color/slate_400"
+                android:textSize="12sp" />
+        </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvAvailableEnergySlots"

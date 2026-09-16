@@ -3,10 +3,9 @@ package com.smartsolar.mobile.utils
 object Constants {
     /**
      * Base URL for connecting to the ASP.NET Core backend.
-     * Note: In the Android Emulator, "10.0.2.2" refers to the host machine's "localhost".
-     * If testing on a physical device over Wi-Fi, change this to your machine's LAN IP.
+     * Synchronized with ApiConfig.BASE_URL.
      */
-    const val BASE_URL = "http://10.0.2.2:5295/"
+    const val BASE_URL = "http://10.37.43.116:5295/"
 
     // Request Timeout
     const val NETWORK_TIMEOUT_SECONDS = 30L
