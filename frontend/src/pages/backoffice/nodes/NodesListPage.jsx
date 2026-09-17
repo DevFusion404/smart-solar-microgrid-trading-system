@@ -23,6 +23,9 @@ import {
   RefreshCw,
   Search,
   SlidersHorizontal,
+  UserCheck,
+  UserX,
+  Users,
   X,
   Zap,
 } from 'lucide-react'
@@ -30,7 +33,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Panel, SectionHeading } from '../../../components/common/Panel'
 import { StatusBadge } from '../../../components/common/StatusBadge'
-import { stationService } from '../../../services'
+import { nodeAssignmentService, stationService, userService } from '../../../services'
 
 // Edit Station Modal Component
 function EditStationModal({ station, onClose, onUpdated }) {
@@ -368,6 +371,239 @@ function DeactivateModal({ station, onClose, onDeactivated }) {
   )
 }
 
+// Assign Grid Operator Modal Component
+function AssignOperatorModal({ station, onClose, onAssigned }) {
+  const [operators, setOperators] = useState([])
+  const [loadingOperators, setLoadingOperators] = useState(true)
+  const [selectedOperatorKey, setSelectedOperatorKey] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [removing, setRemoving] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    async function loadOperators() {
+      try {
+        setLoadingOperators(true)
+        const res = await userService.listWebUsers({ role: 'GridOperator', status: 'Active', pageSize: 100 })
+        const list = res?.items || (Array.isArray(res) ? res : [])
+        setOperators(list)
+
+        // Pre-select if station is already assigned
+        if (station.assignedOperatorId) {
+          const match = list.find(
+            (op) =>
+              (op.id && op.id === station.assignedOperatorId) ||
+              (op.username && op.username === station.assignedOperatorId) ||
+              (op.fullName && op.fullName === station.assignedOperatorName)
+          )
+          if (match) {
+            setSelectedOperatorKey(match.username || match.id)
+          }
+        }
+      } catch (err) {
+        setError(err.message || 'Failed to load Grid Operators')
+      } finally {
+        setLoadingOperators(false)
+      }
+    }
+    loadOperators()
+  }, [station.assignedOperatorId, station.assignedOperatorName])
+
+  const handleAssign = async (e) => {
+    e.preventDefault()
+    if (!selectedOperatorKey) {
+      setError('Please select a Grid Operator to assign')
+      return
+    }
+
+    const selectedOp = operators.find(
+      (op) =>
+        (op.username && op.username === selectedOperatorKey) ||
+        (op.id && op.id === selectedOperatorKey)
+    )
+
+    if (!selectedOp) {
+      setError('Selected operator not found')
+      return
+    }
+
+    try {
+      setSaving(true)
+      setError(null)
+      const opId = selectedOp.username || selectedOp.id
+      const opName = selectedOp.fullName || selectedOp.username
+
+      await nodeAssignmentService.assignOperator(station.id || station.stationId, {
+        operatorId: opId,
+        operatorName: opName,
+      })
+      onAssigned()
+      onClose()
+    } catch (err) {
+      const errData = err.response?.data
+      let msg = 'Failed to assign operator'
+      if (errData?.errors) {
+        msg = Object.values(errData.errors).flat().join(', ')
+      } else if (errData?.message) {
+        msg = errData.message
+      } else if (errData?.title) {
+        msg = errData.title
+      } else if (err.message) {
+        msg = err.message
+      }
+      setError(msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleRemove = async () => {
+    try {
+      setRemoving(true)
+      setError(null)
+      await nodeAssignmentService.removeOperator(station.id || station.stationId)
+      onAssigned()
+      onClose()
+    } catch (err) {
+      const errData = err.response?.data
+      const msg = errData?.message || errData?.title || err.message || 'Failed to remove operator assignment'
+      setError(msg)
+    } finally {
+      setRemoving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+      <Panel className="w-full max-w-lg overflow-hidden shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+          <div>
+            <h3 className="text-base font-bold text-slate-950 dark:text-white">Assign Grid Operator</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {station.stationName} ({station.stationId})
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleAssign} className="space-y-5 p-6">
+          {error && (
+            <div className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-900/50 dark:bg-rose-400/10 dark:text-rose-300">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Current Assignment Info */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Current Status
+              </span>
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  station.assignedOperatorId
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-400/10 dark:text-blue-300'
+                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                }`}
+              >
+                <UserCheck className="h-3 w-3" />
+                {station.assignmentStatus || (station.assignedOperatorId ? 'Assigned' : 'Unassigned')}
+              </span>
+            </div>
+
+            {station.assignedOperatorId ? (
+              <div className="mt-3 space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                <p>
+                  <strong className="text-slate-800 dark:text-slate-100">Operator:</strong>{' '}
+                  {station.assignedOperatorName || station.assignedOperatorId}
+                </p>
+                {station.assignedDate && (
+                  <p>
+                    <strong className="text-slate-800 dark:text-slate-100">Assigned On:</strong>{' '}
+                    {new Date(station.assignedDate).toLocaleDateString()}
+                  </p>
+                )}
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={handleRemove}
+                    disabled={removing || saving}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                  >
+                    <UserX className="h-3.5 w-3.5" />
+                    {removing ? 'Removing...' : 'Remove Assignment'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                No Grid Operator is currently assigned to this microgrid node.
+              </p>
+            )}
+          </div>
+
+          {/* Select New Operator */}
+          <div>
+            <label className="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">
+              Select Grid Operator
+            </label>
+            {loadingOperators ? (
+              <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-500" />
+                <span>Loading active Grid Operators...</span>
+              </div>
+            ) : (
+              <select
+                value={selectedOperatorKey}
+                onChange={(e) => setSelectedOperatorKey(e.target.value)}
+                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-amber-500 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+              >
+                <option value="">-- Select Grid Operator --</option>
+                {operators.map((op) => {
+                  const keyVal = op.username || op.id
+                  return (
+                    <option key={keyVal} value={keyVal}>
+                      {op.fullName} (@{op.username})
+                    </option>
+                  )
+                })}
+              </select>
+            )}
+            <p className="mt-1.5 text-[11px] text-slate-400">
+              Assigned operators will manage capacity, energy slots, and monitor reservations for this node.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || loadingOperators || !selectedOperatorKey}
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-slate-950 shadow-sm transition hover:bg-amber-400 disabled:opacity-50"
+            >
+              <UserCheck className="h-4 w-4" />
+              {saving ? 'Assigning...' : 'Assign Operator'}
+            </button>
+          </div>
+        </form>
+      </Panel>
+    </div>
+  )
+}
+
 export function NodesListPage() {
   const navigate = useNavigate()
   const [stations, setStations] = useState([])
@@ -382,6 +618,7 @@ export function NodesListPage() {
   const [editingStation, setEditingStation] = useState(null)
   const [schedulingStation, setSchedulingStation] = useState(null)
   const [deactivatingStation, setDeactivatingStation] = useState(null)
+  const [assigningStation, setAssigningStation] = useState(null)
 
   const loadStations = async () => {
     try {
@@ -614,6 +851,7 @@ export function NodesListPage() {
                   <th className="px-3 py-3.5">Address & Coordinates</th>
                   <th className="px-3 py-3.5">Generation Cap</th>
                   <th className="px-3 py-3.5">Battery Storage</th>
+                  <th className="px-3 py-3.5">Assigned Operator</th>
                   <th className="px-3 py-3.5">Operating Schedule</th>
                   <th className="px-3 py-3.5">Status</th>
                   <th className="px-5 py-3.5 text-right md:px-6">Actions</th>
@@ -652,6 +890,26 @@ export function NodesListPage() {
                       </td>
 
                       <td className="px-3 py-4">
+                        {station.assignedOperatorId ? (
+                          <div>
+                            <div className="flex items-center gap-1.5 font-medium text-slate-800 dark:text-slate-200">
+                              <UserCheck className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                              <span className="truncate max-w-[130px]" title={station.assignedOperatorName || station.assignedOperatorId}>
+                                {station.assignedOperatorName || station.assignedOperatorId}
+                              </span>
+                            </div>
+                            <span className="inline-block mt-0.5 rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-400/10 dark:text-blue-300">
+                              Assigned
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="inline-block rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                            Unassigned
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-3 py-4">
                         <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                           <Clock className="h-3.5 w-3.5 text-slate-400" />
                           <span>{station.operationalSchedule}</span>
@@ -664,6 +922,15 @@ export function NodesListPage() {
 
                       <td className="px-5 py-4 text-right md:px-6">
                         <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            title="Assign Grid Operator"
+                            onClick={() => setAssigningStation(station)}
+                            className="rounded-lg p-1.5 text-blue-600 transition hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-400/10"
+                          >
+                            <UserCheck className="h-4 w-4" />
+                          </button>
+
                           <button
                             type="button"
                             title="Edit station details"
@@ -686,7 +953,7 @@ export function NodesListPage() {
                             type="button"
                             title="View station energy slots"
                             onClick={() => navigate(`/backoffice/energy-slots/manage?stationId=${station.stationId}`)}
-                            className="rounded-lg p-1.5 text-blue-600 transition hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-400/10"
+                            className="rounded-lg p-1.5 text-amber-600 transition hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-400/10"
                           >
                             <ExternalLink className="h-4 w-4" />
                           </button>
@@ -707,7 +974,7 @@ export function NodesListPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="py-16 text-center">
+                    <td colSpan="8" className="py-16 text-center">
                       <Search className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-600" />
                       <p className="mt-3 text-base font-semibold text-slate-800 dark:text-slate-200">No microgrid stations found</p>
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -798,6 +1065,14 @@ export function NodesListPage() {
           station={deactivatingStation}
           onClose={() => setDeactivatingStation(null)}
           onDeactivated={loadStations}
+        />
+      )}
+
+      {assigningStation && (
+        <AssignOperatorModal
+          station={assigningStation}
+          onClose={() => setAssigningStation(null)}
+          onAssigned={loadStations}
         />
       )}
     </div>

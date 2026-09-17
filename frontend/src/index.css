@@ -56,29 +56,44 @@
   --sidebar-muted: #64748b;
 }
 
-.backoffice-sidebar {
+.backoffice-sidebar,
+.operator-sidebar,
+.prosumer-sidebar {
   background-color: var(--sidebar-background) !important;
   border-color: var(--sidebar-border) !important;
   color: var(--sidebar-muted);
 }
 
-.backoffice-sidebar .border-slate-800 {
+.backoffice-sidebar .border-slate-800,
+.operator-sidebar .border-slate-800,
+.prosumer-sidebar .border-slate-800 {
   border-color: var(--sidebar-border);
 }
 
-.backoffice-sidebar .text-white {
+.backoffice-sidebar .text-white,
+.operator-sidebar .text-white,
+.prosumer-sidebar .text-white {
   color: var(--sidebar-heading);
 }
 
-.backoffice-sidebar .text-slate-400 {
+.backoffice-sidebar .text-slate-400,
+.operator-sidebar .text-slate-400,
+.prosumer-sidebar .text-slate-400 {
   color: var(--sidebar-muted);
 }
 
-.backoffice-sidebar .hover\:bg-slate-800:hover {
+.backoffice-sidebar .hover\:bg-slate-800:hover,
+.operator-sidebar .hover\:bg-slate-800:hover,
+.prosumer-sidebar .hover\:bg-slate-800:hover,
+.backoffice-sidebar .hover\:bg-slate-800\/60:hover,
+.operator-sidebar .hover\:bg-slate-800\/60:hover,
+.prosumer-sidebar .hover\:bg-slate-800\/60:hover {
   background-color: color-mix(in srgb, var(--sidebar-heading) 8%, transparent);
 }
 
-.backoffice-sidebar .hover\:text-white:hover {
+.backoffice-sidebar .hover\:text-white:hover,
+.operator-sidebar .hover\:text-white:hover,
+.prosumer-sidebar .hover\:text-white:hover {
   color: var(--sidebar-heading);
 }
 
