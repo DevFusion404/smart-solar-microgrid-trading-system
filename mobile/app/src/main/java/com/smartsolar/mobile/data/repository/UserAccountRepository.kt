@@ -53,9 +53,8 @@ class UserAccountRepository(
                 if (response.isSuccessful && response.body() != null) {
                     Result.success(response.body()!!)
                 } else {
-                    Result.failure(
-                        Exception("Profile update failed (HTTP ${response.code()})")
-                    )
+                    val errorMsg = extractErrorMessage(response.errorBody()?.string(), "Profile update failed (HTTP ${response.code()})")
+                    Result.failure(Exception(errorMsg))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
@@ -74,9 +73,8 @@ class UserAccountRepository(
                     val message = response.body()?.get("message") ?: "Password changed successfully"
                     Result.success(message)
                 } else {
-                    Result.failure(
-                        Exception("Password change failed (HTTP ${response.code()})")
-                    )
+                    val errorMsg = extractErrorMessage(response.errorBody()?.string(), "Password change failed (HTTP ${response.code()})")
+                    Result.failure(Exception(errorMsg))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
@@ -95,12 +93,47 @@ class UserAccountRepository(
                     val message = response.body()?.get("message") ?: "Deactivation request submitted"
                     Result.success(message)
                 } else {
-                    Result.failure(
-                        Exception("Deactivation request failed (HTTP ${response.code()})")
-                    )
+                    val errorMsg = extractErrorMessage(response.errorBody()?.string(), "Deactivation request failed (HTTP ${response.code()})")
+                    Result.failure(Exception(errorMsg))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
             }
         }
+
+    private fun extractErrorMessage(jsonString: String?, defaultMessage: String): String {
+        if (jsonString.isNullOrBlank()) return defaultMessage
+        return try {
+            val json = org.json.JSONObject(jsonString)
+            val errorList = mutableListOf<String>()
+
+            if (json.has("validationErrors") && !json.isNull("validationErrors")) {
+                val valObj = json.getJSONObject("validationErrors")
+                val keys = valObj.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    val arr = valObj.optJSONArray(key)
+                    if (arr != null) {
+                        for (i in 0 until arr.length()) {
+                            errorList.add(arr.getString(i))
+                        }
+                    }
+                }
+            }
+
+            if (errorList.isNotEmpty()) {
+                "Validation Error:\n• " + errorList.joinToString("\n• ")
+            } else if (json.has("message") && json.getString("message").isNotBlank()) {
+                json.getString("message")
+            } else if (json.has("detail") && json.getString("detail").isNotBlank()) {
+                json.getString("detail")
+            } else if (json.has("title") && json.getString("title").isNotBlank()) {
+                json.getString("title")
+            } else {
+                defaultMessage
+            }
+        } catch (e: Exception) {
+            defaultMessage
+        }
+    }
 }

@@ -13,3 +13,11 @@ public class UpdateProfileDto
     public string? PhoneNumber { get; set; }
     public string? Address { get; set; } // Prosumers only
 }
+
+public class ChangePasswordDto
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+

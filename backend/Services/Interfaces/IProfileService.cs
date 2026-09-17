@@ -15,4 +15,5 @@ public interface IProfileService
     Task<UserDetails> GetProfileAsync(string username);
     Task<UserDetails> UpdateProfileAsync(string username, UpdateProfileDto request);
     Task SubmitDeactivationRequestAsync(string username, string reason);
+    Task ChangePasswordAsync(string username, ChangePasswordDto request);
 }
