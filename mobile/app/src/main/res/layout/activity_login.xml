@@ -171,6 +171,49 @@
                         android:layout_marginTop="20dp"
                         android:text="@string/btn_login" />
 
+                    <!-- Divider OR -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="1dp"
+                            android:layout_weight="1"
+                            android:background="@color/slate_200" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="12dp"
+                            android:text="OR DEMO"
+                            android:textColor="@color/slate_400"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="1dp"
+                            android:layout_weight="1"
+                            android:background="@color/slate_200" />
+                    </LinearLayout>
+
+                    <!-- Quick Login as Grid Operator Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnQuickOperatorLogin"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:paddingVertical="12dp"
+                        android:text="⚡ Login as Grid Operator (@chamithu)"
+                        android:textColor="@color/cyan_accent_dark"
+                        app:strokeColor="@color/cyan_accent"
+                        app:strokeWidth="1.5dp" />
+
                     <!-- Register Link Row -->
                     <LinearLayout
                         android:layout_width="wrap_content"
