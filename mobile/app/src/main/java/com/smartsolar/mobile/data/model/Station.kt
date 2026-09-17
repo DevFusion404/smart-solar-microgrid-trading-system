@@ -31,7 +31,19 @@ data class Station(
     val operationalSchedule: String = "",
 
     @SerializedName("status")
-    val status: String = "Active"
+    val status: String = "Active",
+
+    @SerializedName("assignedOperatorId")
+    val assignedOperatorId: String? = null,
+
+    @SerializedName("assignedOperatorName")
+    val assignedOperatorName: String? = null,
+
+    @SerializedName("assignedDate")
+    val assignedDate: String? = null,
+
+    @SerializedName("assignmentStatus")
+    val assignmentStatus: String? = null
 )
 
 /**
