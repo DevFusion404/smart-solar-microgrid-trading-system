@@ -272,37 +272,76 @@ public class MicrogridStationService : IMicrogridStationService
 
     }
 
+    // Reactivates a deactivated microgrid station by setting its status back to Active.
+    public async Task<bool> ReactivateStation(string id)
+    {
+        var station =
+            await _stations
+            .Find(x => x.StationId == id)
+            .FirstOrDefaultAsync();
+
+        if (station == null && ObjectId.TryParse(id, out _))
+        {
+            station =
+                await _stations
+                .Find(x => x.Id == id)
+                .FirstOrDefaultAsync();
+        }
+
+        if (station == null)
+        {
+            throw new Exception("Station not found");
+        }
+
+        var update =
+            Builders<SolarStationInfo>.Update
+            .Set(x => x.Status, "Active");
+
+        var result =
+            await _stations.UpdateOneAsync(
+                x => x.Id == station.Id,
+                update);
+
+        return result.ModifiedCount > 0;
+    }
+
     // Searches stations by location keyword and/or availability
     public async Task<List<SolarStationInfo>> SearchStations(
         string? location,
         bool? available)
     {
         // Start with a match-all filter and narrow it down
-        var filter =
-            Builders<SolarStationInfo>.Filter.Empty;
+        var filter = Builders<SolarStationInfo>.Filter.Empty;
 
-        // Filter by partial address match if location is provided
-        if(!string.IsNullOrWhiteSpace(location))
+        // Filter by partial address, name, or station ID if location keyword is provided
+        if (!string.IsNullOrWhiteSpace(location))
         {
-            filter = filter &
-                Builders<SolarStationInfo>.Filter.Regex(
-                    x => x.Address,
-                    new MongoDB.Bson.BsonRegularExpression(
-                        location, "i"));
+            var trimmed = location.Trim();
+            var regex = new MongoDB.Bson.BsonRegularExpression(trimmed, "i");
+            var locationFilter = Builders<SolarStationInfo>.Filter.Or(
+                Builders<SolarStationInfo>.Filter.Regex(x => x.Address, regex),
+                Builders<SolarStationInfo>.Filter.Regex(x => x.StationName, regex),
+                Builders<SolarStationInfo>.Filter.Regex(x => x.StationId, regex)
+            );
+            filter &= locationFilter;
         }
 
-        // Filter to only Active stations if available flag is true
-        if(available == true)
+        // Filter by availability status if flag is provided
+        if (available.HasValue)
         {
-            filter = filter &
-                Builders<SolarStationInfo>.Filter.Eq(
-                    x => x.Status, "Active");
+            if (available.Value)
+            {
+                filter &= Builders<SolarStationInfo>.Filter.Eq(x => x.Status, "Active");
+            }
+            else
+            {
+                filter &= Builders<SolarStationInfo>.Filter.Ne(x => x.Status, "Active");
+            }
         }
 
         return await _stations
             .Find(filter)
             .ToListAsync();
-
     }
 
     // Returns lightweight map pin data for all active stations
