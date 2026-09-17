@@ -49,4 +49,23 @@ public class SolarStationInfo
     // Active or Deactivated
     public string Status { get; set; }
 
+    // Assigned Grid Operator identifier
+    [BsonElement("AssignedOperatorId")]
+    [BsonIgnoreIfNull]
+    public string? AssignedOperatorId { get; set; }
+
+    // Assigned Grid Operator full name
+    [BsonElement("AssignedOperatorName")]
+    [BsonIgnoreIfNull]
+    public string? AssignedOperatorName { get; set; }
+
+    // Date when the operator was assigned
+    [BsonElement("AssignedDate")]
+    [BsonIgnoreIfNull]
+    public DateTime? AssignedDate { get; set; }
+
+    // Assignment status: "Assigned" or "Unassigned"
+    [BsonElement("AssignmentStatus")]
+    public string AssignmentStatus { get; set; } = "Unassigned";
+
 }

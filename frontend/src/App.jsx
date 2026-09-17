@@ -25,6 +25,7 @@ import { EnergySlotReservations } from './pages/Reservation/EnergySlotReservatio
 
 // GridOperator pages
 import { OperatorDashboard } from './pages/operator/OperatorDashboard'
+import { OperatorNodesPage } from './pages/operator/OperatorNodesPage'
 import { OperatorLayout } from './components/layout/OperatorLayout'
 import { ProfilePage as GridOperatorProfilePage } from './pages/gridOperator/ProfilePage'
 import { ProsumerListPage as GridOperatorProsumerListPage } from './pages/gridOperator/ProsumerListPage'
@@ -70,6 +71,20 @@ function App() {
           {/* ── Grid Operator ── */}
           <Route path="/operator" element={<OperatorLayout />}>
             <Route index element={<OperatorDashboard />} />
+
+            {/* Microgrid Nodes */}
+            <Route path="nodes" element={<OperatorNodesPage />} />
+            <Route path="nodes/details" element={<OperatorNodesPage />} />
+
+            {/* Energy Slots Management */}
+            <Route path="energy-slots" element={<ManageEnergySlots operatorMode />} />
+            <Route path="energy-slots/update" element={<ManageEnergySlots operatorMode />} />
+
+            {/* Reservations */}
+            <Route path="reservations" element={<EnergySlotReservations />} />
+            <Route path="reservations/pending" element={<EnergySlotReservations />} />
+            <Route path="reservations/today" element={<EnergySlotReservations />} />
+            <Route path="reservations/:reservationId" element={<EnergySlotReservations />} />
 
             {/* Account management */}
             <Route path="profile" element={<GridOperatorProfilePage />} />

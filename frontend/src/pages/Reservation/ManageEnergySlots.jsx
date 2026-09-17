@@ -35,7 +35,8 @@ import { createPortal } from 'react-dom'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Panel, SectionHeading } from '../../components/common/Panel'
 import { StatusBadge } from '../../components/common/StatusBadge'
-import { slotService, stationService } from '../../services'
+import { nodeAssignmentService, slotService, stationService } from '../../services'
+import { useAuth } from '../../context/AuthContext'
 
 // Slot Detail Modal
 function SlotDetailModal({ slot, stationName, onClose, onAdjustCapacity, onEdit }) {
@@ -595,7 +596,9 @@ function AdjustCapacityModal({ slot, onClose, onAdjusted }) {
   )
 }
 
-export function ManageEnergySlots() {
+export function ManageEnergySlots({ operatorMode = false }) {
+  const { user } = useAuth()
+  const isOperator = operatorMode || user?.role === 'GridOperator'
   const [searchParams] = useSearchParams()
   const initialStationId = searchParams.get('stationId') || ''
 
@@ -614,24 +617,32 @@ export function ManageEnergySlots() {
   const [editingSlot, setEditingSlot] = useState(null)
   const [adjustingSlot, setAdjustingSlot] = useState(null)
 
-  // Load all stations initially
+  // Load stations initially (all stations for Backoffice, assigned nodes only for Grid Operator)
   useEffect(() => {
     async function initStations() {
       try {
         setLoading(true)
         setError(null)
-        const data = await stationService.getAllStations()
-        const stationList = data || []
+        let stationList = []
+        if (isOperator) {
+          const operatorIdentifier = user?.id || user?.username
+          stationList = await nodeAssignmentService.getNodesByOperator(operatorIdentifier)
+        } else {
+          stationList = await stationService.getAllStations()
+        }
+        stationList = stationList || []
         setStations(stationList)
 
         if (stationList.length > 0) {
-          // Preselect station from URL param if present, otherwise first active station
+          // Preselect station from URL param if present, otherwise first station
           const matched = stationList.find((s) => s.stationId === initialStationId)
           if (matched) {
             setSelectedStationId(matched.stationId)
           } else {
             setSelectedStationId(stationList[0].stationId)
           }
+        } else {
+          setSelectedStationId('')
         }
       } catch (err) {
         setError(err.message || 'Failed to load microgrid stations')
@@ -641,7 +652,7 @@ export function ManageEnergySlots() {
     }
 
     initStations()
-  }, [initialStationId])
+  }, [initialStationId, isOperator, user?.id, user?.username])
 
   // Fetch slots whenever selected station or date changes
   const loadSlots = async () => {
@@ -727,6 +738,25 @@ export function ManageEnergySlots() {
         </div>
       </div>
 
+      {/* No stations notice */}
+      {!loading && stations.length === 0 && (
+        <Panel className="border-amber-200 bg-amber-50/50 p-6 dark:border-amber-900/40 dark:bg-amber-400/5">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div>
+              <h3 className="text-sm font-bold text-slate-950 dark:text-white">
+                {isOperator ? 'No Assigned Microgrid Nodes Found' : 'No Microgrid Stations Found'}
+              </h3>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                {isOperator
+                  ? 'There are currently no microgrid stations assigned to your Grid Operator account. Once a Backoffice administrator assigns one or more nodes to you, you will be able to manage energy slots and adjust capacities here.'
+                  : 'No stations are registered in the system yet. Please register stations in the Microgrid Nodes section.'}
+              </p>
+            </div>
+          </div>
+        </Panel>
+      )}
+
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Panel className="p-5">
@@ -763,13 +793,18 @@ export function ManageEnergySlots() {
               <select
                 value={selectedStationId}
                 onChange={(e) => setSelectedStationId(e.target.value)}
+                disabled={stations.length === 0}
                 className="mt-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 outline-none transition focus:border-amber-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
               >
-                {stations.map((stn) => (
-                  <option key={stn.id} value={stn.stationId}>
-                    {stn.stationName} ({stn.stationId}) - {stn.status}
-                  </option>
-                ))}
+                {stations.length > 0 ? (
+                  stations.map((stn) => (
+                    <option key={stn.id || stn.stationId} value={stn.stationId}>
+                      {stn.stationName} ({stn.stationId}) - {stn.status}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">No nodes available</option>
+                )}
               </select>
             </div>
 

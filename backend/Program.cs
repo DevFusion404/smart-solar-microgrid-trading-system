@@ -102,6 +102,7 @@ builder.Services.AddSwaggerGen(options =>
 // Register Microgrid Services
 builder.Services.AddScoped<IMicrogridStationService, MicrogridStationService>();
 builder.Services.AddScoped<IEnergySlotService, EnergySlotService>();
+builder.Services.AddScoped<INodeAssignmentService, NodeAssignmentService>();
 builder.Services.AddScoped<IEnergyReservationService, EnergyReservationService>();
 
 // Register Configuration Singletons
