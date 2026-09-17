@@ -1,11 +1,41 @@
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthLayout } from './AuthLayout'
+import { useAuth } from '../../context/AuthContext'
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      const result = await login({ username, password })
+      const userRole = result?.user?.role || result?.role
+      
+      if (userRole === 'GridOperator') {
+        navigate('/operator')
+      } else if (userRole === 'Prosumer') {
+        navigate('/prosumer/profile')
+      } else {
+        navigate('/backoffice')
+      }
+    } catch (err) {
+      console.error('Login failed:', err)
+      setError(err.message || 'Invalid credentials or server error. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <AuthLayout>
@@ -19,13 +49,22 @@ export function LoginPage() {
         </p>
       </div>
 
-      <form className="space-y-5" onSubmit={(event) => event.preventDefault()}>
+      {error && (
+        <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      <form className="space-y-5" onSubmit={handleSubmit}>
         <label className="block text-sm font-medium">
-          Email address
+          Username
           <input
-            type="email"
-            name="email"
-            placeholder="you@example.com"
+            type="text"
+            name="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter your username"
             required
             className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900"
           />
@@ -36,6 +75,8 @@ export function LoginPage() {
             <input
               type={showPassword ? 'text' : 'password'}
               name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
               className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-12 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900"
@@ -52,8 +93,12 @@ export function LoginPage() {
           </label>
           <button type="button" className="font-medium text-blue-600 hover:text-blue-700">Forgot password?</button>
         </div>
-        <button type="submit" className="w-full rounded-xl bg-slate-950 px-4 py-3 font-medium text-white transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500">
-          Sign in
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-xl bg-slate-950 px-4 py-3 font-medium text-white transition hover:bg-blue-700 disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-500"
+        >
+          {loading ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
     </AuthLayout>

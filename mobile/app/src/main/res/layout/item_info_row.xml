@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    item_info_row.xml
+    Reusable label + value row for the profile info card.
+    Used with <include layout="@layout/item_info_row" android:id="@+id/rowXxx" />
+    The fragment then accesses: binding.rowFullName.tvInfoLabel / tvInfoValue.
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="52dp"
+    android:orientation="horizontal"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <!-- Icon tinted muted slate -->
+    <ImageView
+        android:id="@+id/ivInfoRowIcon"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="@drawable/bg_icon_circle"
+        android:contentDescription="@null"
+        android:padding="7dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_person" />
+
+    <!-- Label + Value column -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvInfoLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="Label"
+            android:textColor="@color/slate_400"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/tvInfoValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="2"
+            android:text="—"
+            android:textColor="@color/slate_800"
+            android:textSize="13sp" />
+    </LinearLayout>
+</LinearLayout>

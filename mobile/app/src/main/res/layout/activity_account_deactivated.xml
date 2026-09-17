@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    activity_account_deactivated.xml
+    Screen 13 – Account Deactivated (Both Roles)
+    Shown when login detects the account status = DEACTIVATED.
+-->
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/accountDeactivatedRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_splash_gradient">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Dark header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingTop="60dp"
+                android:paddingBottom="40dp">
+
+                <!-- Red-tinted icon container -->
+                <FrameLayout
+                    android:id="@+id/deactivatedIconWrapper"
+                    android:layout_width="104dp"
+                    android:layout_height="104dp"
+                    android:elevation="4dp">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/bg_logo_glow"
+                        android:alpha="0.6" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="🔴"
+                        android:textSize="42sp" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:fontFamily="sans-serif-black"
+                    android:text="@string/brand_name"
+                    android:textColor="@color/white"
+                    android:textSize="22sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Account Status"
+                    android:textColor="#FC9494"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
+            <!-- White card -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                app:cardBackgroundColor="@color/surface_card"
+                app:cardCornerRadius="32dp"
+                app:cardElevation="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="28dp"
+                    android:paddingTop="36dp"
+                    android:paddingBottom="32dp">
+
+                    <TextView
+                        android:id="@+id/tvDeactivatedTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-bold"
+                        android:gravity="center"
+                        android:text="@string/account_deactivated_title"
+                        android:textColor="@color/status_red"
+                        android:textSize="24sp" />
+
+                    <TextView
+                        android:id="@+id/tvDeactivatedSubtitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:gravity="center"
+                        android:text="@string/account_deactivated_subtitle"
+                        android:textColor="@color/slate_500"
+                        android:textSize="14sp" />
+
+                    <!-- Red warning card -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:background="@drawable/bg_warning_card"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="10dp"
+                            android:text="🔒"
+                            android:textSize="22sp" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-medium"
+                                android:text="Access Restricted"
+                                android:textColor="@color/status_red"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Your account privileges have been suspended."
+                                android:textColor="#DC2626"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Contact info card -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:background="@drawable/bg_card_surface"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="10dp"
+                            android:text="✉"
+                            android:textColor="@color/cyan_accent"
+                            android:textSize="20sp" />
+
+                        <TextView
+                            android:id="@+id/tvDeactivatedContact"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/account_deactivated_contact"
+                            android:textColor="@color/slate_600"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <!-- Back to Login button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDeactivatedBackToLogin"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="32dp"
+                        android:paddingVertical="14dp"
+                        android:text="@string/btn_back_to_login"
+                        android:textColor="@color/white"
+                        android:textSize="15sp"
+                        app:backgroundTint="@color/slate_700"
+                        app:cornerRadius="14dp" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

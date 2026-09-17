@@ -1,0 +1,520 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    fragment_profile.xml
+    My Account / Profile screen.
+    Shows avatar card on top, account info card below, and action buttons.
+    Displayed inside MainActivity's fragmentContainer via ProfileFragment.kt.
+-->
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/scrollViewProfile"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- ── Page Header ──────────────────────────────────────────────── -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-black"
+                android:text="My Account"
+                android:textColor="@color/slate_900"
+                android:textSize="24sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="View and manage your profile details"
+                android:textColor="@color/slate_500"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- ── Loading State ────────────────────────────────────────────── -->
+        <LinearLayout
+            android:id="@+id/layoutLoading"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="visible">
+
+            <ProgressBar
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:indeterminateTint="@color/solar_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="Loading profile…"
+                android:textColor="@color/slate_500"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- ── Error State ──────────────────────────────────────────────── -->
+        <LinearLayout
+            android:id="@+id/layoutError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card_surface"
+            android:elevation="2dp"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="32dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚠"
+                android:textColor="@color/status_red"
+                android:textSize="36sp" />
+
+            <TextView
+                android:id="@+id/tvErrorMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="Could not load profile"
+                android:textColor="@color/slate_700"
+                android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRetry"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Retry"
+                app:cornerRadius="12dp"
+                app:backgroundTint="@color/solar_primary" />
+        </LinearLayout>
+
+        <!-- ── Content (visible when data is loaded) ────────────────────── -->
+        <LinearLayout
+            android:id="@+id/layoutContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- ── Success Banner (shown after save) ──────────────────── -->
+            <LinearLayout
+                android:id="@+id/bannerSaved"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/bg_banner_success"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="14dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="✓  Profile updated successfully."
+                    android:textColor="#065F46"
+                    android:textSize="13sp"
+                    android:fontFamily="sans-serif-medium" />
+            </LinearLayout>
+
+            <!-- ── Avatar Card ────────────────────────────────────────── -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/surface_card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="28dp">
+
+                    <!-- Avatar circle with amber gradient -->
+                    <FrameLayout
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
+                        android:background="@drawable/bg_logo_glow">
+
+                        <TextView
+                            android:id="@+id/tvAvatarInitials"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:fontFamily="sans-serif-black"
+                            android:gravity="center"
+                            android:text="U"
+                            android:textColor="@color/slate_950"
+                            android:textSize="28sp" />
+                    </FrameLayout>
+
+                    <!-- Full Name -->
+                    <TextView
+                        android:id="@+id/tvFullName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:fontFamily="sans-serif-bold"
+                        android:text="User Name"
+                        android:textColor="@color/slate_900"
+                        android:textSize="18sp" />
+
+                    <!-- Username -->
+                    <TextView
+                        android:id="@+id/tvUsername"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@username"
+                        android:textColor="@color/slate_500"
+                        android:textSize="13sp" />
+
+                    <!-- Role + Status badges row -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tvRoleBadge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_role_badge"
+                            android:fontFamily="sans-serif-medium"
+                            android:paddingStart="12dp"
+                            android:paddingTop="4dp"
+                            android:paddingEnd="12dp"
+                            android:paddingBottom="4dp"
+                            android:text="Prosumer"
+                            android:textColor="@color/solar_primary_light"
+                            android:textSize="11sp" />
+
+                        <com.smartsolar.mobile.ui.components.StatusBadgeView
+                            android:id="@+id/statusBadge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp" />
+                    </LinearLayout>
+
+                    <!-- Member since / last login meta -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="18dp"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvMemberSince"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:drawablePadding="6dp"
+                            android:text="Member since —"
+                            android:textColor="@color/slate_500"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/tvLastLogin"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Last login: Never"
+                            android:textColor="@color/slate_500"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Edit / Cancel toggle button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnToggleEdit"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:text="Edit Profile"
+                        android:textColor="@color/slate_950"
+                        app:backgroundTint="@color/solar_primary"
+                        app:cornerRadius="14dp"
+                        app:icon="@drawable/ic_person"
+                        app:iconGravity="textStart" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- ── Account Information Card (View Mode) ──────────────── -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardViewInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/surface_card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-bold"
+                        android:text="Account Information"
+                        android:textColor="@color/slate_900"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/tvLastUpdated"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="16dp"
+                        android:text="Last updated: —"
+                        android:textColor="@color/slate_400"
+                        android:textSize="11sp" />
+
+                    <!-- Info rows injected by ProfileFragment via binding -->
+                    <include layout="@layout/item_info_row"
+                        android:id="@+id/rowFullName" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider_light"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="4dp"/>
+
+                    <include layout="@layout/item_info_row"
+                        android:id="@+id/rowUsername" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider_light"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="4dp"/>
+
+                    <include layout="@layout/item_info_row"
+                        android:id="@+id/rowEmail" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider_light"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="4dp"/>
+
+                    <include layout="@layout/item_info_row"
+                        android:id="@+id/rowPhone" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider_light"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="4dp"/>
+
+                    <include layout="@layout/item_info_row"
+                        android:id="@+id/rowAddress" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider_light"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="4dp"/>
+
+                    <include layout="@layout/item_info_row"
+                        android:id="@+id/rowNic" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- ── Edit Profile Form Card ────────────────────────────── -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardEditForm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/surface_card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="18dp"
+                        android:fontFamily="sans-serif-bold"
+                        android:text="Edit Details"
+                        android:textColor="@color/slate_900"
+                        android:textSize="15sp" />
+
+                    <!-- Full Name -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilEditFullName"
+                        style="@style/Widget.SmartSolar.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="14dp"
+                        android:hint="Full Name">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etEditFullName"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textPersonName"
+                            android:maxLines="1" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Phone Number -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilEditPhone"
+                        style="@style/Widget.SmartSolar.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="14dp"
+                        android:hint="Phone Number">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etEditPhone"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="phone"
+                            android:maxLines="1" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Address -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilEditAddress"
+                        style="@style/Widget.SmartSolar.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="20dp"
+                        android:hint="Address">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etEditAddress"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textMultiLine"
+                            android:lines="3"
+                            android:gravity="top" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Save / Cancel row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSaveProfile"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="8dp"
+                            android:text="Save Changes"
+                            android:textColor="@color/slate_950"
+                            app:backgroundTint="@color/solar_primary"
+                            app:cornerRadius="14dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnCancelEdit"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Cancel"
+                            app:backgroundTint="@color/slate_200"
+                            android:textColor="@color/slate_700"
+                            app:cornerRadius="14dp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- ── Account Actions Card ──────────────────────────────── -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardActions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="32dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/surface_card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:fontFamily="sans-serif-bold"
+                        android:text="Account Actions"
+                        android:textColor="@color/slate_900"
+                        android:textSize="15sp" />
+
+                    <!-- Change Password -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnChangePassword"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:text="Change Password"
+                        android:textColor="@color/slate_700"
+                        app:cornerRadius="14dp"
+                        app:icon="@drawable/ic_lock"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/slate_600"
+                        app:strokeColor="@color/surface_stroke" />
+
+                    <!-- Request Deactivation -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRequestDeactivation"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Request Account Deactivation"
+                        android:textColor="@color/status_red"
+                        app:cornerRadius="14dp"
+                        app:strokeColor="@color/status_red" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
+        <!-- end layoutContent -->
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

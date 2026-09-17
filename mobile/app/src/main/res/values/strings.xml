@@ -45,4 +45,118 @@
     <string name="err_empty_password">Password is required</string>
     <string name="err_empty_name">Full name is required</string>
     <string name="err_password_mismatch">Passwords do not match</string>
+
+    <!-- Profile & Account Management -->
+    <string name="profile_title">My Account</string>
+    <string name="profile_subtitle">View and manage your profile details</string>
+    <string name="edit_profile_title">Edit Details</string>
+    <string name="account_info_title">Account Information</string>
+    <string name="account_actions_title">Account Actions</string>
+    <string name="btn_edit_profile">Edit Profile</string>
+    <string name="btn_save_changes">Save Changes</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_change_password">Change Password</string>
+    <string name="btn_request_deactivation">Request Account Deactivation</string>
+    <string name="change_password_title">Change Password</string>
+    <string name="change_password_subtitle">Create a strong, unique password</string>
+    <string name="label_full_name">Full Name</string>
+    <string name="label_username">Username</string>
+    <string name="label_email">Email Address</string>
+    <string name="label_phone">Phone Number</string>
+    <string name="label_address">Address</string>
+    <string name="label_nic">NIC</string>
+    <string name="label_role">Role</string>
+    <string name="label_status">Status</string>
+    <string name="label_current_password">Current Password</string>
+    <string name="label_new_password">New Password</string>
+    <string name="label_confirm_password">Confirm New Password</string>
+    <string name="btn_update_password">Update Password</string>
+    <string name="msg_profile_saved">✓  Profile updated successfully.</string>
+    <string name="msg_password_changed">✓  Password changed successfully.</string>
+    <string name="err_field_required">This field is required</string>
+    <string name="err_password_too_short">Password must be at least 6 characters</string>
+    <string name="deactivation_dialog_title">Request Account Deactivation</string>
+    <string name="deactivation_dialog_message">Are you sure you want to request deactivation? An administrator will review your request.</string>
+    <string name="deactivation_reason_hint">Reason for deactivation (optional)</string>
+    <string name="btn_submit_request">Submit Request</string>
+
+    <!-- Registration Submitted (Screen 4) -->
+    <string name="reg_submitted_title">Registration Submitted!</string>
+    <string name="reg_submitted_subtitle">Your account is pending review by a grid operator. You\'ll be notified once activated.</string>
+    <string name="reg_submitted_hint">This usually takes 1–2 business days.</string>
+    <string name="btn_back_to_login">Back to Login</string>
+
+    <!-- Pending Activation (Screen 5) -->
+    <string name="pending_title">Account Pending Activation</string>
+    <string name="pending_subtitle">Your account is awaiting approval from a grid operator. Please check back soon.</string>
+    <string name="btn_check_again">Check Again</string>
+    <string name="btn_logout_text">Log Out</string>
+
+    <!-- Role Redirection (Screen 6) -->
+    <string name="redirecting_title">Redirecting…</string>
+    <string name="redirecting_subtitle">Taking you to your dashboard</string>
+
+    <!-- Grid Operator Home (Screen 8) -->
+    <string name="grid_op_home_title">Grid Operator Dashboard</string>
+    <string name="grid_op_home_subtitle">Manage prosumers, nodes, and energy flow</string>
+    <string name="grid_op_stat_prosumers">Prosumers</string>
+    <string name="grid_op_stat_pending">Pending Requests</string>
+    <string name="grid_op_stat_active_nodes">Active Nodes</string>
+    <string name="grid_op_action_review">Review Requests</string>
+    <string name="grid_op_action_nodes">Manage Nodes</string>
+    <string name="grid_op_action_reports">View Reports</string>
+
+    <!-- Request Deactivation (Screen 11) -->
+    <string name="deactivation_req_title">Request Deactivation</string>
+    <string name="deactivation_req_subtitle">Submitting this request will place your account under review. This cannot be immediately reversed.</string>
+    <string name="deactivation_warning">⚠ Warning: Active energy slots and reservations will be cancelled upon deactivation.</string>
+    <string name="deactivation_reason_label">Reason for Deactivation</string>
+    <string name="deactivation_reason_hint_full">Please describe your reason (required)</string>
+
+    <!-- Deactivation Submitted (Screen 12) -->
+    <string name="deact_submitted_title">Request Submitted</string>
+    <string name="deact_submitted_subtitle">Your deactivation request has been submitted and is pending review by a grid operator.</string>
+    <string name="btn_back_to_profile">Back to Profile</string>
+
+    <!-- Account Deactivated (Screen 13) -->
+    <string name="account_deactivated_title">Account Deactivated</string>
+    <string name="account_deactivated_subtitle">Your account has been deactivated. Please contact your grid operator to request reactivation.</string>
+    <string name="account_deactivated_contact">Need help? Email: support@solargrid.io</string>
+
+    <!-- Logout Confirmation (Screen 14) -->
+    <string name="logout_confirm_title">Sign Out?</string>
+    <string name="logout_confirm_subtitle">You\'ll need to sign in again to access your microgrid dashboard.</string>
+    <string name="btn_sign_out">Sign Out</string>
+    <string name="btn_stay_logged_in">Stay Logged In</string>
+
+    <!-- Session Expired (Screen 15) -->
+    <string name="session_expired_title">Session Expired</string>
+    <string name="session_expired_subtitle">Your session has timed out for security. Please sign in again to continue.</string>
+    <string name="btn_sign_in_again">Sign In Again</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">Preferences, notifications, security &amp; system</string>
+    <string name="settings_sec_trading">Trading &amp; Notifications</string>
+    <string name="settings_auto_trading">Automated Energy Trading</string>
+    <string name="settings_auto_trading_desc">Auto-execute buy/sell matching algorithms</string>
+    <string name="settings_trade_notifications">Trade Alert Notifications</string>
+    <string name="settings_trade_notifications_desc">Receive instant push alerts on order executions</string>
+    <string name="settings_grid_alerts">Grid Status Alerts</string>
+    <string name="settings_grid_alerts_desc">Alerts for system maintenance and price surges</string>
+    <string name="settings_sec_security">Security &amp; Account</string>
+    <string name="settings_biometric">Biometric Authentication</string>
+    <string name="settings_biometric_desc">Require fingerprint or face ID on app launch</string>
+    <string name="settings_change_password">Change Password</string>
+    <string name="settings_request_deactivation">Request Account Deactivation</string>
+    <string name="settings_sec_system">System &amp; Server</string>
+    <string name="settings_server_url">Backend API Base URL</string>
+    <string name="settings_server_url_hint">e.g. http://10.0.2.2:8080/api</string>
+    <string name="settings_save_server_url">Save Server URL</string>
+    <string name="settings_clear_cache">Clear Cached Application Data</string>
+    <string name="settings_clear_cache_desc">Removes temporary market charts and session data</string>
+    <string name="settings_sec_about">About &amp; App Info</string>
+    <string name="settings_app_version">Version 1.0.0 (Build 1042)</string>
+    <string name="settings_terms">Terms of Service &amp; Privacy Policy</string>
+
 </resources>

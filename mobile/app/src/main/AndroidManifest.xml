@@ -47,16 +47,77 @@
             android:theme="@style/Theme.SmartSolarMobile"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- Register Screen -->
+        <!-- Register Screen (Prosumer Registration – Screen 3) -->
         <activity
             android:name="com.smartsolar.mobile.ui.activity.RegisterActivity"
             android:exported="false"
             android:theme="@style/Theme.SmartSolarMobile"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- Main Screen (Navigation Drawer Container) -->
+        <!-- Main Screen / Prosumer Home (Navigation Drawer Container – Screen 7) -->
         <activity
             android:name="com.smartsolar.mobile.ui.activity.MainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Screen 4: Registration Submitted (Prosumer) -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.RegistrationSubmittedActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Screen 5: Pending Activation (Prosumer) -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.PendingActivationActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Screen 6: Role Redirection (Both Roles) -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.RoleRedirectionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile.Splash" />
+
+        <!-- Screen 8: Grid Operator Home -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.GridOperatorActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Screen 11: Request Deactivation (Mainly Prosumer) -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.RequestDeactivationActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Screen 12: Deactivation Request Submitted (Prosumer) -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.DeactivationSubmittedActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Screen 13: Account Deactivated (Both Roles) -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.AccountDeactivatedActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Screen 14: Logout Confirmation (Both Roles) -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.LogoutConfirmationActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Screen 15: Session Expired (Both Roles) -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.SessionExpiredActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Settings Screen -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.SettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.SmartSolarMobile" />
 

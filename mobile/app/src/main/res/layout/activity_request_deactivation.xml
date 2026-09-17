@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    activity_request_deactivation.xml
+    Screen 11 – Request Deactivation
+    Full-screen dedicated page for submitting a deactivation request.
+-->
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/requestDeactivationRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light">
+
+    <!-- Toolbar -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/slate_900">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/deactivationToolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/slate_900"
+            app:navigationIcon="@drawable/ic_menu_hamburger"
+            app:navigationIconTint="@color/solar_primary"
+            app:title="Request Deactivation"
+            app:titleTextColor="@color/white" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- Page header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-black"
+                    android:text="@string/deactivation_req_title"
+                    android:textColor="@color/slate_900"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/deactivation_req_subtitle"
+                    android:textColor="@color/slate_500"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- Warning card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                android:background="@drawable/bg_warning_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="12dp"
+                    android:text="⚠"
+                    android:textColor="@color/status_red"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/deactivation_warning"
+                    android:textColor="@color/status_red"
+                    android:textSize="13sp"
+                    android:fontFamily="sans-serif-medium" />
+            </LinearLayout>
+
+            <!-- Main form card -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="@color/surface_card"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-bold"
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/deactivation_reason_label"
+                        android:textColor="@color/slate_900"
+                        android:textSize="15sp" />
+
+                    <!-- Reason text field -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilDeactivationReason"
+                        style="@style/Widget.SmartSolar.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/deactivation_reason_hint_full">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etDeactivationReason"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="top"
+                            android:inputType="textMultiLine"
+                            android:lines="5"
+                            android:maxLines="8"
+                            android:textColor="@color/slate_900"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="This field is required. Your reason will be reviewed by the grid operator."
+                        android:textColor="@color/slate_400"
+                        android:textSize="11sp" />
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- What happens next info card -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="28dp"
+                app:cardBackgroundColor="@color/surface_card"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-bold"
+                        android:layout_marginBottom="10dp"
+                        android:text="What happens after submission?"
+                        android:textColor="@color/slate_800"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="① Your request is sent to the grid operator for review\n② Active energy reservations will be put on hold\n③ You\'ll receive a notification once the decision is made\n④ Your data will be retained for 30 days"
+                        android:textColor="@color/slate_500"
+                        android:textSize="13sp"
+                        android:lineSpacingMultiplier="1.5" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Action buttons -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSubmitDeactivation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="@string/btn_submit_request"
+                android:textColor="@color/white"
+                app:backgroundTint="@color/status_red"
+                app:cornerRadius="14dp"
+                android:textSize="15sp"
+                android:paddingVertical="14dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCancelDeactivation"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_cancel"
+                android:textColor="@color/slate_700"
+                app:cornerRadius="14dp"
+                app:strokeColor="@color/surface_stroke" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

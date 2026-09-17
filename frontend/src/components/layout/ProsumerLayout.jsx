@@ -4,6 +4,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { ProsumerSidebar, ProsumerMobileToggle } from '../ProsumerSidebar'
 import { IconButton } from '../common/IconButton'
+import { useAuth } from '../../context/AuthContext'
 
 const pageNames = {
   '/prosumer': 'Dashboard',
@@ -15,7 +16,12 @@ const pageNames = {
 function ProsumerHeader({ onOpenMenu, isDark, onToggleTheme }) {
   const location = useLocation()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const title = pageNames[location.pathname] ?? 'My Portal'
+
+  const fullName = user?.fullName || 'Prosumer'
+  const roleName = user?.role || 'Prosumer'
+  const initials = fullName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) || 'PR'
 
   return (
     <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur md:px-8 dark:border-slate-800 dark:bg-slate-950/90">
@@ -45,11 +51,11 @@ function ProsumerHeader({ onOpenMenu, isDark, onToggleTheme }) {
           className="flex items-center gap-2 rounded-xl p-1.5 text-left transition hover:bg-slate-100 dark:hover:bg-slate-800"
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white">
-            KS
+            {initials}
           </span>
           <span className="hidden text-sm sm:block">
-            <span className="block font-medium text-slate-800 dark:text-slate-100">Kasun Silva</span>
-            <span className="block text-[11px] text-slate-500 dark:text-slate-400">Prosumer</span>
+            <span className="block font-medium text-slate-800 dark:text-slate-100">{fullName}</span>
+            <span className="block text-[11px] text-slate-500 dark:text-slate-400">{roleName}</span>
           </span>
           <ChevronDown className="hidden h-4 w-4 text-slate-400 sm:block" />
         </button>
@@ -67,6 +73,7 @@ export function ProsumerLayout() {
     () => typeof window !== 'undefined' && localStorage.getItem('theme') === 'dark'
   )
   const navigate = useNavigate()
+  const { logout: authLogout } = useAuth()
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark)
@@ -74,7 +81,10 @@ export function ProsumerLayout() {
     localStorage.setItem('theme', isDark ? 'dark' : 'light')
   }, [isDark])
 
-  const logout = () => navigate('/login')
+  const logout = async () => {
+    await authLogout()
+    navigate('/login')
+  }
   const toggleSidebar = () => {
     setSidebarCollapsed((c) => {
       localStorage.setItem('prosumer-sidebar-collapsed', String(!c))

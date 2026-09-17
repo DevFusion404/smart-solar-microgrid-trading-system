@@ -39,7 +39,10 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             new Claim(JwtRegisteredClaimNames.Sub, user.Username),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Username),
-            new Claim(ClaimTypes.Name, user.FullName),
+            // ClaimTypes.Name must be Username — User.Identity.Name reads this claim in all controllers
+            new Claim(ClaimTypes.Name, user.Username),
+            // Store display name separately so clients can still display it
+            new Claim("fullName", user.FullName),
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
             new Claim("status", user.Status.ToString())
