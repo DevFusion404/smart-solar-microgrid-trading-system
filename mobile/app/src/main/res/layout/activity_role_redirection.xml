@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    activity_role_redirection.xml
+    Screen 6 – Role Redirection
+    Brief animated transition screen after login role is resolved.
+    Auto-navigates after 1.5s to the correct home screen.
+-->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/roleRedirectionRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_splash_gradient">
+
+    <!-- Center branding group -->
+    <LinearLayout
+        android:id="@+id/redirectBrandContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toTopOf="@id/redirectBottomContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="packed">
+
+        <!-- Logo glow -->
+        <FrameLayout
+            android:id="@+id/redirectLogoWrapper"
+            android:layout_width="110dp"
+            android:layout_height="110dp"
+            android:background="@drawable/bg_logo_glow"
+            android:elevation="4dp"
+            android:padding="10dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/brand_name"
+                android:scaleType="fitCenter"
+                android:src="@drawable/logo3" />
+        </FrameLayout>
+
+        <!-- Role icon / emoji -->
+        <TextView
+            android:id="@+id/tvRoleEmoji"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:gravity="center"
+            android:text="⚡"
+            android:textSize="36sp" />
+
+        <!-- Redirecting title -->
+        <TextView
+            android:id="@+id/tvRedirectingTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="sans-serif-black"
+            android:gravity="center"
+            android:text="@string/redirecting_title"
+            android:textColor="@color/white"
+            android:textSize="26sp" />
+
+        <!-- Subtitle -->
+        <TextView
+            android:id="@+id/tvRedirectingSubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:text="@string/redirecting_subtitle"
+            android:textColor="@color/solar_primary_light"
+            android:textSize="14sp" />
+
+        <!-- Role label badge -->
+        <TextView
+            android:id="@+id/tvRoleLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:background="@drawable/bg_role_badge"
+            android:fontFamily="sans-serif-medium"
+            android:paddingHorizontal="18dp"
+            android:paddingVertical="6dp"
+            android:text="Prosumer"
+            android:textColor="@color/solar_primary_light"
+            android:textSize="13sp" />
+
+    </LinearLayout>
+
+    <!-- Bottom progress container -->
+    <LinearLayout
+        android:id="@+id/redirectBottomContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="48dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/redirectProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            app:indicatorColor="@color/solar_primary"
+            app:indicatorSize="36dp"
+            app:trackColor="#33F59E0B"
+            app:trackThickness="3dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:gravity="center"
+            android:text="@string/splash_loading"
+            android:textColor="@color/slate_400"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

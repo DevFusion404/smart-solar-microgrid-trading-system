@@ -136,10 +136,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
 
             R.id.nav_settings -> {
-                binding.topToolbar.title = "Settings"
-                binding.tvCurrentScreenTitle.text = "System Settings"
-                binding.tvScreenDescription.text = "Configure notifications, server base URL, and account preferences."
-                Toast.makeText(this, "Opening Settings…", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(this, SettingsActivity::class.java))
             }
 
             R.id.nav_logout -> {
