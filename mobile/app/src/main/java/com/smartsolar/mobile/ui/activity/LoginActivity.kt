@@ -2,17 +2,22 @@ package com.smartsolar.mobile.ui.activity
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Patterns
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
+import androidx.lifecycle.repeatOnLifecycle
 import com.smartsolar.mobile.R
 import com.smartsolar.mobile.databinding.ActivityLoginBinding
+import com.smartsolar.mobile.viewmodel.AuthViewModel
+import com.smartsolar.mobile.viewmodel.LoginUiState
+import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
+    private val authViewModel: AuthViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -20,6 +25,7 @@ class LoginActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupListeners()
+        observeViewModel()
     }
 
     private fun setupListeners() {
@@ -30,30 +36,19 @@ class LoginActivity : AppCompatActivity() {
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
         }
 
-        // Handle Quick Grid Operator Login
+        // Handle Quick Grid Operator Login shortcut
         binding.btnQuickOperatorLogin.setOnClickListener {
             binding.etEmail.setText("chamithu")
             binding.etPassword.setText("Sithma#1122")
-            attemptOperatorLogin("chamithu", "Sithma#1122")
+            authViewModel.login(this, "chamithu", "Sithma#1122")
         }
 
         // Handle Login Submission
         binding.btnLogin.setOnClickListener {
-            val identifier = binding.etEmail.text?.toString()?.trim().orEmpty()
-            val password = binding.etPassword.text?.toString()?.trim().orEmpty()
-
-            if (identifier.equals("chamithu", ignoreCase = true) && password == "Sithma#1122") {
-                attemptOperatorLogin(identifier, password)
-            } else if (validateInputs()) {
-                Toast.makeText(
-                    this,
-                    "Welcome, Sithmaka!",
-                    Toast.LENGTH_SHORT
-                ).show()
-                val intent = Intent(this, MainActivity::class.java)
-                startActivity(intent)
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-                finish()
+            if (validateInputs()) {
+                val identifier = binding.etEmail.text?.toString()?.trim().orEmpty()
+                val password = binding.etPassword.text?.toString()?.trim().orEmpty()
+                authViewModel.login(this, identifier, password)
             }
         }
 
@@ -67,43 +62,81 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun attemptOperatorLogin(username: String, pass: String) {
-        Toast.makeText(this, "Logging in as Grid Operator...", Toast.LENGTH_SHORT).show()
+    private fun observeViewModel() {
         lifecycleScope.launch {
-            try {
-                val resp = com.smartsolar.mobile.data.api.RetrofitClient.apiService.login(
-                    com.smartsolar.mobile.data.api.LoginRequest(username, pass)
-                )
-                if (resp.isSuccessful && resp.body() != null) {
-                    com.smartsolar.mobile.data.api.RetrofitClient.authToken = resp.body()!!.token
-                }
-            } catch (e: Exception) {
-                // Fallback on network failure
-            }
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                authViewModel.loginState.collect { state ->
+                    when (state) {
+                        is LoginUiState.Idle -> {
+                            binding.btnLogin.isEnabled = true
+                            binding.btnLogin.text = getString(R.string.btn_login)
+                        }
+                        is LoginUiState.Loading -> {
+                            binding.btnLogin.isEnabled = false
+                            binding.btnLogin.text = "Logging in..."
+                        }
+                        is LoginUiState.Success -> {
+                            binding.btnLogin.isEnabled = true
+                            binding.btnLogin.text = getString(R.string.btn_login)
 
-            Toast.makeText(this@LoginActivity, "Welcome, Operator Chamithu!", Toast.LENGTH_SHORT).show()
-            val intent = Intent(this@LoginActivity, GridOperatorActivity::class.java).apply {
-                putExtra("USER_NAME", "Chamithu")
-                putExtra("USER_ROLE", "Grid Operator")
-                putExtra("OPERATOR_ID", "chamithu")
+                            val user = state.loginResponse.user
+                            handleLoginSuccess(user.username, user.fullName, user.role, user.status)
+                            authViewModel.resetLoginState()
+                        }
+                        is LoginUiState.Error -> {
+                            binding.btnLogin.isEnabled = true
+                            binding.btnLogin.text = getString(R.string.btn_login)
+                            Toast.makeText(this@LoginActivity, state.message, Toast.LENGTH_LONG).show()
+                            authViewModel.resetLoginState()
+                        }
+                    }
+                }
             }
-            startActivity(intent)
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-            finish()
+        }
+    }
+
+    private fun handleLoginSuccess(username: String, fullName: String, role: String, status: String) {
+        val displayName = if (fullName.isNotBlank()) fullName else username
+
+        when (status.lowercase()) {
+            "pendingactivation" -> {
+                val intent = Intent(this, PendingActivationActivity::class.java).apply {
+                    putExtra("USER_NAME", displayName)
+                    putExtra("USER_EMAIL", username)
+                }
+                startActivity(intent)
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                finish()
+            }
+            "deactivated" -> {
+                val intent = Intent(this, AccountDeactivatedActivity::class.java)
+                startActivity(intent)
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                finish()
+            }
+            else -> {
+                val isOperator = role.equals("GridOperator", ignoreCase = true) || role.equals("Grid Operator", ignoreCase = true)
+                val targetRole = if (isOperator) RoleRedirectionActivity.ROLE_GRID_OPERATOR else RoleRedirectionActivity.ROLE_PROSUMER
+
+                val intent = Intent(this, RoleRedirectionActivity::class.java).apply {
+                    putExtra("USER_NAME", displayName)
+                    putExtra("USER_ROLE", targetRole)
+                }
+                startActivity(intent)
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                finish()
+            }
         }
     }
 
     private fun validateInputs(): Boolean {
-        val email = binding.etEmail.text?.toString()?.trim().orEmpty()
+        val emailOrUsername = binding.etEmail.text?.toString()?.trim().orEmpty()
         val password = binding.etPassword.text?.toString()?.trim().orEmpty()
 
         var isValid = true
 
-        if (email.isEmpty()) {
-            binding.tilEmail.error = getString(R.string.err_empty_email)
-            isValid = false
-        } else if (!email.equals("chamithu", ignoreCase = true) && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            binding.tilEmail.error = "Please enter a valid email address or username"
+        if (emailOrUsername.isEmpty()) {
+            binding.tilEmail.error = "Username or Email is required"
             isValid = false
         } else {
             binding.tilEmail.error = null
@@ -111,9 +144,6 @@ class LoginActivity : AppCompatActivity() {
 
         if (password.isEmpty()) {
             binding.tilPassword.error = getString(R.string.err_empty_password)
-            isValid = false
-        } else if (password.length < 6) {
-            binding.tilPassword.error = "Password must be at least 6 characters"
             isValid = false
         } else {
             binding.tilPassword.error = null

@@ -12,16 +12,20 @@ using backend.Repositories;
 using backend.Services.Interfaces;
 using System.Text.RegularExpressions;
 
+using Microsoft.AspNetCore.Identity;
+
 namespace backend.Services.Implementations;
 
 public class ProfileService : IProfileService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IPasswordHasher<UserDetails> _passwordHasher;
 
-    // Initializes ProfileService with IUserRepository dependency injection
-    public ProfileService(IUserRepository userRepository)
+    // Initializes ProfileService with IUserRepository and IPasswordHasher dependency injection
+    public ProfileService(IUserRepository userRepository, IPasswordHasher<UserDetails> passwordHasher)
     {
         _userRepository = userRepository;
+        _passwordHasher = passwordHasher;
     }
 
     // Fetches user profile record by username
@@ -107,6 +111,42 @@ public class ProfileService : IProfileService
         user.Status = AccountStatus.DeactivationRequested;
         user.DeactivationRequestedAt = DateTime.UtcNow;
         user.DeactivationReason = reason.Trim();
+
+        await _userRepository.UpdateAsync(user);
+    }
+
+    // Changes authenticated user password after verifying current password and enforcing strength requirements
+    public async Task ChangePasswordAsync(string username, ChangePasswordDto request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.CurrentPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
+        {
+            throw new BadRequestException("INVALID_INPUT", "Current password and new password are required.");
+        }
+
+        if (request.NewPassword != request.ConfirmPassword)
+        {
+            throw new BadRequestException("PASSWORD_MISMATCH", "New password and confirmation password do not match.");
+        }
+
+        var user = await _userRepository.GetByUsernameAsync(username);
+        if (user == null)
+        {
+            throw new NotFoundException("USER_NOT_FOUND", $"User '{username}' was not found.");
+        }
+
+        var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword);
+        if (verificationResult == PasswordVerificationResult.Failed)
+        {
+            throw new BadRequestException("INVALID_CURRENT_PASSWORD", "Current password is incorrect.");
+        }
+
+        if (request.NewPassword.Length < 6)
+        {
+            throw new BadRequestException("WEAK_PASSWORD", "New password must be at least 6 characters long.");
+        }
+
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
 
         await _userRepository.UpdateAsync(user);
     }

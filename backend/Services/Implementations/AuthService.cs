@@ -40,7 +40,13 @@ public class AuthService : IAuthService
             throw new BadRequestException("INVALID_CREDENTIALS", "Username and password are required.");
         }
 
-        var user = await _userRepository.GetByUsernameAsync(request.Username.Trim());
+        var identifier = request.Username.Trim();
+        var user = await _userRepository.GetByUsernameAsync(identifier);
+        if (user == null)
+        {
+            user = await _userRepository.GetByEmailAsync(identifier);
+        }
+
         if (user == null)
         {
             throw new UnauthorizedException("INVALID_CREDENTIALS", "Invalid username or password.");

@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.smartsolar.mobile.data.local.TokenManager
 import com.smartsolar.mobile.databinding.ActivitySplashBinding
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -21,11 +22,10 @@ class SplashActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         startAnimations()
-        navigateToLoginAfterDelay()
+        navigateNextAfterDelay()
     }
 
     private fun startAnimations() {
-        // Initial state
         binding.logoWrapper.alpha = 0f
         binding.logoWrapper.scaleX = 0.7f
         binding.logoWrapper.scaleY = 0.7f
@@ -40,7 +40,6 @@ class SplashActivity : AppCompatActivity() {
 
         val interpolator = AccelerateDecelerateInterpolator()
 
-        // Animate Logo pop and glow
         binding.logoWrapper.animate()
             .alpha(1f)
             .scaleX(1f)
@@ -49,7 +48,6 @@ class SplashActivity : AppCompatActivity() {
             .setInterpolator(interpolator)
             .start()
 
-        // Animate Brand Title
         binding.tvBrandName.animate()
             .alpha(1f)
             .translationY(0f)
@@ -58,7 +56,6 @@ class SplashActivity : AppCompatActivity() {
             .setInterpolator(interpolator)
             .start()
 
-        // Animate Tagline
         binding.tvTagline.animate()
             .alpha(1f)
             .translationY(0f)
@@ -67,7 +64,6 @@ class SplashActivity : AppCompatActivity() {
             .setInterpolator(interpolator)
             .start()
 
-        // Animate Bottom Slogan & Progress Indicator
         binding.bottomContainer.animate()
             .alpha(1f)
             .setStartDelay(700)
@@ -75,11 +71,25 @@ class SplashActivity : AppCompatActivity() {
             .start()
     }
 
-    private fun navigateToLoginAfterDelay() {
+    private fun navigateNextAfterDelay() {
         lifecycleScope.launch {
-            // Keep splash visible smoothly for 2.6 seconds
-            delay(2600)
-            val intent = Intent(this@SplashActivity, LoginActivity::class.java)
+            delay(2400)
+            val intent = if (TokenManager.isLoggedIn(this@SplashActivity)) {
+                val role = TokenManager.getUserRole(this@SplashActivity) ?: "Prosumer"
+                val name = TokenManager.getFullName(this@SplashActivity)
+                    ?: TokenManager.getUsername(this@SplashActivity)
+                    ?: "User"
+                val isOperator = role.equals("GridOperator", ignoreCase = true) || role.equals("Grid Operator", ignoreCase = true)
+                val targetRole = if (isOperator) RoleRedirectionActivity.ROLE_GRID_OPERATOR else RoleRedirectionActivity.ROLE_PROSUMER
+
+                Intent(this@SplashActivity, RoleRedirectionActivity::class.java).apply {
+                    putExtra("USER_NAME", name)
+                    putExtra("USER_ROLE", targetRole)
+                }
+            } else {
+                Intent(this@SplashActivity, LoginActivity::class.java)
+            }
+
             startActivity(intent)
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
             finish()
