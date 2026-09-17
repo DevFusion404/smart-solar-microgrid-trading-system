@@ -11,12 +11,25 @@ object RetrofitClient {
     private var currentBaseUrl: String = ApiConfig.BASE_URL
     private var retrofitInstance: Retrofit? = null
 
+    /**
+     * Active JWT authorization token used for authenticated requests.
+     */
+    var authToken: String? = null
+
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(Constants.NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(Constants.NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(Constants.NETWORK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
+            .addInterceptor { chain ->
+                val requestBuilder = chain.request().newBuilder()
+                val token = authToken
+                if (!token.isNullOrBlank()) {
+                    requestBuilder.addHeader("Authorization", "Bearer $token")
+                }
+                chain.proceed(requestBuilder.build())
+            }
             .build()
     }
 

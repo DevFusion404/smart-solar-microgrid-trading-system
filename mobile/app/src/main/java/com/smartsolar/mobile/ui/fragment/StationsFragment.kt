@@ -16,6 +16,8 @@ import com.smartsolar.mobile.data.model.Station
 import com.smartsolar.mobile.data.repository.StationRepository
 import com.smartsolar.mobile.databinding.FragmentStationsBinding
 import com.smartsolar.mobile.ui.adapter.StationAdapter
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -36,6 +38,7 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
     private var currentSearchQuery: String = ""
     private var currentStatusFilter: String = "ALL" // ALL, ACTIVE, DEACTIVATED
     private var isMapViewActive: Boolean = false
+    private var searchJob: Job? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -190,37 +193,58 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
     }
 
     private fun applyFilters() {
-        filteredStations = allStations.filter { station ->
-            val matchesQuery = currentSearchQuery.isBlank() ||
-                    station.stationName.contains(currentSearchQuery, ignoreCase = true) ||
-                    station.stationId.contains(currentSearchQuery, ignoreCase = true) ||
-                    station.address.contains(currentSearchQuery, ignoreCase = true)
-
-            val matchesStatus = when (currentStatusFilter) {
-                "ACTIVE" -> station.status.equals("Active", ignoreCase = true)
-                "DEACTIVATED" -> station.status.equals("Deactivated", ignoreCase = true)
-                else -> true
+        searchJob?.cancel()
+        searchJob = lifecycleScope.launch {
+            // Short debounce for query changes
+            if (currentSearchQuery.isNotBlank()) {
+                delay(250)
             }
 
-            matchesQuery && matchesStatus
-        }
+            val queryLocation = currentSearchQuery.ifBlank { null }
+            val available = when (currentStatusFilter) {
+                "ACTIVE" -> true
+                "DEACTIVATED" -> false
+                else -> null
+            }
 
-        stationAdapter.submitStations(filteredStations)
+            val result = stationRepository.searchStations(queryLocation, available)
+            if (result.isSuccess) {
+                filteredStations = result.getOrNull() ?: emptyList()
+            } else {
+                // Fallback to local filter if remote search throws error
+                filteredStations = allStations.filter { station ->
+                    val matchesQuery = currentSearchQuery.isBlank() ||
+                            station.stationName.contains(currentSearchQuery, ignoreCase = true) ||
+                            station.stationId.contains(currentSearchQuery, ignoreCase = true) ||
+                            station.address.contains(currentSearchQuery, ignoreCase = true)
 
-        val activeCount = filteredStations.count { it.status.equals("Active", ignoreCase = true) }
-        binding.tvStationsSummary.text = "Showing ${filteredStations.size} stations ($activeCount active)"
+                    val matchesStatus = when (currentStatusFilter) {
+                        "ACTIVE" -> station.status.equals("Active", ignoreCase = true)
+                        "DEACTIVATED" -> station.status.equals("Deactivated", ignoreCase = true)
+                        else -> true
+                    }
 
-        updateMapMarkers(filteredStations)
+                    matchesQuery && matchesStatus
+                }
+            }
 
-        if (isMapViewActive) {
-            binding.rvStations.visibility = View.GONE
-            binding.layoutEmptyStations.visibility = View.GONE
-            binding.layoutMapView.visibility = View.VISIBLE
-        } else {
-            binding.layoutMapView.visibility = View.GONE
-            binding.cardMapStationPreview.visibility = View.GONE
-            binding.layoutEmptyStations.visibility = if (filteredStations.isEmpty()) View.VISIBLE else View.GONE
-            binding.rvStations.visibility = if (filteredStations.isEmpty()) View.GONE else View.VISIBLE
+            stationAdapter.submitStations(filteredStations)
+
+            val activeCount = filteredStations.count { it.status.equals("Active", ignoreCase = true) }
+            binding.tvStationsSummary.text = "Showing ${filteredStations.size} stations ($activeCount active)"
+
+            updateMapMarkers(filteredStations)
+
+            if (isMapViewActive) {
+                binding.rvStations.visibility = View.GONE
+                binding.layoutEmptyStations.visibility = View.GONE
+                binding.layoutMapView.visibility = View.VISIBLE
+            } else {
+                binding.layoutMapView.visibility = View.GONE
+                binding.cardMapStationPreview.visibility = View.GONE
+                binding.layoutEmptyStations.visibility = if (filteredStations.isEmpty()) View.VISIBLE else View.GONE
+                binding.rvStations.visibility = if (filteredStations.isEmpty()) View.GONE else View.VISIBLE
+            }
         }
     }
 
