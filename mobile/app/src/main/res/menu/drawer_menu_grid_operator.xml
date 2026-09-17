@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group
+        android:id="@+id/group_primary"
+        android:checkableBehavior="single">
+
+        <item
+            android:id="@+id/nav_grid_dashboard"
+            android:icon="@drawable/ic_nav_home"
+            android:title="Dashboard"
+            android:checked="true" />
+
+        <item
+            android:id="@+id/nav_grid_nodes"
+            android:icon="@drawable/ic_nav_station"
+            android:title="My Nodes" />
+
+        <item
+            android:id="@+id/nav_grid_slots"
+            android:icon="@drawable/ic_nav_energy"
+            android:title="Energy Slots" />
+
+        <item
+            android:id="@+id/nav_grid_bookings"
+            android:icon="@drawable/ic_nav_calendar"
+            android:title="Bookings" />
+
+    </group>
+
+    <item android:title="Preferences">
+        <menu>
+            <item
+                android:id="@+id/nav_grid_profile"
+                android:icon="@drawable/ic_person"
+                android:title="My Profile" />
+
+            <item
+                android:id="@+id/nav_grid_logout"
+                android:icon="@drawable/ic_nav_logout"
+                android:title="Logout" />
+        </menu>
+    </item>
+
+</menu>
