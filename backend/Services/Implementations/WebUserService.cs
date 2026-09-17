@@ -227,6 +227,7 @@ public class WebUserService : IWebUserService
     {
         return new WebUserResponseDto
         {
+            Id = user.Id ?? string.Empty,
             Username = user.Username,
             FullName = user.FullName,
             Email = user.Email,
