@@ -25,7 +25,19 @@ public class UserRepository : IUserRepository
     // Fetches user record by unique MongoDB document ID
     public async Task<UserDetails?> GetByIdAsync(string id)
     {
-        return await _users.Find(u => u.Id == id).FirstOrDefaultAsync();
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return null;
+        }
+
+        try
+        {
+            return await _users.Find(u => u.Id == id).FirstOrDefaultAsync();
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
     }
 
     // Fetches user record by username using case-insensitive lookup
