@@ -14,8 +14,9 @@
         android:layout_height="wrap_content"
         android:background="@drawable/bg_reservation_hero"
         android:orientation="vertical"
-        android:padding="22dp">
+        android:padding="20dp">
 
+        <!-- Title Row with Icon, Title, Subtitle, and Refresh Button at Top Right -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -23,10 +24,10 @@
             android:orientation="horizontal">
 
             <FrameLayout
-                android:layout_width="46dp"
-                android:layout_height="46dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:background="@drawable/bg_reservation_icon_cyan"
-                android:padding="11dp">
+                android:padding="10dp">
 
                 <ImageView
                     android:layout_width="match_parent"
@@ -39,7 +40,8 @@
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="8dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
@@ -49,33 +51,93 @@
                     android:fontFamily="sans-serif-bold"
                     android:text="Microgrid stations"
                     android:textColor="@color/white"
-                    android:textSize="20sp" />
+                    android:textSize="19sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
+                    android:layout_marginTop="2dp"
                     android:text="Community nodes &amp; solar generation hubs"
                     android:textColor="@color/slate_200"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
+
+            <!-- Refresh Button placed top right corner after the topic -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRefreshStations"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:insetLeft="0dp"
+                android:insetRight="0dp"
+                android:padding="0dp"
+                app:backgroundTint="#26FFFFFF"
+                app:cornerRadius="12dp"
+                app:icon="@drawable/ic_nav_sync"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="18dp"
+                app:iconTint="@color/cyan_accent_light"
+                app:strokeColor="#40FFFFFF"
+                app:strokeWidth="1dp" />
         </LinearLayout>
 
-        <!-- Translucent glass button pill matching browse slots style -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnRefreshStations"
-            android:layout_width="wrap_content"
-            android:layout_height="44dp"
-            android:layout_marginTop="20dp"
-            android:text="Refresh stations"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            app:backgroundTint="#26FFFFFF"
-            app:cornerRadius="14dp"
-            app:icon="@drawable/ic_nav_sync"
-            app:iconTint="@color/cyan_accent_light"
-            app:strokeColor="#40FFFFFF"
-            app:strokeWidth="1dp" />
+        <!-- List View & Map View Two Buttons INSIDE the Blue Color Box -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_glass_tab_bar"
+            android:orientation="horizontal"
+            android:padding="3dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnViewList"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:insetLeft="0dp"
+                android:insetRight="0dp"
+                android:text="List View"
+                android:textAllCaps="false"
+                android:textColor="@color/slate_950"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                app:backgroundTint="@color/white"
+                app:cornerRadius="10dp"
+                app:icon="@drawable/ic_nav_station"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconSize="16dp"
+                app:iconTint="@color/slate_950" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnViewMap"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:insetLeft="0dp"
+                android:insetRight="0dp"
+                android:text="Map View"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                app:backgroundTint="@color/transparent"
+                app:cornerRadius="10dp"
+                app:icon="@android:drawable/ic_dialog_map"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconSize="16dp"
+                app:iconTint="@color/white" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Clean White Search Box Card (outside hero, matching card style) -->
@@ -228,4 +290,219 @@
         android:layout_marginTop="8dp"
         android:paddingBottom="24dp"
         tools:listitem="@layout/item_station" />
+
+    <!-- Map Container -->
+    <FrameLayout
+        android:id="@+id/layoutMapView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp"
+        android:visibility="gone">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:strokeColor="@color/surface_stroke"
+            app:strokeWidth="1dp">
+
+            <org.osmdroid.views.MapView
+                android:id="@+id/mapViewStations"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Floating Hint Card on Map -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="12dp"
+            app:cardBackgroundColor="#E60F172A"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="4dp"
+            app:strokeWidth="0dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="7dp">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:contentDescription="Map pin"
+                    android:src="@drawable/ic_nav_station"
+                    app:tint="@color/solar_primary_light" />
+
+                <TextView
+                    android:id="@+id/tvMapMarkerHint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="Tap a marker to view station slots"
+                    android:textColor="@color/white"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Empty State overlay for Map -->
+        <LinearLayout
+            android:id="@+id/layoutEmptyMap"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#D9FFFFFF"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="No markers"
+                android:src="@drawable/ic_nav_station"
+                app:tint="@color/slate_400" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:fontFamily="sans-serif-bold"
+                android:text="No Stations on Map"
+                android:textColor="@color/slate_800"
+                android:textSize="15sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:text="No microgrid stations match your search or filter."
+                android:textColor="@color/slate_500"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Floating Bottom Station Preview Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardMapStationPreview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_margin="12dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="@color/surface_light"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="6dp"
+            app:strokeColor="@color/surface_stroke"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvPreviewStationName"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif-bold"
+                        android:textColor="@color/slate_900"
+                        android:textSize="16sp"
+                        tools:text="Colombo Solar Hub" />
+
+                    <TextView
+                        android:id="@+id/tvPreviewStatusBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_reservation_status_available"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp"
+                        android:text="Active"
+                        android:textColor="@color/reservation_green"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <ImageView
+                        android:id="@+id/btnCloseMapPreview"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginStart="8dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Close preview"
+                        android:padding="3dp"
+                        android:src="@android:drawable/ic_menu_close_clear_cancel"
+                        app:tint="@color/slate_400" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvPreviewAddress"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/slate_500"
+                    android:textSize="12sp"
+                    tools:text="123 Galle Rd, Colombo" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvPreviewCapacity"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/slate_700"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        tools:text="⚡ 500 kW Capacity" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="8dp"
+                        android:text="•"
+                        android:textColor="@color/slate_300" />
+
+                    <TextView
+                        android:id="@+id/tvPreviewBattery"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/slate_700"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        tools:text="🔋 250 kWh Battery" />
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnMapReserveEnergy"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="14dp"
+                    android:backgroundTint="@color/reservation_blue"
+                    android:text="Reserve Energy &amp; View Slots →"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="13sp"
+                    app:cornerRadius="12dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </FrameLayout>
 </LinearLayout>

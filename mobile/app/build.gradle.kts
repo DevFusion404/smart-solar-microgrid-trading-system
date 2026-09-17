@@ -18,7 +18,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-        manifestPlaceholders["MAPS_API_KEY"] = "YOUR_GOOGLE_MAPS_API_KEY_HERE"
     }
 
     buildTypes {
@@ -85,8 +84,8 @@ dependencies {
     // Animations
     implementation("com.airbnb.android:lottie:6.5.2")
 
-    // Google Maps
-    implementation("com.google.android.gms:play-services-maps:19.0.0")
+    // OpenStreetMap (osmdroid) - Free & open-source map, no billing or API key required
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
