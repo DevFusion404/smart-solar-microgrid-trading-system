@@ -8,50 +8,15 @@ import {
   UserMinus,
   UserX,
   AlertCircle,
-  ChevronLeft,
-  ChevronRight,
+  RefreshCw,
 } from 'lucide-react'
-import { useState } from 'react'
-
-// Mock pending activations — GET /api/prosumers/pending-activations
-const mockPending = [
-  {
-    nic: '875432109V', fullName: 'Nimal Perera', email: 'nimal@example.com',
-    phoneNumber: '+94 77 333 4444', address: 'Kandy', username: 'nimal.perera',
-    activationRequestedAt: '2026-09-10T10:00:00Z', createdAt: '2026-09-10T09:55:00Z',
-  },
-  {
-    nic: '320875432V', fullName: 'Dinesh Rajapaksa', email: 'dinesh@example.com',
-    phoneNumber: '+94 77 456 1230', address: 'Jaffna', username: 'dinesh.r',
-    activationRequestedAt: '2026-09-12T10:00:00Z', createdAt: '2026-09-12T09:50:00Z',
-  },
-  {
-    nic: '190764210V', fullName: 'Thilini Mendis', email: 'thilini@example.com',
-    phoneNumber: '+94 71 234 5678', address: 'Anuradhapura', username: 'thilini.m',
-    activationRequestedAt: '2026-09-13T14:00:00Z', createdAt: '2026-09-13T13:55:00Z',
-  },
-]
-
-// Mock deactivation requests — GET /api/prosumers/deactivation-requests
-const mockDeactivation = [
-  {
-    nic: '541097654V', fullName: 'Ruwan Bandara', email: 'ruwan@example.com',
-    phoneNumber: '+94 72 999 0000', address: 'Kurunegala', username: 'ruwan.b',
-    deactivationRequestedAt: '2026-09-11T09:00:00Z',
-    deactivationReason: 'Moving to another energy provider in my area.',
-  },
-  {
-    nic: '980123456V', fullName: 'Hiruni Senanayake', email: 'hiruni@example.com',
-    phoneNumber: '+94 76 543 2109', address: 'Badulla', username: 'hiruni.s',
-    deactivationRequestedAt: '2026-09-14T08:00:00Z',
-    deactivationReason: 'Personal reasons, no longer need the service.',
-  },
-]
+import { useCallback, useEffect, useState } from 'react'
+import { prosumerService } from '../../services'
 
 const TABS = ['Pending Activations', 'Deactivation Requests']
 
 function ProsumerCard({ prosumer, actions, type }) {
-  const initials = prosumer.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2)
+  const initials = prosumer.fullName ? prosumer.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'PR'
   const [rejectReason, setRejectReason] = useState('')
   const [showReject, setShowReject] = useState(false)
 
@@ -71,12 +36,14 @@ function ProsumerCard({ prosumer, actions, type }) {
           <div className="flex items-start justify-between gap-2 flex-wrap">
             <div>
               <p className="font-semibold text-slate-900 dark:text-white">{prosumer.fullName}</p>
-              <p className="text-xs font-mono text-slate-500 dark:text-slate-400">NIC: {prosumer.nic} · @{prosumer.username}</p>
+              <p className="text-xs font-mono text-slate-500 dark:text-slate-400">NIC: {prosumer.nic} {prosumer.username ? `· @${prosumer.username}` : ''}</p>
             </div>
-            <span className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
-              <Clock className="h-3.5 w-3.5" />
-              {new Date(type === 'activation' ? prosumer.activationRequestedAt : prosumer.deactivationRequestedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-            </span>
+            {(prosumer.activationRequestedAt || prosumer.deactivationRequestedAt || prosumer.createdAt) && (
+              <span className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+                <Clock className="h-3.5 w-3.5" />
+                {new Date(type === 'activation' ? (prosumer.activationRequestedAt || prosumer.createdAt) : (prosumer.deactivationRequestedAt || prosumer.createdAt)).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </span>
+            )}
           </div>
 
           <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
@@ -160,13 +127,6 @@ function ProsumerCard({ prosumer, actions, type }) {
                 >
                   <UserMinus className="h-4 w-4" /> Approve Deactivation
                 </button>
-                <button
-                  type="button"
-                  onClick={() => actions.dismiss(prosumer.nic)}
-                  className="flex items-center gap-1.5 rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                >
-                  Dismiss
-                </button>
               </>
             )}
           </div>
@@ -178,14 +138,63 @@ function ProsumerCard({ prosumer, actions, type }) {
 
 export function ProsumerRequestsPage() {
   const [activeTab, setActiveTab] = useState(TABS[0])
-  const [pending, setPending] = useState(mockPending)
-  const [deactivation, setDeactivation] = useState(mockDeactivation)
+  const [pending, setPending] = useState([])
+  const [deactivation, setDeactivation] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const fetchRequests = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const [pendingRes, deactRes] = await Promise.allSettled([
+        prosumerService.listPendingActivations(),
+        prosumerService.listDeactivationRequests(),
+      ])
+
+      if (pendingRes.status === 'fulfilled') {
+        setPending(pendingRes.value.items || [])
+      }
+      if (deactRes.status === 'fulfilled') {
+        setDeactivation(deactRes.value.items || [])
+      }
+    } catch (err) {
+      console.error('Failed to load prosumer requests:', err)
+      setError(err.message || 'Failed to connect to prosumer service.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchRequests()
+  }, [fetchRequests])
 
   const actions = {
-    activate: (nic) => setPending((prev) => prev.filter((p) => p.nic !== nic)),
-    reject: (nic) => setPending((prev) => prev.filter((p) => p.nic !== nic)),
-    approveDeactivation: (nic) => setDeactivation((prev) => prev.filter((p) => p.nic !== nic)),
-    dismiss: (nic) => setDeactivation((prev) => prev.filter((p) => p.nic !== nic)),
+    activate: async (nic) => {
+      try {
+        await prosumerService.activateProsumer(nic)
+        fetchRequests()
+      } catch (err) {
+        alert(err.message || 'Failed to activate prosumer.')
+      }
+    },
+    reject: async (nic, reason) => {
+      try {
+        await prosumerService.rejectProsumerActivation(nic, reason)
+        fetchRequests()
+      } catch (err) {
+        alert(err.message || 'Failed to reject prosumer activation.')
+      }
+    },
+    approveDeactivation: async (nic) => {
+      try {
+        await prosumerService.approveDeactivation(nic)
+        fetchRequests()
+      } catch (err) {
+        alert(err.message || 'Failed to approve deactivation.')
+      }
+    },
   }
 
   const items = activeTab === TABS[0] ? pending : deactivation
@@ -199,6 +208,13 @@ export function ProsumerRequestsPage() {
           Review and action pending activation and deactivation requests.
         </p>
       </motion.div>
+
+      {error && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800">
@@ -235,7 +251,12 @@ export function ProsumerRequestsPage() {
           exit={{ opacity: 0 }}
           className="space-y-4"
         >
-          {items.length === 0 ? (
+          {loading ? (
+            <div className="py-16 text-center text-slate-400">
+              <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 opacity-50" />
+              Loading requests…
+            </div>
+          ) : items.length === 0 ? (
             <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white py-16 dark:border-slate-700 dark:bg-slate-900">
               <CheckCircle2 className="h-10 w-10 text-emerald-400 mb-3" />
               <p className="font-semibold text-slate-700 dark:text-slate-300">All caught up!</p>

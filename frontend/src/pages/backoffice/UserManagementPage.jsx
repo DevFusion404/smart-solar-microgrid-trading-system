@@ -3,10 +3,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit3,
-  Eye,
   Filter,
-  Mail,
-  Phone,
   Plus,
   Save,
   Search,
@@ -15,21 +12,14 @@ import {
   Users,
   RefreshCw,
   X,
+  AlertCircle,
 } from 'lucide-react'
-import { useState } from 'react'
-
-// Mock data matching GET /api/web-users response
-const mockUsers = [
-  { username: 'jordan.davis', fullName: 'Jordan Davis', email: 'jordan@solargrid.lk', phoneNumber: '+94 77 100 2001', role: 'Backoffice', status: 'Active', createdAt: '2024-01-15T08:00:00Z', lastLoginAt: '2026-09-14T17:00:00Z' },
-  { username: 'alex.ops', fullName: 'Alex Fernando', email: 'alex@solargrid.lk', phoneNumber: '+94 77 200 3002', role: 'GridOperator', status: 'Active', createdAt: '2024-02-20T08:00:00Z', lastLoginAt: '2026-09-14T13:00:00Z' },
-  { username: 'priya.admin', fullName: 'Priya Ranatunga', email: 'priya@solargrid.lk', phoneNumber: '+94 77 300 4003', role: 'Backoffice', status: 'Active', createdAt: '2024-03-10T08:00:00Z', lastLoginAt: '2026-09-13T10:00:00Z' },
-  { username: 'sam.grid', fullName: 'Samanthe Herath', email: 'sam@solargrid.lk', phoneNumber: '+94 71 400 5004', role: 'GridOperator', status: 'Deactivated', createdAt: '2023-11-05T08:00:00Z', lastLoginAt: '2025-12-01T09:00:00Z' },
-  { username: 'rahul.ops', fullName: 'Rahul Jayasena', email: 'rahul@solargrid.lk', phoneNumber: '+94 76 500 6005', role: 'GridOperator', status: 'Active', createdAt: '2025-01-10T08:00:00Z', lastLoginAt: '2026-09-12T15:00:00Z' },
-]
+import { useCallback, useEffect, useState } from 'react'
+import { userService } from '../../services'
 
 const ROLE_TABS = ['All', 'Backoffice', 'GridOperator']
 const STATUS_TABS = ['All', 'Active', 'Deactivated']
-const PAGE_SIZE = 5
+const PAGE_SIZE = 10
 
 const roleStyle = {
   Backoffice: 'bg-amber-100 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300',
@@ -62,61 +52,107 @@ function Modal({ title, onClose, children }) {
 }
 
 export function UserManagementPage() {
-  const [users, setUsers] = useState(mockUsers)
+  const [users, setUsers] = useState([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [loading, setLoading] = useState(true)
   const [roleTab, setRoleTab] = useState('All')
   const [statusTab, setStatusTab] = useState('All')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-  const [modal, setModal] = useState(null) // 'create' | 'edit' | 'deactivate' | 'view'
+  const [modal, setModal] = useState(null) // 'create' | 'edit' | 'deactivate'
   const [selected, setSelected] = useState(null)
   const [deactivateReason, setDeactivateReason] = useState('')
   const [newUser, setNewUser] = useState({ fullName: '', email: '', username: '', phoneNumber: '', role: 'GridOperator', password: '' })
   const [editForm, setEditForm] = useState({})
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [toast, setToast] = useState('')
+  const [error, setError] = useState('')
 
-  const filtered = users.filter((u) => {
-    const matchRole = roleTab === 'All' || u.role === roleTab
-    const matchStatus = statusTab === 'All' || u.status === statusTab
-    const q = search.toLowerCase()
-    const matchSearch = !q || [u.fullName, u.username, u.email].some((v) => v.toLowerCase().includes(q))
-    return matchRole && matchStatus && matchSearch
-  })
+  const fetchUsers = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const params = {
+        role: roleTab === 'All' ? undefined : roleTab,
+        status: statusTab === 'All' ? undefined : statusTab,
+        page,
+        pageSize: PAGE_SIZE,
+      }
+      const data = await userService.listWebUsers(params)
+      setUsers(data.items || [])
+      setTotalCount(data.totalCount || (data.items ? data.items.length : 0))
+    } catch (err) {
+      console.error('Failed to load web users:', err)
+      setError(err.message || 'Failed to connect to web user service.')
+    } finally {
+      setLoading(false)
+    }
+  }, [roleTab, statusTab, page])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  useEffect(() => {
+    fetchUsers()
+  }, [fetchUsers])
+
+  const showToast = (msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3500)
+  }
 
   const handleCreate = async (e) => {
     e.preventDefault()
     setSaving(true)
-    await new Promise((r) => setTimeout(r, 600))
-    setUsers((prev) => [...prev, { ...newUser, status: 'Active', createdAt: new Date().toISOString(), lastLoginAt: null }])
-    setNewUser({ fullName: '', email: '', username: '', phoneNumber: '', role: 'GridOperator', password: '' })
-    setSaving(false)
-    setModal(null)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+    try {
+      await userService.createWebUser(newUser)
+      setNewUser({ fullName: '', email: '', username: '', phoneNumber: '', role: 'GridOperator', password: '' })
+      setModal(null)
+      showToast('✓ User created successfully.')
+      fetchUsers()
+    } catch (err) {
+      alert(err.message || 'Failed to create user.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleEdit = async (e) => {
     e.preventDefault()
     setSaving(true)
-    await new Promise((r) => setTimeout(r, 600))
-    setUsers((prev) => prev.map((u) => u.username === selected.username ? { ...u, ...editForm } : u))
-    setSaving(false)
-    setModal(null)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+    try {
+      await userService.updateWebUser(selected.username, editForm)
+      setModal(null)
+      showToast('✓ User profile updated successfully.')
+      fetchUsers()
+    } catch (err) {
+      alert(err.message || 'Failed to update user.')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleDeactivate = () => {
-    setUsers((prev) => prev.map((u) => u.username === selected.username ? { ...u, status: 'Deactivated' } : u))
-    setDeactivateReason('')
-    setModal(null)
+  const handleDeactivate = async () => {
+    if (!deactivateReason.trim()) return
+    setSaving(true)
+    try {
+      await userService.deactivateWebUser(selected.username, deactivateReason)
+      setDeactivateReason('')
+      setModal(null)
+      showToast('✓ User account deactivated.')
+      fetchUsers()
+    } catch (err) {
+      alert(err.message || 'Failed to deactivate user.')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleReactivate = (username) => {
-    setUsers((prev) => prev.map((u) => u.username === username ? { ...u, status: 'Active' } : u))
+  const handleReactivate = async (username) => {
+    try {
+      await userService.reactivateWebUser(username)
+      showToast('✓ User account reactivated.')
+      fetchUsers()
+    } catch (err) {
+      alert(err.message || 'Failed to reactivate user.')
+    }
   }
 
   const openEdit = (user) => {
@@ -125,13 +161,12 @@ export function UserManagementPage() {
     setModal('edit')
   }
 
-  const counts = {
-    All: users.length,
-    Backoffice: users.filter((u) => u.role === 'Backoffice').length,
-    GridOperator: users.filter((u) => u.role === 'GridOperator').length,
-    Active: users.filter((u) => u.status === 'Active').length,
-    Deactivated: users.filter((u) => u.status === 'Deactivated').length,
-  }
+  const filtered = users.filter((u) => {
+    const q = search.toLowerCase()
+    return !q || [u.fullName, u.username, u.email, u.phoneNumber].some((v) => v && v.toLowerCase().includes(q))
+  })
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
 
   return (
     <div className="space-y-6">
@@ -145,26 +180,18 @@ export function UserManagementPage() {
         </button>
       </motion.div>
 
-      {saved && (
+      {toast && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-700/40 dark:bg-emerald-400/10 dark:text-emerald-300">
-          ✓ Changes saved successfully.
+          {toast}
         </motion.div>
       )}
 
-      {/* Stats */}
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { label: 'Total Users', value: counts.All, color: 'text-blue-600 dark:text-blue-400' },
-          { label: 'Backoffice', value: counts.Backoffice, color: 'text-amber-600 dark:text-amber-400' },
-          { label: 'Grid Operators', value: counts.GridOperator, color: 'text-blue-600 dark:text-blue-400' },
-          { label: 'Active', value: counts.Active, color: 'text-emerald-600 dark:text-emerald-400' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
-            <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
-          </div>
-        ))}
-      </motion.div>
+      {error && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Table card */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.08 }} className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -172,13 +199,13 @@ export function UserManagementPage() {
         <div className="flex flex-col gap-3 border-b border-slate-100 p-4 dark:border-slate-800 sm:flex-row sm:items-center sm:flex-wrap">
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800 w-full sm:w-72">
             <Search className="h-4 w-4 text-slate-400 shrink-0" />
-            <input type="text" placeholder="Search by name, username, email…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400 dark:text-slate-200" />
+            <input type="text" placeholder="Search by name, username, email…" value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400 dark:text-slate-200" />
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
             <Filter className="h-4 w-4 text-slate-400 shrink-0" />
             {ROLE_TABS.map((tab) => (
               <button key={tab} type="button" onClick={() => { setRoleTab(tab); setPage(1) }} className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${roleTab === tab ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'}`}>
-                {tab} ({counts[tab] ?? 0})
+                {tab}
               </button>
             ))}
             <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
@@ -204,19 +231,26 @@ export function UserManagementPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
-              {paginated.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-sm text-slate-400">
+                    <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 opacity-50" />
+                    Loading web users…
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-sm text-slate-400">
                     <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />No users found.
                   </td>
                 </tr>
               ) : (
-                paginated.map((u, i) => (
+                filtered.map((u, i) => (
                   <motion.tr key={u.username} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${u.role === 'Backoffice' ? 'bg-amber-100 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-400/10 dark:text-blue-300'}`}>
-                          {u.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                          {u.fullName ? u.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2) : u.username.slice(0, 2).toUpperCase()}
                         </span>
                         <div>
                           <p className="font-medium text-slate-800 dark:text-slate-200">{u.fullName}</p>
@@ -256,13 +290,10 @@ export function UserManagementPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3.5 dark:border-slate-800">
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+            Page {page} of {totalPages} ({totalCount} total)
           </p>
           <div className="flex items-center gap-1">
             <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-800"><ChevronLeft className="h-4 w-4" /></button>
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button key={i} type="button" onClick={() => setPage(i + 1)} className={`h-7 w-7 rounded-lg text-xs font-semibold transition ${page === i + 1 ? 'bg-amber-400 text-slate-950' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>{i + 1}</button>
-            ))}
             <button type="button" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-800"><ChevronRight className="h-4 w-4" /></button>
           </div>
         </div>
@@ -314,7 +345,7 @@ export function UserManagementPage() {
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">Provide a mandatory reason for this deactivation.</p>
             <textarea value={deactivateReason} onChange={(e) => setDeactivateReason(e.target.value)} placeholder="Reason for deactivation…" rows={3} required className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 resize-none" />
             <div className="mt-4 flex gap-3">
-              <button type="button" onClick={handleDeactivate} className="flex items-center gap-2 rounded-xl bg-red-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-600"><UserMinus className="h-4 w-4" /> Deactivate</button>
+              <button type="button" onClick={handleDeactivate} disabled={saving} className="flex items-center gap-2 rounded-xl bg-red-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60"><UserMinus className="h-4 w-4" /> {saving ? 'Deactivating…' : 'Deactivate'}</button>
               <button type="button" onClick={() => setModal(null)} className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">Cancel</button>
             </div>
           </Modal>

@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
 import { DashboardLayout } from './components/layout/DashboardLayout'
 import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
@@ -35,54 +36,56 @@ import { ProfilePage as ProsumerProfilePage } from './pages/prosumer/ProfilePage
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/backoffice" replace />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Navigate to="/backoffice" replace />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
 
-        {/* ── Backoffice ── */}
-        <Route path="/backoffice" element={<DashboardLayout />}>
-          <Route index element={<DashboardPage />} />
+          {/* ── Backoffice ── */}
+          <Route path="/backoffice" element={<DashboardLayout />}>
+            <Route index element={<DashboardPage />} />
 
-          {/* Account management */}
-          <Route path="profile" element={<BackofficeProfilePage />} />
-          <Route path="users" element={<UserManagementPage />} />
-          <Route path="prosumers" element={<ProsumersPage />} />
-          <Route path="prosumers/requests" element={<ProsumerRequestsPage />} />
-          <Route path="prosumers/:nic" element={<ProsumerDetailPage />} />
+            {/* Account management */}
+            <Route path="profile" element={<BackofficeProfilePage />} />
+            <Route path="users" element={<UserManagementPage />} />
+            <Route path="prosumers" element={<ProsumersPage />} />
+            <Route path="prosumers/requests" element={<ProsumerRequestsPage />} />
+            <Route path="prosumers/:nic" element={<ProsumerDetailPage />} />
 
-          {/* Microgrid Nodes (Component 2 - Sithmaka) */}
-          <Route path="nodes" element={<NodesListPage />} />
-          <Route path="nodes/new" element={<AddNodePage />} />
-          <Route path="nodes/schedules" element={<NodeSchedulesPage />} />
+            {/* Microgrid Nodes (Component 2 - Sithmaka) */}
+            <Route path="nodes" element={<NodesListPage />} />
+            <Route path="nodes/new" element={<AddNodePage />} />
+            <Route path="nodes/schedules" element={<NodeSchedulesPage />} />
 
-          {/* Energy slots (existing) */}
-          <Route path="energy-slots" element={<EnergySlotDashboard />} />
-          <Route path="energy-slots/manage" element={<ManageEnergySlots />} />
-          <Route path="energy-slots/reservations" element={<EnergySlotReservations />} />
-          <Route path="energy-slots/reservations/:reservationId" element={<EnergySlotReservations />} />
+            {/* Energy slots (existing) */}
+            <Route path="energy-slots" element={<EnergySlotDashboard />} />
+            <Route path="energy-slots/manage" element={<ManageEnergySlots />} />
+            <Route path="energy-slots/reservations" element={<EnergySlotReservations />} />
+            <Route path="energy-slots/reservations/:reservationId" element={<EnergySlotReservations />} />
 
-          <Route path="*" element={<PlaceholderPage />} />
-        </Route>
+            <Route path="*" element={<PlaceholderPage />} />
+          </Route>
 
-        {/* ── Grid Operator ── */}
-        <Route path="/operator" element={<OperatorLayout />}>
-          <Route index element={<OperatorDashboard />} />
+          {/* ── Grid Operator ── */}
+          <Route path="/operator" element={<OperatorLayout />}>
+            <Route index element={<OperatorDashboard />} />
 
-          {/* Account management */}
-          <Route path="profile" element={<GridOperatorProfilePage />} />
-          <Route path="prosumers" element={<GridOperatorProsumerListPage />} />
+            {/* Account management */}
+            <Route path="profile" element={<GridOperatorProfilePage />} />
+            <Route path="prosumers" element={<GridOperatorProsumerListPage />} />
 
-          <Route path="*" element={<PlaceholderPage />} />
-        </Route>
+            <Route path="*" element={<PlaceholderPage />} />
+          </Route>
 
-        {/* ── Prosumer Portal ── */}
-        <Route path="/prosumer" element={<ProsumerLayout />}>
-          <Route index element={<Navigate to="/prosumer/profile" replace />} />
-          <Route path="profile" element={<ProsumerProfilePage />} />
-          <Route path="*" element={<PlaceholderPage />} />
-        </Route>
-      </Routes>
+          {/* ── Prosumer Portal ── */}
+          <Route path="/prosumer" element={<ProsumerLayout />}>
+            <Route index element={<Navigate to="/prosumer/profile" replace />} />
+            <Route path="profile" element={<ProsumerProfilePage />} />
+            <Route path="*" element={<PlaceholderPage />} />
+          </Route>
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

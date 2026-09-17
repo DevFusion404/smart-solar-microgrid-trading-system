@@ -2,7 +2,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft,
   Calendar,
-  CheckCircle2,
   Clock,
   Edit3,
   Mail,
@@ -16,39 +15,11 @@ import {
   UserMinus,
   UserX,
   X,
+  AlertCircle,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-
-const mockProsumers = {
-  '981234567V': {
-    nic: '981234567V', fullName: 'Kasun Silva', username: 'kasun.silva',
-    email: 'kasun@example.com', phoneNumber: '+94 77 111 2222',
-    address: 'No. 15, Park Road, Colombo 05', status: 'Active',
-    createdAt: '2024-03-01T08:00:00Z', activationRequestedAt: '2024-03-01T08:05:00Z',
-    activatedAt: '2024-03-05T09:00:00Z', activatedBy: 'admin.user',
-    deactivationRequestedAt: null, deactivatedAt: null, deactivatedBy: null,
-    deactivationReason: null, lastLoginAt: '2026-09-14T14:00:00Z', updatedAt: '2026-09-14T14:00:00Z', version: 3,
-  },
-  '875432109V': {
-    nic: '875432109V', fullName: 'Nimal Perera', username: 'nimal.perera',
-    email: 'nimal@example.com', phoneNumber: '+94 77 333 4444',
-    address: 'Kandy', status: 'PendingActivation',
-    createdAt: '2026-09-10T09:55:00Z', activationRequestedAt: '2026-09-10T10:00:00Z',
-    activatedAt: null, activatedBy: null,
-    deactivationRequestedAt: null, deactivatedAt: null, deactivatedBy: null,
-    deactivationReason: null, lastLoginAt: null, updatedAt: '2026-09-10T09:55:00Z', version: 1,
-  },
-  '541097654V': {
-    nic: '541097654V', fullName: 'Ruwan Bandara', username: 'ruwan.b',
-    email: 'ruwan@example.com', phoneNumber: '+94 72 999 0000',
-    address: 'Kurunegala', status: 'PendingDeactivation',
-    createdAt: '2024-01-20T08:00:00Z', activationRequestedAt: '2024-01-20T08:05:00Z',
-    activatedAt: '2024-01-25T10:00:00Z', activatedBy: 'admin.user',
-    deactivationRequestedAt: '2026-09-11T09:00:00Z', deactivatedAt: null, deactivatedBy: null,
-    deactivationReason: 'Moving to another energy provider.', lastLoginAt: '2026-09-10T08:00:00Z', updatedAt: '2026-09-11T09:00:00Z', version: 4,
-  },
-}
+import { prosumerService } from '../../services'
 
 const statusStyle = {
   Active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300',
@@ -100,42 +71,103 @@ function TimelineItem({ label, date, by, color }) {
 export function ProsumerDetailPage() {
   const { nic } = useParams()
   const navigate = useNavigate()
-  const [prosumer, setProsumer] = useState(mockProsumers[nic] ?? Object.values(mockProsumers)[0])
+  const [prosumer, setProsumer] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({ fullName: prosumer.fullName, phoneNumber: prosumer.phoneNumber, address: prosumer.address ?? '' })
+  const [form, setForm] = useState({ fullName: '', email: '', phoneNumber: '', address: '' })
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [toast, setToast] = useState('')
   const [confirmAction, setConfirmAction] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
   const [deactivateReason, setDeactivateReason] = useState('')
 
-  if (!prosumer) {
-    return <div className="py-20 text-center text-slate-400">Prosumer not found.</div>
-  }
+  const fetchProsumer = useCallback(async () => {
+    if (!nic) return
+    setLoading(true)
+    setError('')
+    try {
+      const data = await prosumerService.getProsumerByNic(nic)
+      setProsumer(data)
+      setForm({
+        fullName: data.fullName || '',
+        email: data.email || '',
+        phoneNumber: data.phoneNumber || '',
+        address: data.address || '',
+      })
+    } catch (err) {
+      console.error('Failed to load prosumer details:', err)
+      setError(err.message || 'Prosumer account not found or access denied.')
+    } finally {
+      setLoading(false)
+    }
+  }, [nic])
 
-  const initials = prosumer.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2)
+  useEffect(() => {
+    fetchProsumer()
+  }, [fetchProsumer])
+
+  const showToast = (msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3500)
+  }
 
   const handleSave = async (e) => {
     e.preventDefault()
     setSaving(true)
-    await new Promise((r) => setTimeout(r, 700))
-    setProsumer((p) => ({ ...p, ...form }))
-    setSaving(false)
-    setSaved(true)
-    setEditing(false)
-    setTimeout(() => setSaved(false), 3000)
+    try {
+      await prosumerService.updateProsumer(nic, form)
+      showToast('✓ Profile updated successfully.')
+      setEditing(false)
+      fetchProsumer()
+    } catch (err) {
+      alert(err.message || 'Failed to update prosumer profile.')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const applyAction = (type) => {
-    const updates = {
-      activate: { status: 'Active', activatedAt: new Date().toISOString(), activatedBy: 'jordan.davis' },
-      reject: { status: 'Deactivated', deactivationReason: rejectReason },
-      deactivate: { status: 'Deactivated', deactivatedAt: new Date().toISOString(), deactivatedBy: 'jordan.davis', deactivationReason: deactivateReason },
-      reactivate: { status: 'Active', deactivatedAt: null, deactivationReason: null },
+  const applyAction = async (type) => {
+    try {
+      if (type === 'activate') {
+        await prosumerService.activateProsumer(nic)
+      } else if (type === 'reject') {
+        await prosumerService.rejectProsumerActivation(nic, rejectReason)
+      } else if (type === 'deactivate') {
+        await prosumerService.approveDeactivation(nic)
+      } else if (type === 'reactivate') {
+        await prosumerService.reactivateProsumer(nic)
+      }
+      setConfirmAction(null)
+      showToast(`✓ Action [${type}] completed successfully.`)
+      fetchProsumer()
+    } catch (err) {
+      alert(err.message || 'Action failed.')
     }
-    setProsumer((p) => ({ ...p, ...updates[type] }))
-    setConfirmAction(null)
   }
+
+  if (loading) {
+    return (
+      <div className="py-20 text-center text-slate-400">
+        <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 opacity-50" />
+        Loading prosumer profile…
+      </div>
+    )
+  }
+
+  if (error || !prosumer) {
+    return (
+      <div className="space-y-4 py-12 text-center">
+        <AlertCircle className="h-10 w-10 text-red-500 mx-auto" />
+        <p className="font-semibold text-slate-800 dark:text-slate-200">{error || 'Prosumer not found.'}</p>
+        <button type="button" onClick={() => navigate('/backoffice/prosumers')} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300">
+          Back to Prosumers
+        </button>
+      </div>
+    )
+  }
+
+  const initials = prosumer.fullName ? prosumer.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'PR'
 
   return (
     <div className="space-y-6">
@@ -150,9 +182,9 @@ export function ProsumerDetailPage() {
         </div>
       </motion.div>
 
-      {saved && (
+      {toast && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-700/40 dark:bg-emerald-400/10 dark:text-emerald-300">
-          ✓ Profile updated successfully.
+          {toast}
         </motion.div>
       )}
 
@@ -163,13 +195,13 @@ export function ProsumerDetailPage() {
           <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.04 }} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 flex flex-col items-center text-center">
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-400 text-2xl font-bold text-slate-950">{initials}</div>
             <p className="mt-3 font-bold text-slate-900 dark:text-white">{prosumer.fullName}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">@{prosumer.username}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">@{prosumer.username || prosumer.nic}</p>
             <div className="mt-3 flex flex-col items-center gap-2">
               <StatusBadge status={prosumer.status} />
               <span className="flex items-center gap-1 text-xs text-slate-400"><Shield className="h-3 w-3" /> Prosumer</span>
             </div>
             <div className="mt-4 w-full space-y-1.5 text-xs text-slate-500 dark:text-slate-400 text-left">
-              <div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5 shrink-0" /> Registered {new Date(prosumer.createdAt).toLocaleDateString('en-GB')}</div>
+              <div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5 shrink-0" /> Registered {prosumer.createdAt ? new Date(prosumer.createdAt).toLocaleDateString('en-GB') : '-'}</div>
               {prosumer.lastLoginAt && <div className="flex items-center gap-2"><Clock className="h-3.5 w-3.5 shrink-0" /> Last login {new Date(prosumer.lastLoginAt).toLocaleDateString('en-GB')}</div>}
             </div>
           </motion.div>
@@ -204,12 +236,18 @@ export function ProsumerDetailPage() {
             {editing ? (
               <form onSubmit={handleSave} className="p-6 space-y-4">
                 <h2 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2"><Edit3 className="h-4 w-4 text-amber-400" /> Edit Profile</h2>
-                {[['Full Name', 'fullName', 'text'], ['Phone Number', 'phoneNumber', 'tel']].map(([label, key, type]) => (
-                  <label key={key} className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                    {label}
-                    <input type={type} value={form[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} required className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
-                  </label>
-                ))}
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Full Name
+                  <input type="text" value={form.fullName} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))} required className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                </label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Email Address
+                  <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                </label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Phone Number
+                  <input type="tel" value={form.phoneNumber} onChange={(e) => setForm((f) => ({ ...f, phoneNumber: e.target.value }))} required className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                </label>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Address
                   <textarea value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} rows={2} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 resize-none" />
@@ -223,7 +261,7 @@ export function ProsumerDetailPage() {
               <div className="p-6">
                 <h2 className="font-semibold text-slate-900 dark:text-white mb-4">Account Details</h2>
                 <InfoRow icon={User} label="Full Name" value={prosumer.fullName} />
-                <InfoRow icon={User} label="Username" value={`@${prosumer.username}`} mono />
+                <InfoRow icon={User} label="Username" value={prosumer.username ? `@${prosumer.username}` : undefined} mono />
                 <InfoRow icon={User} label="NIC" value={prosumer.nic} mono />
                 <InfoRow icon={Mail} label="Email Address" value={prosumer.email} />
                 <InfoRow icon={Phone} label="Phone Number" value={prosumer.phoneNumber} />

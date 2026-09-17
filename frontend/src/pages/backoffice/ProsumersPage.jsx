@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Search,
@@ -11,21 +10,11 @@ import {
   Eye,
   Filter,
   Users,
+  AlertCircle,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-
-// Mock data matching GET /api/prosumers response shape
-const mockProsumers = [
-  { nic: '981234567V', fullName: 'Kasun Silva', email: 'kasun@example.com', phoneNumber: '+94 77 111 2222', status: 'Active', address: 'Colombo 05', createdAt: '2024-03-01T08:00:00Z', activatedAt: '2024-03-05T09:00:00Z' },
-  { nic: '875432109V', fullName: 'Nimal Perera', email: 'nimal@example.com', phoneNumber: '+94 77 333 4444', status: 'PendingActivation', address: 'Kandy', createdAt: '2026-09-10T10:00:00Z', activatedAt: null },
-  { nic: '763219876V', fullName: 'Amal Fernando', email: 'amal@example.com', phoneNumber: '+94 71 555 6666', status: 'Active', address: 'Galle', createdAt: '2024-06-15T08:00:00Z', activatedAt: '2024-06-20T11:00:00Z' },
-  { nic: '652108765V', fullName: 'Sanduni Wijesinghe', email: 'sanduni@example.com', phoneNumber: '+94 76 777 8888', status: 'Deactivated', address: 'Matara', createdAt: '2023-11-01T08:00:00Z', activatedAt: '2023-11-05T09:00:00Z' },
-  { nic: '541097654V', fullName: 'Ruwan Bandara', email: 'ruwan@example.com', phoneNumber: '+94 72 999 0000', status: 'PendingDeactivation', address: 'Kurunegala', createdAt: '2024-01-20T08:00:00Z', activatedAt: '2024-01-25T10:00:00Z' },
-  { nic: '430986543V', fullName: 'Chamari Jayasuriya', email: 'chamari@example.com', phoneNumber: '+94 78 123 7890', status: 'Active', address: 'Negombo', createdAt: '2025-02-10T08:00:00Z', activatedAt: '2025-02-15T09:00:00Z' },
-  { nic: '320875432V', fullName: 'Dinesh Rajapaksa', email: 'dinesh@example.com', phoneNumber: '+94 77 456 1230', status: 'PendingActivation', address: 'Jaffna', createdAt: '2026-09-12T10:00:00Z', activatedAt: null },
-  { nic: '210764321V', fullName: 'Priya Kumari', email: 'priya@example.com', phoneNumber: '+94 71 789 4560', status: 'Active', address: 'Ratnapura', createdAt: '2024-08-05T08:00:00Z', activatedAt: '2024-08-10T09:00:00Z' },
-]
+import { prosumerService } from '../../services'
 
 const STATUS_TABS = ['All', 'Active', 'PendingActivation', 'PendingDeactivation', 'Deactivated']
 
@@ -79,22 +68,40 @@ export function ProsumersPage() {
   const [activeTab, setActiveTab] = useState('All')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-  const [dialog, setDialog] = useState(null) // { type, prosumer, reason? }
+  const [dialog, setDialog] = useState(null) // { type, prosumer }
   const [rejectReason, setRejectReason] = useState('')
   const [deactivateReason, setDeactivateReason] = useState('')
-  const [prosumers, setProsumers] = useState(mockProsumers)
+  const [prosumers, setProsumers] = useState([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const PAGE_SIZE = 6
+  const PAGE_SIZE = 10
 
-  const filtered = prosumers.filter((p) => {
-    const matchTab = activeTab === 'All' || p.status === activeTab
-    const q = search.toLowerCase()
-    const matchSearch = !q || [p.fullName, p.nic, p.email, p.phoneNumber].some((v) => v.toLowerCase().includes(q))
-    return matchTab && matchSearch
-  })
+  const fetchProsumers = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const statusParam = activeTab === 'All' ? undefined : activeTab
+      let data
+      if (search.trim()) {
+        data = await prosumerService.searchProsumers({ q: search, status: statusParam, page, pageSize: PAGE_SIZE })
+      } else {
+        data = await prosumerService.listProsumers({ status: statusParam, page, pageSize: PAGE_SIZE })
+      }
+      setProsumers(data.items || [])
+      setTotalCount(data.totalCount || (data.items ? data.items.length : 0))
+    } catch (err) {
+      console.error('Failed to load prosumers:', err)
+      setError(err.message || 'Failed to connect to prosumer management service.')
+    } finally {
+      setLoading(false)
+    }
+  }, [activeTab, search, page])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  useEffect(() => {
+    fetchProsumers()
+  }, [fetchProsumers])
 
   const handleAction = (type, prosumer) => {
     setRejectReason('')
@@ -102,25 +109,27 @@ export function ProsumersPage() {
     setDialog({ type, prosumer })
   }
 
-  const confirmAction = () => {
+  const confirmAction = async () => {
+    if (!dialog) return
     const { type, prosumer } = dialog
-    setProsumers((prev) =>
-      prev.map((p) => {
-        if (p.nic !== prosumer.nic) return p
-        if (type === 'activate') return { ...p, status: 'Active' }
-        if (type === 'reject') return { ...p, status: 'Deactivated' }
-        if (type === 'deactivate') return { ...p, status: 'Deactivated' }
-        if (type === 'reactivate') return { ...p, status: 'Active' }
-        return p
-      })
-    )
-    setDialog(null)
+    try {
+      if (type === 'activate') {
+        await prosumerService.activateProsumer(prosumer.nic)
+      } else if (type === 'reject') {
+        await prosumerService.rejectProsumerActivation(prosumer.nic, rejectReason)
+      } else if (type === 'deactivate') {
+        await prosumerService.approveDeactivation(prosumer.nic)
+      } else if (type === 'reactivate') {
+        await prosumerService.reactivateProsumer(prosumer.nic)
+      }
+      setDialog(null)
+      fetchProsumers()
+    } catch (err) {
+      alert(err.message || 'Action failed.')
+    }
   }
 
-  const tabCounts = STATUS_TABS.reduce((acc, tab) => {
-    acc[tab] = tab === 'All' ? prosumers.length : prosumers.filter((p) => p.status === tab).length
-    return acc
-  }, {})
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
 
   return (
     <div className="space-y-6">
@@ -131,25 +140,12 @@ export function ProsumersPage() {
         </p>
       </motion.div>
 
-      {/* Stats bar */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.04 }}
-        className="grid grid-cols-2 gap-3 sm:grid-cols-4"
-      >
-        {[
-          { label: 'Total Prosumers', value: prosumers.length, color: 'text-blue-600 dark:text-blue-400' },
-          { label: 'Active', value: tabCounts.Active, color: 'text-emerald-600 dark:text-emerald-400' },
-          { label: 'Pending Activation', value: tabCounts.PendingActivation, color: 'text-amber-600 dark:text-amber-400' },
-          { label: 'Deactivated', value: tabCounts.Deactivated, color: 'text-red-600 dark:text-red-400' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
-            <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
-          </div>
-        ))}
-      </motion.div>
+      {error && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Filters */}
       <motion.div
@@ -184,7 +180,6 @@ export function ProsumersPage() {
                 }`}
               >
                 {statusLabel[tab] ?? tab}
-                <span className="ml-1.5 opacity-60">({tabCounts[tab]})</span>
               </button>
             ))}
           </div>
@@ -204,7 +199,14 @@ export function ProsumersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
-              {paginated.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-sm text-slate-400">
+                    <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 opacity-50" />
+                    Loading prosumers…
+                  </td>
+                </tr>
+              ) : prosumers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-sm text-slate-400">
                     <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
@@ -212,7 +214,7 @@ export function ProsumersPage() {
                   </td>
                 </tr>
               ) : (
-                paginated.map((p, i) => (
+                prosumers.map((p, i) => (
                   <motion.tr
                     key={p.nic}
                     initial={{ opacity: 0, y: 4 }}
@@ -223,7 +225,7 @@ export function ProsumersPage() {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700 dark:bg-amber-400/10 dark:text-amber-300">
-                          {p.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                          {p.fullName ? p.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'PR'}
                         </span>
                         <div>
                           <p className="font-medium text-slate-800 dark:text-slate-200">{p.fullName}</p>
@@ -237,7 +239,7 @@ export function ProsumersPage() {
                       <StatusBadge status={p.status} />
                     </td>
                     <td className="px-5 py-4 text-slate-500 dark:text-slate-400 text-xs">
-                      {new Date(p.createdAt).toLocaleDateString('en-GB')}
+                      {p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-GB') : '-'}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-1.5 flex-wrap">
@@ -281,17 +283,12 @@ export function ProsumersPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3.5 dark:border-slate-800">
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+            Page {page} of {totalPages} ({totalCount} total)
           </p>
           <div className="flex items-center gap-1">
             <button type="button" disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-800">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button key={i} type="button" onClick={() => setPage(i + 1)} className={`h-7 w-7 rounded-lg text-xs font-semibold transition ${page === i + 1 ? 'bg-amber-400 text-slate-950' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                {i + 1}
-              </button>
-            ))}
             <button type="button" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)} className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-slate-800">
               <ChevronRight className="h-4 w-4" />
             </button>

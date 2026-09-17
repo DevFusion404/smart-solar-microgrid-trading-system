@@ -10,23 +10,11 @@ import {
   Shield,
   User,
   X,
+  RefreshCw,
 } from 'lucide-react'
-import { useState } from 'react'
-
-// Mock data matching GET /api/profile response shape
-const mockProfile = {
-  username: 'jordan.davis',
-  fullName: 'Jordan Davis',
-  email: 'jordan.davis@solargrid.lk',
-  phoneNumber: '+94 77 123 4567',
-  role: 'Backoffice',
-  status: 'Active',
-  nic: null,
-  address: '42 Galle Road, Colombo 03',
-  createdAt: '2024-01-15T08:00:00Z',
-  updatedAt: '2025-06-10T12:34:00Z',
-  lastLoginAt: '2026-09-14T17:00:00Z',
-}
+import { useEffect, useState } from 'react'
+import { profileService } from '../../services'
+import { useAuth } from '../../context/AuthContext'
 
 function InfoRow({ icon: Icon, label, value }) {
   return (
@@ -58,32 +46,52 @@ function StatusBadge({ status }) {
 }
 
 export function ProfilePage() {
-  const [profile] = useState(mockProfile)
+  const { updateUserProfile } = useAuth()
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({
-    fullName: profile.fullName,
-    phoneNumber: profile.phoneNumber,
-    address: profile.address ?? '',
-  })
+  const [form, setForm] = useState({ fullName: '', phoneNumber: '', address: '' })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
 
-  const initials = profile.fullName
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
+  const loadProfile = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const data = await profileService.getProfile()
+      setProfile(data)
+      setForm({
+        fullName: data.fullName || '',
+        phoneNumber: data.phoneNumber || '',
+        address: data.address || '',
+      })
+    } catch (err) {
+      console.error('Failed to load profile:', err)
+      setError(err.message || 'Failed to load user profile.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadProfile()
+  }, [])
 
   const handleSave = async (e) => {
     e.preventDefault()
     setSaving(true)
-    // Simulate PUT /api/profile
-    await new Promise((r) => setTimeout(r, 800))
-    setSaving(false)
-    setSaved(true)
-    setEditing(false)
-    setTimeout(() => setSaved(false), 3000)
+    try {
+      await updateUserProfile(form)
+      setSaved(true)
+      setEditing(false)
+      loadProfile()
+      setTimeout(() => setSaved(false), 3500)
+    } catch (err) {
+      alert(err.message || 'Failed to save profile changes.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const formatDate = (iso) =>
@@ -96,6 +104,30 @@ export function ProfilePage() {
           minute: '2-digit',
         })
       : 'Never'
+
+  if (loading) {
+    return (
+      <div className="py-20 text-center text-slate-400">
+        <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 opacity-50" />
+        Loading profile information…
+      </div>
+    )
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="py-12 text-center text-red-500">
+        <p className="font-semibold">{error || 'Unable to fetch profile.'}</p>
+        <button type="button" onClick={loadProfile} className="mt-3 rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300">
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  const initials = profile.fullName
+    ? profile.fullName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    : profile.username.slice(0, 2).toUpperCase()
 
   return (
     <div className="space-y-6">
@@ -139,10 +171,12 @@ export function ProfilePage() {
           </div>
 
           <div className="mt-6 w-full space-y-2 text-xs text-slate-500 dark:text-slate-400">
-            <div className="flex items-center gap-2">
-              <Clock className="h-3.5 w-3.5 shrink-0" />
-              <span>Member since {new Date(profile.createdAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</span>
-            </div>
+            {profile.createdAt && (
+              <div className="flex items-center gap-2">
+                <Clock className="h-3.5 w-3.5 shrink-0" />
+                <span>Member since {new Date(profile.createdAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <Clock className="h-3.5 w-3.5 shrink-0" />
               <span>Last login: {formatDate(profile.lastLoginAt)}</span>

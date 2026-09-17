@@ -12,24 +12,12 @@ import {
   Shield,
   User,
   X,
+  RefreshCw,
+  AlertCircle,
 } from 'lucide-react'
-import { useState } from 'react'
-
-// Mock data matching GET /api/profile for Prosumer
-const mockProfile = {
-  username: 'kasun.silva',
-  fullName: 'Kasun Silva',
-  email: 'kasun.silva@example.com',
-  phoneNumber: '+94 77 111 2222',
-  role: 'Prosumer',
-  status: 'Active',      // Active | PendingActivation | PendingDeactivation | Deactivated
-  nic: '981234567V',
-  address: 'No. 15, Park Road, Colombo 05',
-  createdAt: '2024-03-01T08:00:00Z',
-  updatedAt: '2026-08-20T14:00:00Z',
-  lastLoginAt: '2026-09-14T12:00:00Z',
-  activatedAt: '2024-03-05T09:00:00Z',
-}
+import { useCallback, useEffect, useState } from 'react'
+import { profileService } from '../../services'
+import { useAuth } from '../../context/AuthContext'
 
 function InfoRow({ icon: Icon, label, value, mono }) {
   return (
@@ -71,23 +59,41 @@ const statusInfo = {
 }
 
 export function ProfilePage() {
-  const [profile] = useState(mockProfile)
+  const { updateUserProfile } = useAuth()
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({
-    fullName: profile.fullName,
-    phoneNumber: profile.phoneNumber,
-    address: profile.address ?? '',
-  })
+  const [form, setForm] = useState({ fullName: '', phoneNumber: '', address: '' })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [deactivationReason, setDeactivationReason] = useState('')
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false)
   const [deactivationSubmitted, setDeactivationSubmitted] = useState(false)
-  const [status, setStatus] = useState(profile.status)
+  const [deactivating, setDeactivating] = useState(false)
 
-  const initials = profile.fullName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-  const si = statusInfo[status] ?? statusInfo.Active
-  const StatusIcon = si.icon
+  const loadProfile = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const data = await profileService.getProfile()
+      setProfile(data)
+      setForm({
+        fullName: data.fullName || '',
+        phoneNumber: data.phoneNumber || '',
+        address: data.address || '',
+      })
+    } catch (err) {
+      console.error('Failed to load prosumer profile:', err)
+      setError(err.message || 'Failed to connect to profile service.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadProfile()
+  }, [loadProfile])
 
   const formatDate = (iso) =>
     iso
@@ -97,20 +103,62 @@ export function ProfilePage() {
   const handleSave = async (e) => {
     e.preventDefault()
     setSaving(true)
-    await new Promise((r) => setTimeout(r, 800))
-    setSaving(false)
-    setSaved(true)
-    setEditing(false)
-    setTimeout(() => setSaved(false), 3000)
+    try {
+      await updateUserProfile(form)
+      setSaved(true)
+      setEditing(false)
+      loadProfile()
+      setTimeout(() => setSaved(false), 3500)
+    } catch (err) {
+      alert(err.message || 'Failed to update profile.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleRequestDeactivation = async () => {
-    // Simulate POST /api/profile/request-deactivation
-    await new Promise((r) => setTimeout(r, 600))
-    setStatus('PendingDeactivation')
-    setShowDeactivateConfirm(false)
-    setDeactivationSubmitted(true)
+    if (!deactivationReason.trim()) return
+    setDeactivating(true)
+    try {
+      await profileService.requestDeactivation(deactivationReason)
+      setShowDeactivateConfirm(false)
+      setDeactivationSubmitted(true)
+      loadProfile()
+    } catch (err) {
+      alert(err.message || 'Failed to submit deactivation request.')
+    } finally {
+      setDeactivating(false)
+    }
   }
+
+  if (loading) {
+    return (
+      <div className="py-20 text-center text-slate-400">
+        <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 opacity-50" />
+        Loading your profile…
+      </div>
+    )
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="py-12 text-center text-red-500">
+        <AlertCircle className="h-10 w-10 mx-auto mb-2" />
+        <p className="font-semibold">{error || 'Unable to fetch profile.'}</p>
+        <button type="button" onClick={loadProfile} className="mt-3 rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300">
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  const initials = profile.fullName
+    ? profile.fullName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'PR'
+
+  const status = profile.status || 'Active'
+  const si = statusInfo[status] ?? statusInfo.Active
+  const StatusIcon = si.icon
 
   return (
     <div className="space-y-6">
@@ -147,8 +195,7 @@ export function ProfilePage() {
               <span className="flex items-center gap-1 text-xs text-slate-400"><Shield className="h-3 w-3" /> Prosumer</span>
             </div>
             <div className="mt-4 w-full space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
-              <div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5 shrink-0" />Registered {new Date(profile.createdAt).toLocaleDateString('en-GB')}</div>
-              {profile.activatedAt && <div className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />Activated {new Date(profile.activatedAt).toLocaleDateString('en-GB')}</div>}
+              {profile.createdAt && <div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5 shrink-0" />Registered {new Date(profile.createdAt).toLocaleDateString('en-GB')}</div>}
               <div className="flex items-center gap-2"><Clock className="h-3.5 w-3.5 shrink-0" />Last login {formatDate(profile.lastLoginAt)}</div>
             </div>
             <button type="button" onClick={() => setEditing((v) => !v)} className={`mt-6 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition ${editing ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300' : 'bg-emerald-500 text-white hover:bg-emerald-600'}`}>
@@ -176,12 +223,14 @@ export function ProfilePage() {
                   <Edit3 className="h-4 w-4 text-emerald-500" />
                   <h2 className="font-semibold text-slate-900 dark:text-white">Edit Profile</h2>
                 </div>
-                {[['Full Name', 'fullName', 'text'], ['Phone Number', 'phoneNumber', 'tel']].map(([label, key, type]) => (
-                  <label key={key} className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                    {label}
-                    <input type={type} value={form[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} required className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
-                  </label>
-                ))}
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Full Name
+                  <input type="text" value={form.fullName} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))} required className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                </label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Phone Number
+                  <input type="tel" value={form.phoneNumber} onChange={(e) => setForm((f) => ({ ...f, phoneNumber: e.target.value }))} required className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                </label>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Address
                   <textarea value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} rows={3} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 resize-none" />
@@ -242,8 +291,8 @@ export function ProfilePage() {
                       className="w-full rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/20 dark:border-red-700/40 dark:bg-slate-800 dark:text-slate-100 resize-none"
                     />
                     <div className="mt-3 flex gap-2">
-                      <button type="button" onClick={handleRequestDeactivation} disabled={!deactivationReason.trim()} className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50 transition">
-                        Submit Request
+                      <button type="button" onClick={handleRequestDeactivation} disabled={deactivating || !deactivationReason.trim()} className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50 transition">
+                        {deactivating ? 'Submitting…' : 'Submit Request'}
                       </button>
                       <button type="button" onClick={() => setShowDeactivateConfirm(false)} className="rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-700/40 dark:text-red-400">
                         Cancel
