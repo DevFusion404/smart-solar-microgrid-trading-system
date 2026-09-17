@@ -35,19 +35,49 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor for centralized error message formatting
+// Response interceptor for centralized error message formatting and developer console logging
 apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    const message =
-      error.response?.data?.message ||
-      error.response?.data?.title ||
-      error.message ||
-      'An unexpected error occurred';
-    
-    return Promise.reject(new Error(message));
+    const data = error.response?.data;
+    let formattedMessage = '';
+
+    if (data?.validationErrors && typeof data.validationErrors === 'object') {
+      const fieldErrors = Object.entries(data.validationErrors)
+        .map(([field, msgs]) => {
+          const fieldName = field.charAt(0).toUpperCase() + field.slice(1);
+          const messagesStr = Array.isArray(msgs) ? msgs.join(', ') : msgs;
+          return `${fieldName}: ${messagesStr}`;
+        })
+        .join(' | ');
+      formattedMessage = `Validation Error: ${fieldErrors}`;
+    } else if (data?.message) {
+      formattedMessage = data.message;
+    } else if (data?.title) {
+      formattedMessage = data.title;
+    } else if (error.message) {
+      formattedMessage = error.message;
+    } else {
+      formattedMessage = 'An unexpected error occurred';
+    }
+
+    // Log detailed error info to developer console for fast troubleshooting
+    console.error('[API Error]', {
+      url: error.config?.url,
+      method: error.config?.method?.toUpperCase(),
+      status: error.response?.status,
+      errorCode: data?.errorCode,
+      validationErrors: data?.validationErrors,
+      rawResponse: data,
+      formattedMessage
+    });
+
+    const customError = new Error(formattedMessage);
+    customError.response = error.response;
+    customError.validationErrors = data?.validationErrors;
+    return Promise.reject(customError);
   }
 );
 

@@ -86,13 +86,21 @@ class LoginActivity : AppCompatActivity() {
                         is LoginUiState.Error -> {
                             binding.btnLogin.isEnabled = true
                             binding.btnLogin.text = getString(R.string.btn_login)
-                            Toast.makeText(this@LoginActivity, state.message, Toast.LENGTH_LONG).show()
+                            showErrorDialog(state.message)
                             authViewModel.resetLoginState()
                         }
                     }
                 }
             }
         }
+    }
+
+    private fun showErrorDialog(message: String) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Authentication Error")
+            .setMessage(message)
+            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+            .show()
     }
 
     private fun handleLoginSuccess(username: String, fullName: String, role: String, status: String) {

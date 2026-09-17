@@ -116,13 +116,21 @@ class RegisterActivity : AppCompatActivity() {
                         is RegisterUiState.Error -> {
                             binding.btnRegister.isEnabled = true
                             binding.btnRegister.text = getString(R.string.btn_register)
-                            Toast.makeText(this@RegisterActivity, state.message, Toast.LENGTH_LONG).show()
+                            showErrorDialog(state.message)
                             authViewModel.resetRegisterState()
                         }
                     }
                 }
             }
         }
+    }
+
+    private fun showErrorDialog(message: String) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Registration Error")
+            .setMessage(message)
+            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+            .show()
     }
 
     private fun validateInputs(): Boolean {

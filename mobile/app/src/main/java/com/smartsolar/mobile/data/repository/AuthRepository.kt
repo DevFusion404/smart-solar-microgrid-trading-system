@@ -72,11 +72,32 @@ class AuthRepository(
         if (jsonString.isNullOrBlank()) return defaultMessage
         return try {
             val json = JSONObject(jsonString)
-            when {
-                json.has("detail") -> json.getString("detail")
-                json.has("message") -> json.getString("message")
-                json.has("title") -> json.getString("title")
-                else -> defaultMessage
+            val errorList = mutableListOf<String>()
+
+            if (json.has("validationErrors") && !json.isNull("validationErrors")) {
+                val valObj = json.getJSONObject("validationErrors")
+                val keys = valObj.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    val arr = valObj.optJSONArray(key)
+                    if (arr != null) {
+                        for (i in 0 until arr.length()) {
+                            errorList.add(arr.getString(i))
+                        }
+                    }
+                }
+            }
+
+            if (errorList.isNotEmpty()) {
+                "Validation Error:\n• " + errorList.joinToString("\n• ")
+            } else if (json.has("message") && json.getString("message").isNotBlank()) {
+                json.getString("message")
+            } else if (json.has("detail") && json.getString("detail").isNotBlank()) {
+                json.getString("detail")
+            } else if (json.has("title") && json.getString("title").isNotBlank()) {
+                json.getString("title")
+            } else {
+                defaultMessage
             }
         } catch (e: Exception) {
             defaultMessage
