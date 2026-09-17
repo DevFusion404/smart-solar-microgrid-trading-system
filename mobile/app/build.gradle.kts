@@ -87,6 +87,9 @@ dependencies {
     // OpenStreetMap (osmdroid) - Free & open-source map, no billing or API key required
     implementation("org.osmdroid:osmdroid-android:6.1.18")
 
+    // Blur effects (glassmorphism cards, blurred bottom sheets/dialogs)
+    implementation("com.github.Dimezis:BlurView:version-2.0.6")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
