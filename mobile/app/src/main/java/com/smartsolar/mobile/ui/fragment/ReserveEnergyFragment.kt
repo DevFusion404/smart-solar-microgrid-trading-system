@@ -13,6 +13,7 @@ import com.smartsolar.mobile.data.model.EnergySlot
 import com.smartsolar.mobile.data.model.Station
 import com.smartsolar.mobile.data.repository.SlotRepository
 import com.smartsolar.mobile.data.repository.StationRepository
+import com.smartsolar.mobile.data.repository.ReservationRepository
 import com.smartsolar.mobile.databinding.ReservationBrowseSlotsBinding
 import com.smartsolar.mobile.databinding.ReservationConfirmBookingBinding
 import com.smartsolar.mobile.ui.adapter.EnergySlotAdapter
@@ -43,6 +44,7 @@ class ReserveEnergyFragment : Fragment(R.layout.reservation_browse_slots) {
 
     private lateinit var slotRepository: SlotRepository
     private lateinit var stationRepository: StationRepository
+    private lateinit var reservationRepository: ReservationRepository
     private lateinit var slotAdapter: EnergySlotAdapter
 
     private var selectedStationId: String = ""
@@ -66,6 +68,7 @@ class ReserveEnergyFragment : Fragment(R.layout.reservation_browse_slots) {
 
         slotRepository = SlotRepository(requireContext())
         stationRepository = StationRepository(requireContext())
+        reservationRepository = ReservationRepository()
 
         setupRecyclerView()
         setupDateSelector()
@@ -107,23 +110,37 @@ class ReserveEnergyFragment : Fragment(R.layout.reservation_browse_slots) {
     }
 
     private fun initializeData() {
-        lifecycleScope.launch {
-            val stationsResult = stationRepository.getStations(forceRefresh = false)
-            if (stationsResult.isSuccess) {
-                availableStations = stationsResult.getOrNull() ?: emptyList()
+        binding.pbSlotsLoading.visibility = View.VISIBLE
+        binding.layoutEmptySlots.visibility = View.GONE
 
-                // If stationId was not passed via arguments, select the first active station
+        lifecycleScope.launch {
+            // Reservation availability must use the live station list, not a potentially stale cache.
+            val stationsResult = stationRepository.getStations(forceRefresh = true)
+            if (stationsResult.isSuccess) {
+                availableStations = (stationsResult.getOrNull() ?: emptyList())
+                    .filter { it.status.equals("Active", ignoreCase = true) }
+
+                // If a station was not passed via arguments, select the first live active station.
                 if (selectedStationId.isBlank() && availableStations.isNotEmpty()) {
-                    val defaultStation = availableStations.firstOrNull { it.status.equals("Active", ignoreCase = true) }
-                        ?: availableStations.first()
+                    val defaultStation = availableStations.first()
                     selectedStationId = defaultStation.stationId.ifBlank { defaultStation.id ?: "" }
                     selectedStationName = defaultStation.stationName
                     selectedStationAddress = defaultStation.address
                 }
-            }
 
-            updateStationBanner()
-            loadSlots()
+                if (selectedStationId.isNotBlank()) {
+                    updateStationBanner()
+                    loadSlots()
+                } else {
+                    binding.pbSlotsLoading.visibility = View.GONE
+                    binding.layoutEmptySlots.visibility = View.VISIBLE
+                    binding.tvEmptySlotsReason.text = "No active microgrid stations are available right now."
+                }
+            } else {
+                binding.pbSlotsLoading.visibility = View.GONE
+                binding.layoutEmptySlots.visibility = View.VISIBLE
+                binding.tvEmptySlotsReason.text = "Could not load microgrid stations. Check the backend connection and try again."
+            }
         }
     }
 
@@ -156,8 +173,6 @@ class ReserveEnergyFragment : Fragment(R.layout.reservation_browse_slots) {
             .show()
     }
 
-    private var isShowingAllDates: Boolean = false
-
     private fun loadSlots() {
         if (selectedStationId.isBlank()) {
             binding.layoutEmptySlots.visibility = View.VISIBLE
@@ -170,8 +185,11 @@ class ReserveEnergyFragment : Fragment(R.layout.reservation_browse_slots) {
         binding.rvAvailableEnergySlots.visibility = View.GONE
 
         lifecycleScope.launch {
-            // Fetch all slots for this station from repository (and cache them)
-            val result = slotRepository.getSlotsByStation(selectedStationId, null)
+            // The selected date is part of availability. Never show slots from another day.
+            val result = slotRepository.getSlotsByStation(
+                selectedStationId,
+                selectedBookingDate.toString()
+            )
             binding.pbSlotsLoading.visibility = View.GONE
 
             if (result.isSuccess) {
@@ -189,10 +207,9 @@ class ReserveEnergyFragment : Fragment(R.layout.reservation_browse_slots) {
     private fun applySlotFilters() {
         val selectedTimeFilter = binding.chipGroupSlotFilters.checkedChipId
 
-        // Try filtering for the selected booking date
-        var matchingSlots = allFetchedSlots.filter { slot ->
+        val matchingSlots = allFetchedSlots.filter { slot ->
             val slotDate = parseSlotLocalDate(slot.date)
-            val matchesDate = isShowingAllDates || slotDate == null || slotDate == selectedBookingDate
+            val matchesDate = slotDate == selectedBookingDate
 
             val matchesTime = when (selectedTimeFilter) {
                 R.id.chipMorningSlots -> isMorning(slot.startTime)
@@ -204,24 +221,8 @@ class ReserveEnergyFragment : Fragment(R.layout.reservation_browse_slots) {
             matchesDate && matchesTime && isAvailable
         }
 
-        // If no slots exist for the specific date selected, but slots exist for other dates at this station,
-        // automatically fall back to showing all slots so the user isn't presented with an empty screen!
-        val availableOverall = allFetchedSlots.filter { it.status.equals("Available", ignoreCase = true) && it.availableCapacity > 0 }
-        if (matchingSlots.isEmpty() && availableOverall.isNotEmpty() && !isShowingAllDates) {
-            matchingSlots = availableOverall.filter { slot ->
-                when (selectedTimeFilter) {
-                    R.id.chipMorningSlots -> isMorning(slot.startTime)
-                    R.id.chipAfternoonSlots -> isAfternoon(slot.startTime)
-                    else -> true
-                }
-            }
-            binding.tvAvailableSlotSummary.text =
-                "Showing all ${matchingSlots.size} available slots (Tap date above to filter)"
-        } else {
-            val label = if (isShowingAllDates) "all dates" else selectedBookingDate.toBrowseDateLabel()
-            binding.tvAvailableSlotSummary.text =
-                "${matchingSlots.size} available slots for $label"
-        }
+        binding.tvAvailableSlotSummary.text =
+            "${matchingSlots.size} available slots for ${selectedBookingDate.toBrowseDateLabel()}"
 
         slotAdapter.submitSlots(matchingSlots)
 
@@ -229,8 +230,16 @@ class ReserveEnergyFragment : Fragment(R.layout.reservation_browse_slots) {
         binding.layoutEmptySlots.visibility = if (isEmpty) View.VISIBLE else View.GONE
         binding.rvAvailableEnergySlots.visibility = if (isEmpty) View.GONE else View.VISIBLE
         if (isEmpty) {
-            binding.tvEmptySlotsReason.text =
-                "No energy slots found for this station. Try selecting another station or time filter."
+            binding.tvEmptySlotsReason.text = when {
+                allFetchedSlots.isEmpty() ->
+                    "$selectedStationName is active, but no energy slots are scheduled for ${selectedBookingDate.toBrowseDateLabel()}."
+                allFetchedSlots.none {
+                    it.status.equals("Available", ignoreCase = true) && it.availableCapacity > 0
+                } ->
+                    "Slots exist for this date, but they are closed or have no remaining capacity."
+                else ->
+                    "No slots match the selected time filter. Try All slots."
+            }
         }
     }
 
@@ -272,6 +281,7 @@ class ReserveEnergyFragment : Fragment(R.layout.reservation_browse_slots) {
         val sheet = ReservationConfirmBookingBinding.inflate(layoutInflater)
         dialog.setContentView(sheet.root)
 
+        sheet.tvBookingStationName.text = selectedStationName
         sheet.tvBookingSlotSchedule.text =
             "${selectedBookingDate.toBrowseDateLabel()}, ${slot.startTime} - ${slot.endTime}"
         sheet.tvBookingAvailableCapacity.text = "${slot.availableCapacity.toInt()} kWh"
@@ -291,7 +301,7 @@ class ReserveEnergyFragment : Fragment(R.layout.reservation_browse_slots) {
                     sheet.btnConfirmReservation.isEnabled = false
 
                     lifecycleScope.launch {
-                        val result = slotRepository.bookSlot(slot, requested)
+                        val result = reservationRepository.createReservation(slot.slotId, requested)
                         if (result.isSuccess) {
                             Toast.makeText(
                                 requireContext(),

@@ -101,37 +101,4 @@ class SlotRepository(
             }
         }
 
-    /**
-     * Saves a reservation locally and updates slot capacity.
-     */
-    suspend fun bookSlot(
-        slot: EnergySlot,
-        requestedCapacity: Double,
-        userId: String = "USR-CURRENT"
-    ): Result<Boolean> = withContext(Dispatchers.IO) {
-        try {
-            val newAvailable = (slot.availableCapacity - requestedCapacity).coerceAtLeast(0.0)
-
-            // Adjust capacity via backend / local
-            val adjustResult = adjustCapacity(slot.slotId, newAvailable)
-            if (adjustResult.isFailure) {
-                return@withContext adjustResult
-            }
-
-            // Record reservation locally
-            val reservation = com.smartsolar.mobile.data.model.Reservation(
-                reservationId = "RES-${System.currentTimeMillis().toString().takeLast(6)}",
-                stationId = slot.stationId,
-                slotId = slot.slotId,
-                userId = userId,
-                reservedCapacity = requestedCapacity,
-                createdAt = java.time.LocalDateTime.now().toString(),
-                status = "Confirmed"
-            )
-            dbHelper.insertReservation(reservation)
-            Result.success(true)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
 }

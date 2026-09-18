@@ -10,20 +10,27 @@ import android.widget.Toast
 import android.view.Window
 import android.view.WindowManager
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.smartsolar.mobile.R
+import com.smartsolar.mobile.data.model.Reservation
+import com.smartsolar.mobile.data.repository.ReservationRepository
 import com.smartsolar.mobile.databinding.ReservationDetailsSheetBinding
 import com.smartsolar.mobile.databinding.ReservationDeleteConfirmationDialogBinding
 import com.smartsolar.mobile.databinding.ReservationEditBookingSheetBinding
 import com.smartsolar.mobile.databinding.ReservationMyReservationsBinding
 import com.smartsolar.mobile.ui.adapter.MyReservationAdapter
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
 
@@ -37,14 +44,16 @@ class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
     private var selectedReservationDate = LocalDate.now()
     private var selectedStatusId = R.id.chipReservationAll
     private lateinit var reservationAdapter: MyReservationAdapter
+    private lateinit var reservationRepository: ReservationRepository
+    private var isLoadingReservations = false
+    private var reservationLoadMessage: String? = null
 
-    // UI-only sample data. Replace with API results when reservation endpoints are connected.
     private val reservations = mutableListOf<ReservationUi>()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = ReservationMyReservationsBinding.bind(view)
-        seedReservations()
+        reservationRepository = ReservationRepository()
 
         reservationAdapter = MyReservationAdapter(reservations, ::showReservationDetails)
         binding.rvMyReservations.apply {
@@ -57,7 +66,7 @@ class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
             ReservationDatePicker.showUpcoming(this, selectedReservationDate) { date ->
                 selectedReservationDate = date
                 binding.btnReservationDate.text = date.toMyReservationDateLabel()
-                applyFilters()
+                loadReservations()
             }
         }
 
@@ -66,48 +75,28 @@ class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
             applyFilters()
         }
 
-        applyFilters()
+        loadReservations()
     }
 
-    private fun seedReservations() {
-        if (reservations.isNotEmpty()) return
+    private fun loadReservations() {
+        isLoadingReservations = true
+        reservationLoadMessage = null
+        applyFilters()
 
-        val now = LocalDateTime.now()
-        reservations += listOf(
-            ReservationUi(
-                id = "RES-2048",
-                station = "Colombo Solar Hub",
-                date = "Today",
-                time = "09:00 - 10:00",
-                energy = "420 kWh",
-                status = "Pending",
-                createdAt = now.minusHours(2).toRequestedLabel(),
-                reservationDate = LocalDate.now(),
-                requestedAt = now.minusHours(2),
-            ),
-            ReservationUi(
-                id = "RES-2047",
-                station = "Kandy Energy Station",
-                date = "Today",
-                time = "10:30 - 11:30",
-                energy = "280 kWh",
-                status = "Confirmed",
-                createdAt = now.minusHours(13).toRequestedLabel(),
-                reservationDate = LocalDate.now(),
-                requestedAt = now.minusHours(13),
-            ),
-            ReservationUi(
-                id = "RES-2045",
-                station = "Galle Solar Hub",
-                date = "Tomorrow",
-                time = "01:00 - 02:00",
-                energy = "350 kWh",
-                status = "Confirmed",
-                createdAt = now.minusHours(5).toRequestedLabel(),
-                reservationDate = LocalDate.now().plusDays(1),
-                requestedAt = now.minusHours(5),
-            ),
-        )
+        viewLifecycleOwner.lifecycleScope.launch {
+            reservationRepository.getAllReservations().fold(
+                onSuccess = { apiReservations ->
+                    reservations.clear()
+                    reservations += apiReservations.map { it.toReservationUi() }
+                },
+                onFailure = { error ->
+                    reservations.clear()
+                    reservationLoadMessage = error.message ?: "Unable to load your reservations."
+                },
+            )
+            isLoadingReservations = false
+            applyFilters()
+        }
     }
 
     private fun applyFilters() {
@@ -121,6 +110,15 @@ class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
             matchesDate && matchesStatus
         }
         reservationAdapter.submitReservations(filteredReservations)
+        binding.pbMyReservations.visibility = if (isLoadingReservations) View.VISIBLE else View.GONE
+        binding.rvMyReservations.visibility =
+            if (isLoadingReservations || filteredReservations.isEmpty()) View.INVISIBLE else View.VISIBLE
+        binding.tvMyReservationsMessage.visibility =
+            if (!isLoadingReservations && filteredReservations.isEmpty()) View.VISIBLE else View.GONE
+        if (!isLoadingReservations && filteredReservations.isEmpty()) {
+            binding.tvMyReservationsMessage.text = reservationLoadMessage
+                ?: "No upcoming reservations found for ${selectedReservationDate.toMyReservationDateLabel()}."
+        }
         updateReservationSummary()
     }
 
@@ -189,13 +187,25 @@ class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
                 }
                 else -> {
                     sheet.tilUpdatedReservationCapacity.error = null
-                    val index = reservations.indexOfFirst { it.id == reservation.id }
-                    if (index >= 0) {
-                        reservations[index] = reservation.copy(energy = "${updatedCapacity.toEnergyLabel()} kWh")
-                        applyFilters()
+                    sheet.btnSaveReservationUpdate.isEnabled = false
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        reservationRepository.updateReservation(reservation.id, updatedCapacity).fold(
+                            onSuccess = { updated ->
+                                val index = reservations.indexOfFirst { it.id == reservation.id }
+                                if (index >= 0) {
+                                    reservations[index] = updated.toReservationUi()
+                                    applyFilters()
+                                }
+                                Toast.makeText(requireContext(), "Reservation updated", Toast.LENGTH_SHORT).show()
+                                dialog.dismiss()
+                            },
+                            onFailure = { error ->
+                                sheet.btnSaveReservationUpdate.isEnabled = true
+                                sheet.tilUpdatedReservationCapacity.error =
+                                    error.message ?: "Could not update reservation"
+                            }
+                        )
                     }
-                    Toast.makeText(requireContext(), "Reservation updated", Toast.LENGTH_SHORT).show()
-                    dialog.dismiss()
                 }
             }
         }
@@ -233,11 +243,26 @@ class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
                     return@setOnClickListener
                 }
 
-                reservations.removeAll { it.id == reservation.id }
-                applyFilters()
-                detailsDialog.dismiss()
-                dialog.dismiss()
-                Toast.makeText(requireContext(), "Reservation deleted", Toast.LENGTH_SHORT).show()
+                confirmation.btnConfirmDeleteReservation.isEnabled = false
+                viewLifecycleOwner.lifecycleScope.launch {
+                    reservationRepository.deleteReservation(reservation.id).fold(
+                        onSuccess = {
+                            reservations.removeAll { it.id == reservation.id }
+                            applyFilters()
+                            detailsDialog.dismiss()
+                            dialog.dismiss()
+                            Toast.makeText(requireContext(), "Reservation deleted", Toast.LENGTH_SHORT).show()
+                        },
+                        onFailure = { error ->
+                            confirmation.btnConfirmDeleteReservation.isEnabled = true
+                            Toast.makeText(
+                                requireContext(),
+                                error.message ?: "Could not delete reservation",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    )
+                }
             }
 
         dialog.show()
@@ -266,6 +291,22 @@ class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
     private fun Double.toEnergyLabel(): String =
         if (this % 1.0 == 0.0) toInt().toString() else String.format(Locale.getDefault(), "%.1f", this)
 
+    private fun Reservation.toReservationUi(): ReservationUi {
+        val bookingDate = slotDate.toLocalDateOrNull()
+        val requestedAt = createdAt.toLocalDateTimeOrNull()
+        return ReservationUi(
+            id = reservationId,
+            station = stationName.ifBlank { stationId },
+            date = bookingDate?.toReservationDateLabel() ?: slotDate,
+            time = "${startTime.toReservationTimeLabel()} - ${endTime.toReservationTimeLabel()}",
+            energy = "${reservedCapacity.toEnergyLabel()} kWh",
+            status = status,
+            createdAt = requestedAt?.toRequestedLabel() ?: createdAt,
+            reservationDate = bookingDate,
+            requestedAt = requestedAt,
+        )
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -285,6 +326,26 @@ private fun BottomSheetDialog.expandForReservationActions() {
 
 private fun LocalDateTime.toRequestedLabel(): String =
     format(DateTimeFormatter.ofPattern("dd MMM, h:mm a", Locale.getDefault()))
+
+private fun String.toLocalDateOrNull(): LocalDate? =
+    runCatching { Instant.parse(this).atZone(ZoneId.systemDefault()).toLocalDate() }.getOrNull()
+        ?: runCatching { LocalDate.parse(take(10)) }.getOrNull()
+
+private fun String.toLocalDateTimeOrNull(): LocalDateTime? =
+    runCatching { Instant.parse(this).atZone(ZoneId.systemDefault()).toLocalDateTime() }.getOrNull()
+        ?: runCatching { LocalDateTime.parse(this) }.getOrNull()
+
+private fun String.toReservationTimeLabel(): String =
+    runCatching {
+        LocalTime.parse(this).format(DateTimeFormatter.ofPattern("hh:mm a", Locale.getDefault()))
+    }.getOrDefault(this)
+
+private fun LocalDate.toReservationDateLabel(): String =
+    when (this) {
+        LocalDate.now() -> "Today"
+        LocalDate.now().plusDays(1) -> "Tomorrow"
+        else -> format(DateTimeFormatter.ofPattern("dd MMM", Locale.getDefault()))
+    }
 
 private fun LocalDate.toMyReservationDateLabel(): String {
     val formatter = DateTimeFormatter.ofPattern("EEE, dd MMM", Locale.getDefault())
