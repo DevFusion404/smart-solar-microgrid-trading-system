@@ -35,6 +35,9 @@ public interface IMicrogridStationService
     // Deactivates a station — blocked if active slots exist.
     Task<bool> DeactivateStation(string id);
 
+    // Reactivates a deactivated station by setting status back to Active.
+    Task<bool> ReactivateStation(string id);
+
     // Searches stations by location keyword and/or availability.
     Task<List<SolarStationInfo>> SearchStations(
         string? location,

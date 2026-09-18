@@ -83,6 +83,16 @@ const stationService = {
   },
 
   /**
+   * Reactivates a deactivated station (sets status back to Active).
+   * @param {string} id - Station document ID
+   * @returns {Promise<Object>} API response message
+   */
+  reactivateStation: async (id) => {
+    const response = await apiClient.put(`/stations/${id}/reactivate`);
+    return response.data;
+  },
+
+  /**
    * Searches stations by location keyword and/or availability status.
    * @param {Object} [params]
    * @param {string} [params.location] - Partial address/location keyword

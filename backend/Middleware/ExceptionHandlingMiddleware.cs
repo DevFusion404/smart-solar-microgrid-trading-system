@@ -30,7 +30,15 @@ public class ExceptionHandlingMiddleware
         }
         catch (AppException ex)
         {
-            _logger.LogWarning(ex, "Application exception caught: {ErrorCode} - {Message}", ex.ErrorCode, ex.Message);
+            if (ex.ValidationErrors != null && ex.ValidationErrors.Count > 0)
+            {
+                var validationDetails = string.Join(" | ", ex.ValidationErrors.Select(kv => $"{kv.Key}: {string.Join(", ", kv.Value)}"));
+                _logger.LogWarning("Validation Exception Caught ({ErrorCode}): {Message} --> [{ValidationDetails}]", ex.ErrorCode, ex.Message, validationDetails);
+            }
+            else
+            {
+                _logger.LogWarning("Application exception caught: {ErrorCode} - {Message}", ex.ErrorCode, ex.Message);
+            }
             await HandleExceptionAsync(context, ex.StatusCode, ex.ErrorCode, ex.Message, ex.ValidationErrors);
         }
         catch (Exception ex)

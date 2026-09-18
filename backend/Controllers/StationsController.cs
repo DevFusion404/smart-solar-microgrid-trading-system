@@ -9,6 +9,7 @@ Author        : Sithmaka
 */
 
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using backend.DTOs;
 using backend.Interfaces;
@@ -187,6 +188,31 @@ public class StationsController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
 
+    }
+
+    /// <summary>
+    /// Reactivates a deactivated station by setting its status back to Active.
+    /// Restricted to Backoffice users.
+    /// </summary>
+    [HttpPut("{id}/reactivate")]
+    [Authorize(Roles = "Backoffice,Administrator")]
+    public async Task<IActionResult> ReactivateStation(string id)
+    {
+        try
+        {
+            var reactivated = await _service.ReactivateStation(id);
+
+            if (!reactivated)
+            {
+                return NotFound(new { message = "Station not found" });
+            }
+
+            return Ok(new { message = "Station reactivated successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     /// <summary>

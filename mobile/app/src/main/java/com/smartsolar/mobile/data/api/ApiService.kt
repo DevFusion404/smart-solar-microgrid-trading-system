@@ -102,4 +102,25 @@ interface ApiService {
         @Path("id") id: String,
         @Body capacity: SlotCapacityUpdate
     ): Response<Map<String, String>>
+
+    // ── Grid Operator & Auth Endpoints ─────────────────────────────────────────
+
+    @POST("api/Auth/login")
+    suspend fun login(
+        @Body request: LoginRequest
+    ): Response<LoginResponse>
+
+    @GET("api/operators/{operatorId}/nodes")
+    suspend fun getAssignedNodesByOperator(
+        @Path("operatorId") operatorId: String
+    ): Response<List<Station>>
 }
+
+data class LoginRequest(
+    val username: String,
+    val password: String
+)
+
+data class LoginResponse(
+    val token: String
+)

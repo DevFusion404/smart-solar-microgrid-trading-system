@@ -99,4 +99,48 @@ class StationRepository(
             Result.failure(e)
         }
     }
+
+    /**
+     * Searches stations by location keyword and availability using backend API:
+     * GET /api/stations/search?location={location}&available={available}
+     * When offline or on network failure, falls back to local SQLite database.
+     */
+    suspend fun searchStations(
+        location: String?,
+        available: Boolean?
+    ): Result<List<Station>> = withContext(Dispatchers.IO) {
+        try {
+            val queryLocation = if (location.isNullOrBlank()) null else location.trim()
+
+            if (NetworkUtils.isNetworkAvailable(context)) {
+                val response = apiService.searchStations(queryLocation, available)
+                if (response.isSuccessful && response.body() != null) {
+                    val stations = response.body()!!
+                    return@withContext Result.success(stations)
+                }
+            }
+
+            // Offline SQLite fallback
+            val localStations = dbHelper.getAllStations()
+            val filtered = localStations.filter { station ->
+                val matchesLocation = queryLocation.isNullOrBlank() ||
+                        station.address.contains(queryLocation, ignoreCase = true) ||
+                        station.stationName.contains(queryLocation, ignoreCase = true) ||
+                        station.stationId.contains(queryLocation, ignoreCase = true)
+
+                val matchesAvailable = when (available) {
+                    true -> station.status.equals("Active", ignoreCase = true)
+                    false -> !station.status.equals("Active", ignoreCase = true)
+                    null -> true
+                }
+
+                matchesLocation && matchesAvailable
+            }
+
+            Result.success(filtered)
+        } catch (e: Exception) {
+            val fallback = dbHelper.getAllStations()
+            Result.success(fallback)
+        }
+    }
 }

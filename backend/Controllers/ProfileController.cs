@@ -15,6 +15,7 @@ namespace backend.Controllers;
 
 [ApiController]
 [Route("api/profile")]
+[Route("api/account")]
 [Authorize]
 public class ProfileController : ControllerBase
 {
@@ -28,6 +29,7 @@ public class ProfileController : ControllerBase
 
     // Fetches profile details of the currently authenticated user
     [HttpGet]
+    [HttpGet("profile")]
     public async Task<IActionResult> GetProfile()
     {
         var username = User.Identity?.Name;
@@ -49,12 +51,21 @@ public class ProfileController : ControllerBase
             address = user.Address,
             createdAt = user.CreatedAt,
             updatedAt = user.UpdatedAt,
-            lastLoginAt = user.LastLoginAt
+            lastLoginAt = user.LastLoginAt,
+            activationRequestedAt = user.ActivationRequestedAt,
+            activatedAt = user.ActivatedAt,
+            activatedBy = user.ActivatedBy,
+            deactivationReason = user.DeactivationReason,
+            deactivatedAt = user.DeactivatedAt,
+            deactivatedBy = user.DeactivatedBy
         });
     }
 
     // Updates profile details (FullName, PhoneNumber, Address) for active account
     [HttpPut]
+    [HttpPut("profile")]
+    [HttpPatch]
+    [HttpPatch("profile")]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto request)
     {
         var username = User.Identity?.Name;
@@ -74,8 +85,30 @@ public class ProfileController : ControllerBase
             status = user.Status.ToString(),
             nic = user.Nic,
             address = user.Address,
-            updatedAt = user.UpdatedAt
+            updatedAt = user.UpdatedAt,
+            createdAt = user.CreatedAt,
+            lastLoginAt = user.LastLoginAt,
+            activationRequestedAt = user.ActivationRequestedAt,
+            activatedAt = user.ActivatedAt,
+            activatedBy = user.ActivatedBy,
+            deactivationReason = user.DeactivationReason,
+            deactivatedAt = user.DeactivatedAt,
+            deactivatedBy = user.DeactivatedBy
         });
+    }
+
+    // Changes authenticated user password after verifying current password
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request)
+    {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username))
+        {
+            return Unauthorized();
+        }
+
+        await _profileService.ChangePasswordAsync(username, request);
+        return Ok(new { message = "Password updated successfully." });
     }
 
     // Submits voluntary account deactivation request for prosumers to be reviewed by Backoffice

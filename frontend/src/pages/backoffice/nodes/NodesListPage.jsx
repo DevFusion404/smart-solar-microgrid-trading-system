@@ -19,6 +19,7 @@ import {
   ExternalLink,
   MapPin,
   Plus,
+  Power,
   PowerOff,
   RefreshCw,
   Search,
@@ -371,6 +372,73 @@ function DeactivateModal({ station, onClose, onDeactivated }) {
   )
 }
 
+// Reactivate Confirmation Modal
+function ReactivateModal({ station, onClose, onReactivated }) {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const handleReactivate = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      await stationService.reactivateStation(station.id)
+      onReactivated()
+      onClose()
+    } catch (err) {
+      setError(err.message || 'Reactivation failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+      <Panel className="w-full max-w-md overflow-hidden shadow-2xl">
+        <div className="p-6">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-400/10">
+            <Power className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="mt-4 text-center">
+            <h3 className="text-lg font-bold text-slate-950 dark:text-white">Reactivate Station Node</h3>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              Are you sure you want to reactivate <span className="font-semibold text-slate-900 dark:text-white">{station.stationName}</span>?
+            </p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              This will restore the station status to <span className="font-semibold text-emerald-600 dark:text-emerald-400">Active</span> and allow scheduling slots and energy reservations.
+            </p>
+          </div>
+
+          {error && (
+            <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-900/50 dark:bg-rose-400/10 dark:text-rose-300">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleReactivate}
+              disabled={loading}
+              className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 disabled:opacity-50"
+            >
+              {loading ? 'Reactivating...' : 'Confirm Reactivate'}
+            </button>
+          </div>
+        </div>
+      </Panel>
+    </div>
+  )
+}
+
 // Assign Grid Operator Modal Component
 function AssignOperatorModal({ station, onClose, onAssigned }) {
   const [operators, setOperators] = useState([])
@@ -606,8 +674,10 @@ function AssignOperatorModal({ station, onClose, onAssigned }) {
 
 export function NodesListPage() {
   const navigate = useNavigate()
-  const [stations, setStations] = useState([])
+  const [allStations, setAllStations] = useState([])
+  const [filteredStations, setFilteredStations] = useState([])
   const [loading, setLoading] = useState(true)
+  const [searchLoading, setSearchLoading] = useState(false)
   const [error, setError] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('All') // 'All' | 'Active' | 'Deactivated'
@@ -618,14 +688,40 @@ export function NodesListPage() {
   const [editingStation, setEditingStation] = useState(null)
   const [schedulingStation, setSchedulingStation] = useState(null)
   const [deactivatingStation, setDeactivatingStation] = useState(null)
+  const [reactivatingStation, setReactivatingStation] = useState(null)
   const [assigningStation, setAssigningStation] = useState(null)
+
+  const executeSearch = async (search, status) => {
+    try {
+      setSearchLoading(true)
+      const params = {}
+      if (search && search.trim()) {
+        params.location = search.trim()
+      }
+      if (status === 'Active') {
+        params.available = true
+      } else if (status === 'Deactivated') {
+        params.available = false
+      }
+
+      const results = await stationService.searchStations(params)
+      setFilteredStations(results || [])
+    } catch (err) {
+      setError(err.message || 'Failed to search stations via backend API')
+    } finally {
+      setSearchLoading(false)
+    }
+  }
 
   const loadStations = async () => {
     try {
       setLoading(true)
       setError(null)
       const data = await stationService.getAllStations()
-      setStations(data || [])
+      setAllStations(data || [])
+
+      // Also execute backend search with current filters
+      await executeSearch(searchQuery, statusFilter)
 
       // Also fetch map pins for the map view
       try {
@@ -645,32 +741,25 @@ export function NodesListPage() {
     loadStations()
   }, [])
 
-  // KPI Calculations
+  // Execute backend search when search text or status filter changes (with debounce)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      executeSearch(searchQuery, statusFilter)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery, statusFilter])
+
+  // KPI Calculations from all stations
   const stats = useMemo(() => {
-    const total = stations.length
-    const active = stations.filter((s) => s.status === 'Active').length
+    const total = allStations.length
+    const active = allStations.filter((s) => s.status === 'Active').length
     const deactivated = total - active
-    const totalCap = stations.reduce((acc, s) => acc + (s.energyCapacity || 0), 0)
-    const totalBattery = stations.reduce((acc, s) => acc + (s.batteryStorageCapacity || 0), 0)
+    const totalCap = allStations.reduce((acc, s) => acc + (s.energyCapacity || 0), 0)
+    const totalBattery = allStations.reduce((acc, s) => acc + (s.batteryStorageCapacity || 0), 0)
 
     return { total, active, deactivated, totalCap, totalBattery }
-  }, [stations])
-
-  // Filtered station list
-  const filteredStations = useMemo(() => {
-    return stations.filter((s) => {
-      const matchesSearch =
-        !searchQuery.trim() ||
-        [s.stationId, s.stationName, s.address].some((val) =>
-          val?.toLowerCase().includes(searchQuery.trim().toLowerCase())
-        )
-
-      const matchesStatus =
-        statusFilter === 'All' || s.status === statusFilter
-
-      return matchesSearch && matchesStatus
-    })
-  }, [stations, searchQuery, statusFilter])
+  }, [allStations])
 
   return (
     <div className="space-y-6">
@@ -770,7 +859,11 @@ export function NodesListPage() {
         <div className="flex flex-col gap-4 border-b border-slate-200 p-5 md:flex-row md:items-center md:justify-between md:px-6 dark:border-slate-800">
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-400">
-              <Search className="h-4 w-4 text-slate-400" />
+              {searchLoading ? (
+                <RefreshCw className="h-4 w-4 animate-spin text-amber-500" />
+              ) : (
+                <Search className="h-4 w-4 text-slate-400" />
+              )}
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -796,6 +889,11 @@ export function NodesListPage() {
                 </button>
               ))}
             </div>
+
+            {/* <span className="hidden items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-500 xl:inline-flex dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              Backend Search API
+            </span> */}
           </div>
 
           {/* View Tab Switcher */}
@@ -958,7 +1056,7 @@ export function NodesListPage() {
                             <ExternalLink className="h-4 w-4" />
                           </button>
 
-                          {station.status === 'Active' && (
+                          {station.status === 'Active' ? (
                             <button
                               type="button"
                               title="Deactivate station"
@@ -966,6 +1064,15 @@ export function NodesListPage() {
                               className="rounded-lg p-1.5 text-rose-500 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-400/10"
                             >
                               <PowerOff className="h-4 w-4" />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              title="Reactivate station"
+                              onClick={() => setReactivatingStation(station)}
+                              className="rounded-lg p-1.5 text-emerald-600 transition hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-400/10"
+                            >
+                              <Power className="h-4 w-4" />
                             </button>
                           )}
                         </div>
@@ -1017,7 +1124,7 @@ export function NodesListPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            const found = stations.find((s) => s.id === pin.id)
+                            const found = allStations.find((s) => s.id === pin.id) || filteredStations.find((s) => s.id === pin.id)
                             if (found) setEditingStation(found)
                           }}
                           className="text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400"
@@ -1065,6 +1172,14 @@ export function NodesListPage() {
           station={deactivatingStation}
           onClose={() => setDeactivatingStation(null)}
           onDeactivated={loadStations}
+        />
+      )}
+
+      {reactivatingStation && (
+        <ReactivateModal
+          station={reactivatingStation}
+          onClose={() => setReactivatingStation(null)}
+          onReactivated={loadStations}
         />
       )}
 

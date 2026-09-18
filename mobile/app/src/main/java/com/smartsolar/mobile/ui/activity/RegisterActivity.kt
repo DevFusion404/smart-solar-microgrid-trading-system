@@ -1,16 +1,27 @@
 package com.smartsolar.mobile.ui.activity
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Patterns
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.smartsolar.mobile.R
+import com.smartsolar.mobile.data.api.RegisterProsumerRequest
 import com.smartsolar.mobile.databinding.ActivityRegisterBinding
+import com.smartsolar.mobile.viewmodel.AuthViewModel
+import com.smartsolar.mobile.viewmodel.RegisterUiState
+import kotlinx.coroutines.launch
+import java.util.Locale
 
 class RegisterActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityRegisterBinding
+    private val authViewModel: AuthViewModel by viewModels()
 
     private val userRoles = arrayOf(
         "Prosumer (Solar Producer)",
@@ -25,6 +36,7 @@ class RegisterActivity : AppCompatActivity() {
 
         setupRoleDropdown()
         setupListeners()
+        observeViewModel()
     }
 
     private fun setupRoleDropdown() {
@@ -48,17 +60,77 @@ class RegisterActivity : AppCompatActivity() {
         binding.btnRegister.setOnClickListener {
             if (validateInputs()) {
                 val fullName = binding.etFullName.text.toString().trim()
-                val role = binding.actRole.text.toString().trim()
-                Toast.makeText(
-                    this,
-                    "Account registered for $fullName ($role)",
-                    Toast.LENGTH_LONG
-                ).show()
-                // Return to login after registration
-                finish()
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                val email = binding.etRegisterEmail.text.toString().trim()
+                val password = binding.etRegisterPassword.text.toString().trim()
+
+                // Generate clean username from email or name
+                var username = email.substringBefore("@")
+                    .lowercase(Locale.ROOT)
+                    .replace(Regex("[^a-z0-9_]"), "_")
+                if (username.length < 4) username = "${username}_solar"
+                if (username.length > 30) username = username.take(30)
+
+                // Generate valid Sri Lankan NIC fallback (9 digits + V) using System time timestamp
+                val nic = "${(100000000..999999999).random()}V"
+                val phoneNumber = "077" + (1000000..9999999).random()
+                val address = "Microgrid Node, Station Alpha, Colombo"
+
+                val request = RegisterProsumerRequest(
+                    nic = nic,
+                    fullName = fullName,
+                    email = email,
+                    phoneNumber = phoneNumber,
+                    address = address,
+                    username = username,
+                    password = password
+                )
+
+                authViewModel.registerProsumer(request)
             }
         }
+    }
+
+    private fun observeViewModel() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                authViewModel.registerState.collect { state ->
+                    when (state) {
+                        is RegisterUiState.Idle -> {
+                            binding.btnRegister.isEnabled = true
+                            binding.btnRegister.text = getString(R.string.btn_register)
+                        }
+                        is RegisterUiState.Loading -> {
+                            binding.btnRegister.isEnabled = false
+                            binding.btnRegister.text = "Submitting..."
+                        }
+                        is RegisterUiState.Success -> {
+                            binding.btnRegister.isEnabled = true
+                            binding.btnRegister.text = getString(R.string.btn_register)
+                            authViewModel.resetRegisterState()
+
+                            val intent = Intent(this@RegisterActivity, RegistrationSubmittedActivity::class.java)
+                            startActivity(intent)
+                            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                            finish()
+                        }
+                        is RegisterUiState.Error -> {
+                            binding.btnRegister.isEnabled = true
+                            binding.btnRegister.text = getString(R.string.btn_register)
+                            showErrorDialog(state.message)
+                            authViewModel.resetRegisterState()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun showErrorDialog(message: String) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Registration Error")
+            .setMessage(message)
+            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+            .show()
     }
 
     private fun validateInputs(): Boolean {
@@ -89,8 +161,8 @@ class RegisterActivity : AppCompatActivity() {
         if (password.isEmpty()) {
             binding.tilRegisterPassword.error = getString(R.string.err_empty_password)
             isValid = false
-        } else if (password.length < 6) {
-            binding.tilRegisterPassword.error = "Password must be at least 6 characters"
+        } else if (password.length < 8 || !password.any { it.isUpperCase() } || !password.any { it.isDigit() }) {
+            binding.tilRegisterPassword.error = "Password must be >= 8 chars with 1 uppercase letter and 1 digit"
             isValid = false
         } else {
             binding.tilRegisterPassword.error = null

@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/surface_card"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Dialog Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_reservation_icon_amber"
+            android:padding="10dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="Create slot icon"
+                android:src="@drawable/ic_nav_energy"
+                app:tint="@color/solar_primary_dark" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-black"
+                android:text="Publish Energy Slot"
+                android:textColor="@color/slate_900"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/tvCreateSlotStationBanner"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="For Node: ST001"
+                android:textColor="@color/solar_primary_dark"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Slot Date Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilCreateSlotDate"
+        style="@style/Widget.SmartSolar.TextInputLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="Date (YYYY-MM-DD)">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etCreateSlotDate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="date"
+            android:textColor="@color/slate_900" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Time Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilCreateSlotStartTime"
+            style="@style/Widget.SmartSolar.TextInputLayout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:hint="Start Time (e.g. 08:00 AM)">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCreateSlotStartTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="08:00 AM"
+                android:textColor="@color/slate_900" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilCreateSlotEndTime"
+            style="@style/Widget.SmartSolar.TextInputLayout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:hint="End Time (e.g. 12:00 PM)">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCreateSlotEndTime"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="12:00 PM"
+                android:textColor="@color/slate_900" />
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+
+    <!-- Total Capacity Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilCreateSlotCapacity"
+        style="@style/Widget.SmartSolar.TextInputLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:hint="Total Slot Capacity (kWh)">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etCreateSlotCapacity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal"
+            android:text="50"
+            android:textColor="@color/slate_900" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Actions -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelCreateSlot"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textColor="@color/slate_600" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSubmitCreateSlot"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:backgroundTint="@color/solar_primary"
+            android:text="Publish Slot"
+            android:textColor="@color/slate_950" />
+    </LinearLayout>
+
+</LinearLayout>
