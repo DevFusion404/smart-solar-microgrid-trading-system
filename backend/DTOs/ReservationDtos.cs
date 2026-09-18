@@ -13,8 +13,9 @@ public class CreateReservationDto
     public double RequestedCapacity { get; set; }
 }
 
-public class CancelReservationDto
+public class UpdateReservationDto
 {
-    [StringLength(300)]
-    public string? Reason { get; set; }
+    /// <summary>Replacement energy amount in kWh.</summary>
+    [Range(typeof(double), "0.01", "1000000")]
+    public double RequestedCapacity { get; set; }
 }

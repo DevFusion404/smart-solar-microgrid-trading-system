@@ -1,15 +1,11 @@
-using System.Security.Claims;
 using backend.DTOs;
 using backend.Interfaces;
-using backend.Models;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace backend.Controllers;
 
 [ApiController]
 [Route("api/reservations")]
-[Authorize(Roles = nameof(UserRole.Prosumer))]
 public class ReservationsController : ControllerBase
 {
     private readonly IEnergyReservationService _reservationService;
@@ -19,49 +15,35 @@ public class ReservationsController : ControllerBase
         _reservationService = reservationService;
     }
 
-    /// <summary>Creates a confirmed reservation for the authenticated prosumer.</summary>
+    /// <summary>Creates a confirmed energy reservation.</summary>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateReservationDto request)
     {
-        var reservation = await _reservationService.CreateAsync(GetUsername(), request);
+        var reservation = await _reservationService.CreateAsync(request);
         return StatusCode(StatusCodes.Status201Created, reservation);
     }
 
-    /// <summary>Returns the authenticated user's current and future active reservations.</summary>
-    [HttpGet("my")]
-    public async Task<IActionResult> GetMyReservations([FromQuery] DateTime? date)
+    /// <summary>Returns all reservation records. Date filtering is optional.</summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] DateTime? date)
     {
-        var reservations = await _reservationService.GetCurrentForUserAsync(GetUsername(), date);
+        var reservations = await _reservationService.GetAllAsync(date);
         return Ok(reservations);
     }
 
-    /// <summary>Returns completed, cancelled, and past reservations for the authenticated user.</summary>
-    [HttpGet("my/history")]
-    public async Task<IActionResult> GetMyReservationHistory([FromQuery] DateTime? date)
+    /// <summary>Changes the requested energy amount within the 12-hour edit window.</summary>
+    [HttpPut("{reservationId}")]
+    public async Task<IActionResult> Update(string reservationId, [FromBody] UpdateReservationDto request)
     {
-        var reservations = await _reservationService.GetHistoryForUserAsync(GetUsername(), date);
-        return Ok(reservations);
-    }
-
-    /// <summary>Cancels a future reservation and returns its kWh to the slot.</summary>
-    [HttpPut("{reservationId}/cancel")]
-    public async Task<IActionResult> Cancel(string reservationId, [FromBody] CancelReservationDto? request)
-    {
-        var reservation = await _reservationService.CancelAsync(
-            GetUsername(),
-            reservationId,
-            request ?? new CancelReservationDto());
+        var reservation = await _reservationService.UpdateAsync(reservationId, request);
         return Ok(reservation);
     }
 
-    private string GetUsername()
+    /// <summary>Deletes a reservation within the 12-hour edit window and restores slot capacity.</summary>
+    [HttpDelete("{reservationId}")]
+    public async Task<IActionResult> Delete(string reservationId)
     {
-        var username = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            throw new UnauthorizedAccessException("The access token does not contain a user identity.");
-        }
-
-        return username;
+        await _reservationService.DeleteAsync(reservationId);
+        return NoContent();
     }
 }
