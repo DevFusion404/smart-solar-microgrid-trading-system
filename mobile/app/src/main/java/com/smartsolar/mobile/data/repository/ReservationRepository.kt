@@ -5,6 +5,7 @@ import com.smartsolar.mobile.data.api.RetrofitClient
 import com.smartsolar.mobile.data.model.CreateReservationRequest
 import com.smartsolar.mobile.data.model.Reservation
 import com.smartsolar.mobile.data.model.UpdateReservationRequest
+import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -18,6 +19,19 @@ class ReservationRepository(
                 Result.success(response.body()!!)
             } else {
                 Result.failure(Exception("Could not load reservations (HTTP ${response.code()})."))
+            }
+        } catch (exception: Exception) {
+            Result.failure(exception)
+        }
+    }
+
+    suspend fun getReservationHistory(date: LocalDate): Result<List<Reservation>> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.getReservationHistory(date.toString())
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Could not load reservation history (HTTP ${response.code()})."))
             }
         } catch (exception: Exception) {
             Result.failure(exception)

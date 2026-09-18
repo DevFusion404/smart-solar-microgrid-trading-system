@@ -123,7 +123,11 @@ class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
     }
 
     private fun updateReservationSummary() {
-        val activeReservations = reservations.filter { it.status != "Cancelled" && it.status != "Completed" }
+        val activeReservations = reservations.filter { reservation ->
+            reservation.reservationDate == selectedReservationDate &&
+                !reservation.status.equals("Cancelled", ignoreCase = true) &&
+                !reservation.status.equals("Completed", ignoreCase = true)
+        }
         binding.tvActiveReservationCount.text = activeReservations.size.toString()
         binding.tvReservedEnergyTotal.text = "${activeReservations.sumOf { it.energyKwh() }.toEnergyLabel()} kWh"
     }

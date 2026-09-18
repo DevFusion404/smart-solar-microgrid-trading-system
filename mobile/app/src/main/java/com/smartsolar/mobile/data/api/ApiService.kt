@@ -26,6 +26,11 @@ interface ApiService {
     @GET("api/reservations")
     suspend fun getReservations(): Response<List<Reservation>>
 
+    @GET("api/reservations/history")
+    suspend fun getReservationHistory(
+        @Query("date") date: String,
+    ): Response<List<Reservation>>
+
     @PUT("api/reservations/{reservationId}")
     suspend fun updateReservation(
         @Path("reservationId") reservationId: String,
