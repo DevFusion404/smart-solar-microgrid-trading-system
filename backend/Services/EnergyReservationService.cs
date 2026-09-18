@@ -118,6 +118,25 @@ public class EnergyReservationService : IEnergyReservationService
             .ToListAsync();
     }
 
+    public async Task<IReadOnlyList<EnergyReservation>> GetHistoryAsync(DateTime? date)
+    {
+        // A history record belongs to a completed calendar day in Sri Lanka.
+        // The optional date is applied after this boundary so future bookings
+        // cannot appear in the history screen.
+        var todayStart = GetReservationDayStartUtc();
+        var filter = Builders<EnergyReservation>.Filter.Lt(x => x.SlotDate, todayStart);
+
+        if (date.HasValue)
+        {
+            filter &= DateFilter(date.Value);
+        }
+
+        return await _reservations.Find(filter)
+            .SortByDescending(x => x.SlotDate)
+            .ThenByDescending(x => x.CreatedAt)
+            .ToListAsync();
+    }
+
     public async Task<EnergyReservation> UpdateAsync(string reservationId, UpdateReservationDto request)
     {
         if (string.IsNullOrWhiteSpace(reservationId) || request.RequestedCapacity <= 0)

@@ -7,6 +7,7 @@ public interface IEnergyReservationService
 {
     Task<EnergyReservation> CreateAsync(CreateReservationDto request);
     Task<IReadOnlyList<EnergyReservation>> GetAllAsync(DateTime? date);
+    Task<IReadOnlyList<EnergyReservation>> GetHistoryAsync(DateTime? date);
     Task<EnergyReservation> UpdateAsync(string reservationId, UpdateReservationDto request);
     Task DeleteAsync(string reservationId);
 }

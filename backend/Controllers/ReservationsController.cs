@@ -31,6 +31,14 @@ public class ReservationsController : ControllerBase
         return Ok(reservations);
     }
 
+    /// <summary>Returns reservations from previous calendar days for the reservation history screen.</summary>
+    [HttpGet("history")]
+    public async Task<IActionResult> GetHistory([FromQuery] DateTime? date)
+    {
+        var reservations = await _reservationService.GetHistoryAsync(date);
+        return Ok(reservations);
+    }
+
     /// <summary>Changes the requested energy amount within the 12-hour edit window.</summary>
     [HttpPut("{reservationId}")]
     public async Task<IActionResult> Update(string reservationId, [FromBody] UpdateReservationDto request)
