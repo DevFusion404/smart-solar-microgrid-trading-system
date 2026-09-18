@@ -1,11 +1,14 @@
 using backend.DTOs;
 using backend.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace backend.Controllers;
 
 [ApiController]
 [Route("api/reservations")]
+[Authorize(Roles = "Prosumer")]
 public class ReservationsController : ControllerBase
 {
     private readonly IEnergyReservationService _reservationService;
@@ -19,7 +22,9 @@ public class ReservationsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateReservationDto request)
     {
-        var reservation = await _reservationService.CreateAsync(request);
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+        var reservation = await _reservationService.CreateAsync(userId, request);
         return StatusCode(StatusCodes.Status201Created, reservation);
     }
 
@@ -27,7 +32,9 @@ public class ReservationsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] DateTime? date)
     {
-        var reservations = await _reservationService.GetAllAsync(date);
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+        var reservations = await _reservationService.GetAllAsync(userId, date);
         return Ok(reservations);
     }
 
@@ -35,7 +42,9 @@ public class ReservationsController : ControllerBase
     [HttpGet("history")]
     public async Task<IActionResult> GetHistory([FromQuery] DateTime? date)
     {
-        var reservations = await _reservationService.GetHistoryAsync(date);
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+        var reservations = await _reservationService.GetHistoryAsync(userId, date);
         return Ok(reservations);
     }
 
@@ -43,7 +52,9 @@ public class ReservationsController : ControllerBase
     [HttpPut("{reservationId}")]
     public async Task<IActionResult> Update(string reservationId, [FromBody] UpdateReservationDto request)
     {
-        var reservation = await _reservationService.UpdateAsync(reservationId, request);
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+        var reservation = await _reservationService.UpdateAsync(userId, reservationId, request);
         return Ok(reservation);
     }
 
@@ -51,7 +62,15 @@ public class ReservationsController : ControllerBase
     [HttpDelete("{reservationId}")]
     public async Task<IActionResult> Delete(string reservationId)
     {
-        await _reservationService.DeleteAsync(reservationId);
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+        await _reservationService.DeleteAsync(userId, reservationId);
         return NoContent();
+    }
+
+    private bool TryGetCurrentUserId(out string userId)
+    {
+        userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(userId);
     }
 }

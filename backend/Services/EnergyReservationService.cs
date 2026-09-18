@@ -27,11 +27,11 @@ public class EnergyReservationService : IEnergyReservationService
         _stations = context.Database.GetCollection<SolarStationInfo>("SolarStationInfo");
     }
 
-    public async Task<EnergyReservation> CreateAsync(CreateReservationDto request)
+    public async Task<EnergyReservation> CreateAsync(string userId, CreateReservationDto request)
     {
-        if (string.IsNullOrWhiteSpace(request.SlotId) || request.RequestedCapacity <= 0)
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(request.SlotId) || request.RequestedCapacity <= 0)
         {
-            throw new BadRequestException("INVALID_RESERVATION", "A slot and a positive requested capacity are required.");
+            throw new BadRequestException("INVALID_RESERVATION", "A user, slot, and positive requested capacity are required.");
         }
 
         // Slot dates are calendar dates in Sri Lanka. Their UTC storage value can be the
@@ -78,7 +78,7 @@ public class EnergyReservationService : IEnergyReservationService
             StationId = reservedSlot.StationId,
             StationName = station?.StationName ?? reservedSlot.StationId,
             SlotId = reservedSlot.SlotId,
-            UserId = string.Empty,
+            UserId = userId,
             ProsumerNic = null,
             ProsumerName = string.Empty,
             SlotDate = reservedSlot.Date,
@@ -104,9 +104,9 @@ public class EnergyReservationService : IEnergyReservationService
         }
     }
 
-    public async Task<IReadOnlyList<EnergyReservation>> GetAllAsync(DateTime? date)
+    public async Task<IReadOnlyList<EnergyReservation>> GetAllAsync(string userId, DateTime? date)
     {
-        var filter = Builders<EnergyReservation>.Filter.Empty;
+        var filter = Builders<EnergyReservation>.Filter.Eq(x => x.UserId, userId);
 
         if (date.HasValue)
         {
@@ -118,13 +118,14 @@ public class EnergyReservationService : IEnergyReservationService
             .ToListAsync();
     }
 
-    public async Task<IReadOnlyList<EnergyReservation>> GetHistoryAsync(DateTime? date)
+    public async Task<IReadOnlyList<EnergyReservation>> GetHistoryAsync(string userId, DateTime? date)
     {
         // A history record belongs to a completed calendar day in Sri Lanka.
         // The optional date is applied after this boundary so future bookings
         // cannot appear in the history screen.
         var todayStart = GetReservationDayStartUtc();
-        var filter = Builders<EnergyReservation>.Filter.Lt(x => x.SlotDate, todayStart);
+        var filter = Builders<EnergyReservation>.Filter.Eq(x => x.UserId, userId)
+            & Builders<EnergyReservation>.Filter.Lt(x => x.SlotDate, todayStart);
 
         if (date.HasValue)
         {
@@ -137,14 +138,14 @@ public class EnergyReservationService : IEnergyReservationService
             .ToListAsync();
     }
 
-    public async Task<EnergyReservation> UpdateAsync(string reservationId, UpdateReservationDto request)
+    public async Task<EnergyReservation> UpdateAsync(string userId, string reservationId, UpdateReservationDto request)
     {
-        if (string.IsNullOrWhiteSpace(reservationId) || request.RequestedCapacity <= 0)
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(reservationId) || request.RequestedCapacity <= 0)
         {
-            throw new BadRequestException("INVALID_RESERVATION", "A reservation id and positive requested capacity are required.");
+            throw new BadRequestException("INVALID_RESERVATION", "A user, reservation id, and positive requested capacity are required.");
         }
 
-        var reservation = await _reservations.Find(EditableReservationFilter(reservationId)).FirstOrDefaultAsync();
+        var reservation = await _reservations.Find(EditableReservationFilter(userId, reservationId)).FirstOrDefaultAsync();
 
         if (reservation is null)
         {
@@ -174,7 +175,7 @@ public class EnergyReservationService : IEnergyReservationService
         }
 
         var updatedReservation = await _reservations.FindOneAndUpdateAsync(
-            EditableReservationFilter(reservationId),
+            EditableReservationFilter(userId, reservationId),
             Builders<EnergyReservation>.Update.Set(x => x.ReservedCapacity, requestedCapacity),
             new FindOneAndUpdateOptions<EnergyReservation> { ReturnDocument = ReturnDocument.After });
 
@@ -189,14 +190,14 @@ public class EnergyReservationService : IEnergyReservationService
         throw new ConflictException("RESERVATION_NOT_EDITABLE", "The reservation was changed before the update could be completed.");
     }
 
-    public async Task DeleteAsync(string reservationId)
+    public async Task DeleteAsync(string userId, string reservationId)
     {
-        if (string.IsNullOrWhiteSpace(reservationId))
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(reservationId))
         {
-            throw new BadRequestException("INVALID_RESERVATION", "A reservation id is required.");
+            throw new BadRequestException("INVALID_RESERVATION", "A user and reservation id are required.");
         }
 
-        var reservation = await _reservations.FindOneAndDeleteAsync(EditableReservationFilter(reservationId));
+        var reservation = await _reservations.FindOneAndDeleteAsync(EditableReservationFilter(userId, reservationId));
         if (reservation is null)
         {
             throw new ConflictException("RESERVATION_NOT_EDITABLE", "The reservation was not found or its 12-hour delete period has ended.");
@@ -215,8 +216,9 @@ public class EnergyReservationService : IEnergyReservationService
         throw new ConflictException("SLOT_NOT_FOUND", "The related energy slot no longer exists, so this reservation was not deleted.");
     }
 
-    private static FilterDefinition<EnergyReservation> EditableReservationFilter(string reservationId) =>
+    private static FilterDefinition<EnergyReservation> EditableReservationFilter(string userId, string reservationId) =>
         Builders<EnergyReservation>.Filter.Eq(x => x.ReservationId, reservationId)
+        & Builders<EnergyReservation>.Filter.Eq(x => x.UserId, userId)
         & Builders<EnergyReservation>.Filter.Eq(x => x.Status, "Confirmed")
         & Builders<EnergyReservation>.Filter.Gte(x => x.CreatedAt, DateTime.UtcNow.AddHours(-12));
 

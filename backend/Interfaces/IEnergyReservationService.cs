@@ -5,9 +5,9 @@ namespace backend.Interfaces;
 
 public interface IEnergyReservationService
 {
-    Task<EnergyReservation> CreateAsync(CreateReservationDto request);
-    Task<IReadOnlyList<EnergyReservation>> GetAllAsync(DateTime? date);
-    Task<IReadOnlyList<EnergyReservation>> GetHistoryAsync(DateTime? date);
-    Task<EnergyReservation> UpdateAsync(string reservationId, UpdateReservationDto request);
-    Task DeleteAsync(string reservationId);
+    Task<EnergyReservation> CreateAsync(string userId, CreateReservationDto request);
+    Task<IReadOnlyList<EnergyReservation>> GetAllAsync(string userId, DateTime? date);
+    Task<IReadOnlyList<EnergyReservation>> GetHistoryAsync(string userId, DateTime? date);
+    Task<EnergyReservation> UpdateAsync(string userId, string reservationId, UpdateReservationDto request);
+    Task DeleteAsync(string userId, string reservationId);
 }
