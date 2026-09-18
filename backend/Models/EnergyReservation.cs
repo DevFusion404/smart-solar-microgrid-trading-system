@@ -14,9 +14,10 @@ public class EnergyReservation
 
     public string ReservationId { get; set; } = string.Empty;
     public string StationId { get; set; } = string.Empty;
+    public string StationName { get; set; } = string.Empty;
     public string SlotId { get; set; } = string.Empty;
 
-    // The authenticated username is the ownership key for mobile queries.
+    // Kept for future ownership support; the current reservation module is not user-scoped.
     public string UserId { get; set; } = string.Empty;
     public string? ProsumerNic { get; set; }
     public string ProsumerName { get; set; } = string.Empty;
