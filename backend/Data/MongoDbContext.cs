@@ -36,6 +36,12 @@ public class MongoDbContext
     public IMongoCollection<UserDetails> Users => _database.GetCollection<UserDetails>("UserDetails");
 
     /// <summary>
+    /// Gets the EnergyTransactions collection used by the energy transfer workflow.
+    /// </summary>
+    public IMongoCollection<EnergyTransaction> EnergyTransactions =>
+        _database.GetCollection<EnergyTransaction>("EnergyTransactions");
+
+    /// <summary>
     /// Protected constructor for unit testing only.
     /// Injects a pre-built IMongoDatabase so no real MongoDB
     /// connection is opened during tests.
@@ -85,6 +91,38 @@ public class MongoDbContext
                 .Ascending(u => u.Status);
             users.Indexes.CreateOne(new CreateIndexModel<UserDetails>(
                 roleStatusKeys, new CreateIndexOptions { Name = "idx_role_status" }));
+
+            // ─── Energy Transfer and Transaction Management indexes ──────────
+            var transactions = EnergyTransactions;
+
+            // TransactionId is the business key exposed by every transfer endpoint
+            var transactionIdKeys = Builders<EnergyTransaction>.IndexKeys.Ascending(t => t.TransactionId);
+            transactions.Indexes.CreateOne(new CreateIndexModel<EnergyTransaction>(
+                transactionIdKeys, new CreateIndexOptions { Unique = true, Name = "idx_transaction_id_unique" }));
+
+            // QR tokens are single-use credentials, so uniqueness is enforced by the database
+            var qrTokenKeys = Builders<EnergyTransaction>.IndexKeys.Ascending(t => t.QRToken);
+            transactions.Indexes.CreateOne(new CreateIndexModel<EnergyTransaction>(
+                qrTokenKeys, new CreateIndexOptions { Unique = true, Name = "idx_qr_token_unique" }));
+
+            // Prosumer history is always read newest-first for one NIC
+            var prosumerHistoryKeys = Builders<EnergyTransaction>.IndexKeys
+                .Ascending(t => t.ProsumerNIC)
+                .Descending(t => t.TransactionDate);
+            transactions.Indexes.CreateOne(new CreateIndexModel<EnergyTransaction>(
+                prosumerHistoryKeys, new CreateIndexOptions { Name = "idx_prosumer_history" }));
+
+            // Dashboard counters and the operator queue filter on status and slot date
+            var statusDateKeys = Builders<EnergyTransaction>.IndexKeys
+                .Ascending(t => t.TransferStatus)
+                .Descending(t => t.SlotDate);
+            transactions.Indexes.CreateOne(new CreateIndexModel<EnergyTransaction>(
+                statusDateKeys, new CreateIndexOptions { Name = "idx_transfer_status_slot_date" }));
+
+            // Re-issuing a QR looks the reservation up before minting a new token
+            var reservationKeys = Builders<EnergyTransaction>.IndexKeys.Ascending(t => t.ReservationId);
+            transactions.Indexes.CreateOne(new CreateIndexModel<EnergyTransaction>(
+                reservationKeys, new CreateIndexOptions { Name = "idx_transaction_reservation" }));
         }
         catch
         {

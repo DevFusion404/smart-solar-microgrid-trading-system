@@ -113,15 +113,21 @@ builder.Services.AddSingleton<IMongoDatabase>(sp => sp.GetRequiredService<MongoD
 // Register Helpers & Utilities
 builder.Services.AddSingleton<IPasswordHasher<UserDetails>, PasswordHasher<UserDetails>>();
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
+builder.Services.AddSingleton<IQrCodeGenerator, QrCodeGenerator>();
 
 // Register Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+// Energy Transfer and Transaction Management repositories
+builder.Services.AddScoped<IEnergyTransactionRepository, EnergyTransactionRepository>();
+builder.Services.AddScoped<IReservationLookupRepository, ReservationLookupRepository>();
 
 // Register Domain Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IWebUserService, WebUserService>();
 builder.Services.AddScoped<IProsumerService, ProsumerService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<IEnergyTransactionService, EnergyTransactionService>();
 
 // Register Authorization Handlers
 builder.Services.AddSingleton<IAuthorizationHandler, NicOwnershipHandler>();
