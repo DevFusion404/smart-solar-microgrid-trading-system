@@ -6,7 +6,7 @@ import com.smartsolar.mobile.data.api.AuthLoginRequest
 import com.smartsolar.mobile.data.api.AuthLoginResponse
 import com.smartsolar.mobile.data.api.RegisterProsumerRequest
 import com.smartsolar.mobile.data.api.RetrofitClient
-import com.smartsolar.mobile.data.local.TokenManager
+import com.smartsolar.mobile.data.local.SessionManager
 import com.smartsolar.mobile.data.model.UserAccount
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,14 +30,14 @@ class AuthRepository(
             val response = authApiService.login(AuthLoginRequest(username, password))
             if (response.isSuccessful && response.body() != null) {
                 val body = response.body()!!
-                TokenManager.saveSession(
-                    context = context,
-                    token = body.token,
-                    username = body.user.username,
-                    fullName = body.user.fullName,
-                    role = body.user.role,
-                    status = body.user.status,
-                    nic = body.user.nic
+                // Persist the session to SQLite (synced from MongoDB).
+                // SessionManager also mirrors data to SharedPreferences (TokenManager)
+                // for backward compatibility with existing code.
+                SessionManager.saveSession(
+                    context     = context,
+                    token       = body.token,
+                    expiresAt   = body.expiresAt,
+                    user        = body.user
                 )
                 Result.success(body)
             } else {

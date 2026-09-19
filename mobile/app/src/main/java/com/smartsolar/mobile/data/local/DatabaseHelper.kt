@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import com.smartsolar.mobile.data.model.EnergySlot
 import com.smartsolar.mobile.data.model.Reservation
+import com.smartsolar.mobile.data.model.SessionRecord
 import com.smartsolar.mobile.data.model.Station
 import com.smartsolar.mobile.utils.Constants
 
@@ -26,6 +27,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
         const val TABLE_STATIONS = "stations"
         const val TABLE_SLOTS = "energy_slots"
         const val TABLE_RESERVATIONS = "reservations"
+        const val TABLE_SESSIONS = "sessions"
 
         // Stations Columns
         const val COL_ID = "id"
@@ -53,6 +55,21 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
         const val COL_RESERVED_CAPACITY = "reserved_capacity"
         const val COL_CREATED_AT = "created_at"
         const val COL_IS_SYNCED = "is_synced"
+
+        // Sessions Columns
+        const val COL_SESSION_USER_ID = "user_id"
+        const val COL_SESSION_USERNAME = "username"
+        const val COL_SESSION_FULL_NAME = "full_name"
+        const val COL_SESSION_EMAIL = "email"
+        const val COL_SESSION_PHONE = "phone_number"
+        const val COL_SESSION_ROLE = "role"
+        const val COL_SESSION_STATUS = "status"
+        const val COL_SESSION_NIC = "nic"
+        const val COL_SESSION_ADDRESS = "address"
+        const val COL_SESSION_JWT = "jwt_token"
+        const val COL_SESSION_EXPIRES_AT = "expires_at"
+        const val COL_SESSION_LOGGED_IN_AT = "logged_in_at"
+        const val COL_SESSION_IS_ACTIVE = "is_active_session"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -103,16 +120,55 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
             )
         """.trimIndent()
 
+        // Create Sessions Table — stores authenticated user session synced from MongoDB
+        val createSessionsTable = """
+            CREATE TABLE $TABLE_SESSIONS (
+                $COL_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COL_SESSION_USER_ID TEXT,
+                $COL_SESSION_USERNAME TEXT UNIQUE NOT NULL,
+                $COL_SESSION_FULL_NAME TEXT NOT NULL,
+                $COL_SESSION_EMAIL TEXT NOT NULL,
+                $COL_SESSION_PHONE TEXT,
+                $COL_SESSION_ROLE TEXT NOT NULL,
+                $COL_SESSION_STATUS TEXT NOT NULL,
+                $COL_SESSION_NIC TEXT,
+                $COL_SESSION_ADDRESS TEXT,
+                $COL_SESSION_JWT TEXT NOT NULL,
+                $COL_SESSION_EXPIRES_AT TEXT,
+                $COL_SESSION_LOGGED_IN_AT TEXT NOT NULL,
+                $COL_SESSION_IS_ACTIVE INTEGER NOT NULL DEFAULT 0
+            )
+        """.trimIndent()
+
         db.execSQL(createStationsTable)
         db.execSQL(createSlotsTable)
         db.execSQL(createReservationsTable)
+        db.execSQL(createSessionsTable)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_RESERVATIONS")
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_SLOTS")
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_STATIONS")
-        onCreate(db)
+        if (oldVersion < 2) {
+            // Version 2: add sessions table for SQLite-backed user session storage
+            val createSessionsTable = """
+                CREATE TABLE IF NOT EXISTS $TABLE_SESSIONS (
+                    $COL_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    $COL_SESSION_USER_ID TEXT,
+                    $COL_SESSION_USERNAME TEXT UNIQUE NOT NULL,
+                    $COL_SESSION_FULL_NAME TEXT NOT NULL,
+                    $COL_SESSION_EMAIL TEXT NOT NULL,
+                    $COL_SESSION_PHONE TEXT,
+                    $COL_SESSION_ROLE TEXT NOT NULL,
+                    $COL_SESSION_STATUS TEXT NOT NULL,
+                    $COL_SESSION_NIC TEXT,
+                    $COL_SESSION_ADDRESS TEXT,
+                    $COL_SESSION_JWT TEXT NOT NULL,
+                    $COL_SESSION_EXPIRES_AT TEXT,
+                    $COL_SESSION_LOGGED_IN_AT TEXT NOT NULL,
+                    $COL_SESSION_IS_ACTIVE INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent()
+            db.execSQL(createSessionsTable)
+        }
     }
 
     // ── Station CRUD Operations ───────────────────────────────────────────────
@@ -352,4 +408,106 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
         db.delete(TABLE_SLOTS, null, null)
         db.delete(TABLE_STATIONS, null, null)
     }
+
+    // ── Session CRUD Operations ───────────────────────────────────────────────
+
+    /**
+     * Upserts the authenticated user session into SQLite.
+     * - Deactivates all previous sessions.
+     * - Inserts or replaces (by UNIQUE username) the new session as the active one.
+     * MongoDB is the source of truth; this is a local cache synced on every login.
+     */
+    fun saveSession(
+        userId: String,
+        username: String,
+        fullName: String,
+        email: String,
+        phoneNumber: String,
+        role: String,
+        status: String,
+        nic: String?,
+        address: String?,
+        jwtToken: String,
+        expiresAt: String,
+        loggedInAt: String
+    ): Long {
+        val db = writableDatabase
+        db.beginTransaction()
+        return try {
+            // Mark all existing sessions as inactive
+            val deactivate = ContentValues().apply { put(COL_SESSION_IS_ACTIVE, 0) }
+            db.update(TABLE_SESSIONS, deactivate, null, null)
+
+            // Upsert the new active session
+            val values = ContentValues().apply {
+                put(COL_SESSION_USER_ID, userId)
+                put(COL_SESSION_USERNAME, username)
+                put(COL_SESSION_FULL_NAME, fullName)
+                put(COL_SESSION_EMAIL, email)
+                put(COL_SESSION_PHONE, phoneNumber)
+                put(COL_SESSION_ROLE, role)
+                put(COL_SESSION_STATUS, status)
+                put(COL_SESSION_NIC, nic)
+                put(COL_SESSION_ADDRESS, address)
+                put(COL_SESSION_JWT, jwtToken)
+                put(COL_SESSION_EXPIRES_AT, expiresAt)
+                put(COL_SESSION_LOGGED_IN_AT, loggedInAt)
+                put(COL_SESSION_IS_ACTIVE, 1)
+            }
+            val rowId = db.insertWithOnConflict(
+                TABLE_SESSIONS, null, values, SQLiteDatabase.CONFLICT_REPLACE
+            )
+            db.setTransactionSuccessful()
+            rowId
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /**
+     * Returns the currently active session row, or null if no session exists.
+     */
+    fun getActiveSession(): SessionRecord? {
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_SESSIONS,
+            null,
+            "$COL_SESSION_IS_ACTIVE = ?",
+            arrayOf("1"),
+            null, null, null
+        )
+        cursor.use {
+            if (it.moveToFirst()) {
+                return SessionRecord(
+                    id           = it.getLong(it.getColumnIndexOrThrow(COL_ID)),
+                    userId       = it.getString(it.getColumnIndexOrThrow(COL_SESSION_USER_ID)) ?: "",
+                    username     = it.getString(it.getColumnIndexOrThrow(COL_SESSION_USERNAME)),
+                    fullName     = it.getString(it.getColumnIndexOrThrow(COL_SESSION_FULL_NAME)),
+                    email        = it.getString(it.getColumnIndexOrThrow(COL_SESSION_EMAIL)),
+                    phoneNumber  = it.getString(it.getColumnIndexOrThrow(COL_SESSION_PHONE)) ?: "",
+                    role         = it.getString(it.getColumnIndexOrThrow(COL_SESSION_ROLE)),
+                    status       = it.getString(it.getColumnIndexOrThrow(COL_SESSION_STATUS)),
+                    nic          = it.getString(it.getColumnIndexOrThrow(COL_SESSION_NIC)),
+                    address      = it.getString(it.getColumnIndexOrThrow(COL_SESSION_ADDRESS)),
+                    jwtToken     = it.getString(it.getColumnIndexOrThrow(COL_SESSION_JWT)),
+                    expiresAt    = it.getString(it.getColumnIndexOrThrow(COL_SESSION_EXPIRES_AT)) ?: "",
+                    loggedInAt   = it.getString(it.getColumnIndexOrThrow(COL_SESSION_LOGGED_IN_AT)),
+                    isActiveSession = true
+                )
+            }
+        }
+        return null
+    }
+
+    /**
+     * Marks all session rows as inactive (soft logout — preserves history).
+     */
+    fun clearSession() {
+        val db = writableDatabase
+        val values = ContentValues().apply { put(COL_SESSION_IS_ACTIVE, 0) }
+        db.update(TABLE_SESSIONS, values, null, null)
+    }
+
+    /** Returns true if there is an active session row in SQLite. */
+    fun isLoggedIn(): Boolean = getActiveSession() != null
 }

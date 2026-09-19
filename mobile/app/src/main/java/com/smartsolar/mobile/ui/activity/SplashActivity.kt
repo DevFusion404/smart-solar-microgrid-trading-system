@@ -6,7 +6,7 @@ import android.os.Bundle
 import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.smartsolar.mobile.data.local.TokenManager
+import com.smartsolar.mobile.data.local.SessionManager
 import com.smartsolar.mobile.databinding.ActivitySplashBinding
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -74,17 +74,37 @@ class SplashActivity : AppCompatActivity() {
     private fun navigateNextAfterDelay() {
         lifecycleScope.launch {
             delay(2400)
-            val intent = if (TokenManager.isLoggedIn(this@SplashActivity)) {
-                val role = TokenManager.getUserRole(this@SplashActivity) ?: "Prosumer"
-                val name = TokenManager.getFullName(this@SplashActivity)
-                    ?: TokenManager.getUsername(this@SplashActivity)
-                    ?: "User"
-                val isOperator = role.equals("GridOperator", ignoreCase = true) || role.equals("Grid Operator", ignoreCase = true)
-                val targetRole = if (isOperator) RoleRedirectionActivity.ROLE_GRID_OPERATOR else RoleRedirectionActivity.ROLE_PROSUMER
 
-                Intent(this@SplashActivity, RoleRedirectionActivity::class.java).apply {
-                    putExtra("USER_NAME", name)
-                    putExtra("USER_ROLE", targetRole)
+            // Read the persisted session from SQLite (synced from MongoDB on last login).
+            // Only users registered in MongoDB can have a session row here.
+            val session = SessionManager.getActiveSession(this@SplashActivity)
+
+            val intent = if (session != null) {
+                // Restore the JWT into Retrofit for immediate API calls
+                com.smartsolar.mobile.data.api.RetrofitClient.authToken = session.jwtToken
+
+                val displayName = session.fullName.ifBlank { session.username }
+
+                when {
+                    session.role.equals("GridOperator", ignoreCase = true) ||
+                    session.role.equals("Grid Operator", ignoreCase = true) -> {
+                        Intent(this@SplashActivity, RoleRedirectionActivity::class.java).apply {
+                            putExtra("USER_NAME", displayName)
+                            putExtra("USER_ROLE", RoleRedirectionActivity.ROLE_GRID_OPERATOR)
+                        }
+                    }
+                    session.role.equals("Backoffice", ignoreCase = true) -> {
+                        // Backoffice has no mobile home — clear session and go to login
+                        SessionManager.clearSession(this@SplashActivity)
+                        Intent(this@SplashActivity, LoginActivity::class.java)
+                    }
+                    else -> {
+                        // Prosumer (default)
+                        Intent(this@SplashActivity, RoleRedirectionActivity::class.java).apply {
+                            putExtra("USER_NAME", displayName)
+                            putExtra("USER_ROLE", RoleRedirectionActivity.ROLE_PROSUMER)
+                        }
+                    }
                 }
             } else {
                 Intent(this@SplashActivity, LoginActivity::class.java)
