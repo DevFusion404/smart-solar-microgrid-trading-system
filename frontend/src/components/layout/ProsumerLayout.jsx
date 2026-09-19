@@ -11,6 +11,7 @@ const pageNames = {
   '/prosumer/profile': 'My Profile',
   '/prosumer/account': 'Account Settings',
   '/prosumer/settings': 'Preferences',
+  '/prosumer/transactions': 'Energy Transfers',
 }
 
 function ProsumerHeader({ onOpenMenu, isDark, onToggleTheme }) {
