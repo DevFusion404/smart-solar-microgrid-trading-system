@@ -36,6 +36,11 @@ public class MongoDbContext
     public IMongoCollection<UserDetails> Users => _database.GetCollection<UserDetails>("UserDetails");
 
     /// <summary>
+    /// Gets the energy reservations collection used by the mobile booking flow.
+    /// </summary>
+    public IMongoCollection<EnergyReservation> Reservations => _database.GetCollection<EnergyReservation>("EnergyReservations");
+
+    /// <summary>
     /// Protected constructor for unit testing only.
     /// Injects a pre-built IMongoDatabase so no real MongoDB
     /// connection is opened during tests.
@@ -85,6 +90,18 @@ public class MongoDbContext
                 .Ascending(u => u.Status);
             users.Indexes.CreateOne(new CreateIndexModel<UserDetails>(
                 roleStatusKeys, new CreateIndexOptions { Name = "idx_role_status" }));
+
+            var reservations = Reservations;
+            var reservationIdKeys = Builders<EnergyReservation>.IndexKeys.Ascending(r => r.ReservationId);
+            reservations.Indexes.CreateOne(new CreateIndexModel<EnergyReservation>(
+                reservationIdKeys, new CreateIndexOptions { Unique = true, Name = "idx_reservation_id_unique" }));
+
+            var userScheduleKeys = Builders<EnergyReservation>.IndexKeys
+                .Ascending(r => r.UserId)
+                .Descending(r => r.SlotDate)
+                .Ascending(r => r.StartTime);
+            reservations.Indexes.CreateOne(new CreateIndexModel<EnergyReservation>(
+                userScheduleKeys, new CreateIndexOptions { Name = "idx_user_schedule" }));
         }
         catch
         {

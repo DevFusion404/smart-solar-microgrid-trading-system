@@ -103,6 +103,7 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddScoped<IMicrogridStationService, MicrogridStationService>();
 builder.Services.AddScoped<IEnergySlotService, EnergySlotService>();
 builder.Services.AddScoped<INodeAssignmentService, NodeAssignmentService>();
+builder.Services.AddScoped<IEnergyReservationService, EnergyReservationService>();
 
 // Register Configuration Singletons
 builder.Services.AddSingleton(mongoDbSettings);
