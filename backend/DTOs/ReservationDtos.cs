@@ -19,3 +19,11 @@ public class UpdateReservationDto
     [Range(typeof(double), "0.01", "1000000")]
     public double RequestedCapacity { get; set; }
 }
+
+public class UpdateReservationStatusDto
+{
+    /// <summary>Backoffice workflow status for the reservation.</summary>
+    [Required]
+    [StringLength(32)]
+    public string Status { get; set; } = string.Empty;
+}

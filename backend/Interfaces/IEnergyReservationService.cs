@@ -10,4 +10,6 @@ public interface IEnergyReservationService
     Task<IReadOnlyList<EnergyReservation>> GetHistoryAsync(string userId, DateTime? date);
     Task<EnergyReservation> UpdateAsync(string userId, string reservationId, UpdateReservationDto request);
     Task DeleteAsync(string userId, string reservationId);
+    Task<IReadOnlyList<EnergyReservation>> GetAllForBackofficeAsync();
+    Task<EnergyReservation> UpdateStatusForBackofficeAsync(string reservationId, UpdateReservationStatusDto request);
 }
