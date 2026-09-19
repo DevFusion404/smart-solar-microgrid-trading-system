@@ -3,6 +3,7 @@ package com.smartsolar.mobile.ui.activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import com.smartsolar.mobile.data.local.SessionManager
 import com.smartsolar.mobile.databinding.ActivityLogoutConfirmationBinding
 
 /**
@@ -54,7 +55,8 @@ class LogoutConfirmationActivity : AppCompatActivity() {
     }
 
     private fun signOut() {
-        com.smartsolar.mobile.data.local.TokenManager.clearSession(this)
+        // Clear SQLite session (also clears SharedPreferences and in-memory Retrofit token)
+        SessionManager.clearSession(this)
         val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)

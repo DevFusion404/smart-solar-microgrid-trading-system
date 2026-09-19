@@ -14,5 +14,5 @@ object Constants {
 
     // Database
     const val DATABASE_NAME = "smart_solar_local.db"
-    const val DATABASE_VERSION = 1
+    const val DATABASE_VERSION = 2
 }
