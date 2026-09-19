@@ -113,7 +113,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnReserveEnergySlot"
-            style="@style/Widget.SmartSolar.Button.Primary"
+            style="@style/Widget.SmartSolar.ReservationButton.Primary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"

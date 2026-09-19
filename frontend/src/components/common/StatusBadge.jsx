@@ -6,6 +6,7 @@ const statusStyles = {
   Healthy: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300',
   Processing: 'bg-blue-50 text-blue-700 dark:bg-blue-400/10 dark:text-blue-300',
   Pending: 'bg-amber-50 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300',
+  Reviewing: 'bg-amber-50 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300',
   Review: 'bg-amber-50 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300',
   'Needs review': 'bg-amber-50 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300',
   Approved: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300',

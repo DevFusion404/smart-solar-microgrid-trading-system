@@ -12,6 +12,9 @@ data class Reservation(
     @SerializedName("stationId")
     val stationId: String = "",
 
+    @SerializedName("stationName")
+    val stationName: String = "",
+
     @SerializedName("slotId")
     val slotId: String = "",
 
@@ -21,9 +24,27 @@ data class Reservation(
     @SerializedName("reservedCapacity")
     val reservedCapacity: Double = 0.0,
 
+    @SerializedName("slotDate")
+    val slotDate: String = "",
+
+    @SerializedName("startTime")
+    val startTime: String = "",
+
+    @SerializedName("endTime")
+    val endTime: String = "",
+
     @SerializedName("createdAt")
     val createdAt: String = "",
 
     @SerializedName("status")
     val status: String = "Confirmed"
+)
+
+data class CreateReservationRequest(
+    val slotId: String,
+    val requestedCapacity: Double
+)
+
+data class UpdateReservationRequest(
+    val requestedCapacity: Double
 )

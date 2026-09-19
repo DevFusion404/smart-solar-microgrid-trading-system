@@ -35,11 +35,12 @@ object ReservationDatePicker {
         onDateSelected: (LocalDate) -> Unit,
     ) {
         val today = LocalDate.now()
+        val latestHistoryDate = today.minusDays(1)
         show(
             fragment = fragment,
-            selectedDate = selectedDate.coerceIn(today.minusDays(DAYS_IN_WINDOW - 1), today),
-            firstSelectableDate = today.minusDays(DAYS_IN_WINDOW - 1),
-            lastSelectableDate = today,
+            selectedDate = selectedDate.coerceIn(today.minusDays(DAYS_IN_WINDOW), latestHistoryDate),
+            firstSelectableDate = today.minusDays(DAYS_IN_WINDOW),
+            lastSelectableDate = latestHistoryDate,
             title = "Choose a history day",
             onDateSelected = onDateSelected,
         )
