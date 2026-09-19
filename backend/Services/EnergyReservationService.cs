@@ -3,6 +3,7 @@ using backend.DTOs;
 using backend.Interfaces;
 using backend.Middleware;
 using backend.Models;
+using backend.Repositories;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -19,12 +20,14 @@ public class EnergyReservationService : IEnergyReservationService
     private readonly IMongoCollection<EnergyReservation> _reservations;
     private readonly IMongoCollection<EnergyBookingSlot> _slots;
     private readonly IMongoCollection<SolarStationInfo> _stations;
+    private readonly IUserRepository _userRepository;
 
-    public EnergyReservationService(MongoDbContext context)
+    public EnergyReservationService(MongoDbContext context, IUserRepository userRepository)
     {
         _reservations = context.Reservations;
         _slots = context.Database.GetCollection<EnergyBookingSlot>("EnergyBookingSlot");
         _stations = context.Database.GetCollection<SolarStationInfo>("SolarStationInfo");
+        _userRepository = userRepository;
     }
 
     public async Task<EnergyReservation> CreateAsync(string userId, CreateReservationDto request)
@@ -71,6 +74,7 @@ public class EnergyReservationService : IEnergyReservationService
         var station = await _stations
             .Find(x => x.StationId == reservedSlot.StationId)
             .FirstOrDefaultAsync();
+        var prosumer = await _userRepository.GetByUsernameAsync(userId);
 
         var reservation = new EnergyReservation
         {
@@ -79,8 +83,8 @@ public class EnergyReservationService : IEnergyReservationService
             StationName = station?.StationName ?? reservedSlot.StationId,
             SlotId = reservedSlot.SlotId,
             UserId = userId,
-            ProsumerNic = null,
-            ProsumerName = string.Empty,
+            ProsumerNic = prosumer?.Nic,
+            ProsumerName = prosumer?.FullName ?? userId,
             SlotDate = reservedSlot.Date,
             StartTime = reservedSlot.StartTime,
             EndTime = reservedSlot.EndTime,
@@ -216,6 +220,83 @@ public class EnergyReservationService : IEnergyReservationService
         throw new ConflictException("SLOT_NOT_FOUND", "The related energy slot no longer exists, so this reservation was not deleted.");
     }
 
+    public async Task<IReadOnlyList<EnergyReservation>> GetAllForBackofficeAsync()
+    {
+        return await _reservations.Find(Builders<EnergyReservation>.Filter.Empty)
+            .SortByDescending(x => x.SlotDate)
+            .ThenByDescending(x => x.StartTime)
+            .ToListAsync();
+    }
+
+    public async Task<EnergyReservation> UpdateStatusForBackofficeAsync(
+        string reservationId,
+        UpdateReservationStatusDto request)
+    {
+        if (string.IsNullOrWhiteSpace(reservationId) || string.IsNullOrWhiteSpace(request.Status))
+        {
+            throw new BadRequestException("INVALID_RESERVATION_STATUS", "A reservation id and status are required.");
+        }
+
+        var status = NormalizeBackofficeStatus(request.Status);
+        var reservation = await _reservations
+            .Find(Builders<EnergyReservation>.Filter.Eq(x => x.ReservationId, reservationId))
+            .FirstOrDefaultAsync();
+
+        if (reservation is null)
+        {
+            throw new NotFoundException("RESERVATION_NOT_FOUND", "The reservation was not found.");
+        }
+
+        if (reservation.Status.Equals(status, StringComparison.OrdinalIgnoreCase))
+        {
+            return reservation;
+        }
+
+        if (reservation.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ConflictException("RESERVATION_CANCELLED", "A cancelled reservation cannot be moved to another status.");
+        }
+
+        if (status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
+        {
+            var restoredCapacity = await _slots.UpdateOneAsync(
+                SlotIdFilter(reservation.SlotId),
+                Builders<EnergyBookingSlot>.Update.Inc(x => x.AvailableCapacity, reservation.ReservedCapacity));
+
+            if (restoredCapacity.ModifiedCount == 0)
+            {
+                throw new ConflictException("SLOT_NOT_FOUND", "The related energy slot no longer exists, so this reservation cannot be cancelled.");
+            }
+
+            var cancelledReservation = await _reservations.FindOneAndUpdateAsync(
+                Builders<EnergyReservation>.Filter.Eq(x => x.ReservationId, reservationId)
+                    & Builders<EnergyReservation>.Filter.Ne(x => x.Status, "Cancelled"),
+                Builders<EnergyReservation>.Update
+                    .Set(x => x.Status, "Cancelled")
+                    .Set(x => x.CancelledAt, DateTime.UtcNow),
+                new FindOneAndUpdateOptions<EnergyReservation> { ReturnDocument = ReturnDocument.After });
+
+            if (cancelledReservation is not null)
+            {
+                return cancelledReservation;
+            }
+
+            await _slots.UpdateOneAsync(
+                SlotIdFilter(reservation.SlotId),
+                Builders<EnergyBookingSlot>.Update.Inc(x => x.AvailableCapacity, -reservation.ReservedCapacity));
+            throw new ConflictException("RESERVATION_STATUS_CHANGED", "The reservation status changed before cancellation could be completed.");
+        }
+
+        return await _reservations.FindOneAndUpdateAsync(
+                   Builders<EnergyReservation>.Filter.Eq(x => x.ReservationId, reservationId)
+                       & Builders<EnergyReservation>.Filter.Ne(x => x.Status, "Cancelled"),
+                   Builders<EnergyReservation>.Update
+                       .Set(x => x.Status, status)
+                       .Set(x => x.CancelledAt, null),
+                   new FindOneAndUpdateOptions<EnergyReservation> { ReturnDocument = ReturnDocument.After })
+               ?? throw new ConflictException("RESERVATION_STATUS_CHANGED", "The reservation status changed before the update could be completed.");
+    }
+
     private static FilterDefinition<EnergyReservation> EditableReservationFilter(string userId, string reservationId) =>
         Builders<EnergyReservation>.Filter.Eq(x => x.ReservationId, reservationId)
         & Builders<EnergyReservation>.Filter.Eq(x => x.UserId, userId)
@@ -231,6 +312,17 @@ public class EnergyReservationService : IEnergyReservationService
         }
 
         return filter;
+    }
+
+    private static string NormalizeBackofficeStatus(string value)
+    {
+        var allowedStatuses = new[] { "Reviewing", "Pending", "Approved", "Completed", "Cancelled" };
+        var status = allowedStatuses.FirstOrDefault(candidate =>
+            candidate.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        return status ?? throw new BadRequestException(
+            "INVALID_RESERVATION_STATUS",
+            "Status must be Reviewing, Pending, Approved, Completed, or Cancelled.");
     }
 
     private static FilterDefinition<EnergyReservation> DateFilter(DateTime date)
