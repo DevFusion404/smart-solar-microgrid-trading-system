@@ -9,6 +9,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.smartsolar.mobile.R
+import com.smartsolar.mobile.data.local.SessionManager
 import com.smartsolar.mobile.databinding.ActivityLoginBinding
 import com.smartsolar.mobile.viewmodel.AuthViewModel
 import com.smartsolar.mobile.viewmodel.LoginUiState
@@ -123,16 +124,41 @@ class LoginActivity : AppCompatActivity() {
                 finish()
             }
             else -> {
-                val isOperator = role.equals("GridOperator", ignoreCase = true) || role.equals("Grid Operator", ignoreCase = true)
-                val targetRole = if (isOperator) RoleRedirectionActivity.ROLE_GRID_OPERATOR else RoleRedirectionActivity.ROLE_PROSUMER
-
-                val intent = Intent(this, RoleRedirectionActivity::class.java).apply {
-                    putExtra("USER_NAME", displayName)
-                    putExtra("USER_ROLE", targetRole)
+                when {
+                    role.equals("Backoffice", ignoreCase = true) -> {
+                        // Backoffice role is not supported on the mobile app.
+                        // Clear the session that was saved during login and inform the user.
+                        SessionManager.clearSession(this)
+                        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                            .setTitle("Mobile Access Restricted")
+                            .setMessage(
+                                "Backoffice accounts are not supported on the mobile app.\n\n" +
+                                "Please use the web portal to access your Backoffice dashboard."
+                            )
+                            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+                            .show()
+                    }
+                    role.equals("GridOperator", ignoreCase = true) ||
+                    role.equals("Grid Operator", ignoreCase = true) -> {
+                        val intent = Intent(this, RoleRedirectionActivity::class.java).apply {
+                            putExtra("USER_NAME", displayName)
+                            putExtra("USER_ROLE", RoleRedirectionActivity.ROLE_GRID_OPERATOR)
+                        }
+                        startActivity(intent)
+                        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                        finish()
+                    }
+                    else -> {
+                        // Prosumer (default role)
+                        val intent = Intent(this, RoleRedirectionActivity::class.java).apply {
+                            putExtra("USER_NAME", displayName)
+                            putExtra("USER_ROLE", RoleRedirectionActivity.ROLE_PROSUMER)
+                        }
+                        startActivity(intent)
+                        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                        finish()
+                    }
                 }
-                startActivity(intent)
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-                finish()
             }
         }
     }
