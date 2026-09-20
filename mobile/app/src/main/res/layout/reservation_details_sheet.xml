@@ -185,6 +185,19 @@
             android:textColor="@color/slate_600"
             android:textSize="12sp" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnViewReservationQr"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginTop="14dp"
+            android:text="View approved QR pass"
+            android:textAllCaps="false"
+            android:textColor="@color/reservation_blue"
+            android:visibility="gone"
+            app:cornerRadius="14dp"
+            app:strokeColor="@color/reservation_blue" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
