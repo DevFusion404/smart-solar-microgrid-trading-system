@@ -7,6 +7,7 @@ namespace backend.Models;
 /// <summary>
 /// A prosumer's confirmed booking against one energy slot.
 /// </summary>
+[BsonIgnoreExtraElements]
 public class EnergyReservation
 {
     [BsonId]

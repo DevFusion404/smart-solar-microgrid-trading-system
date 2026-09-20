@@ -15,6 +15,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace backend.Models;
 
+[BsonIgnoreExtraElements]
 public class EnergyBookingSlot
 {
 
