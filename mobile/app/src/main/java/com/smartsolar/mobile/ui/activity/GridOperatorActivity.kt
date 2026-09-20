@@ -34,6 +34,12 @@ class GridOperatorActivity : AppCompatActivity(), NavigationView.OnNavigationIte
         binding = ActivityGridOperatorHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Ensure Retrofit token is actively restored from SQLite session
+        if (com.smartsolar.mobile.data.api.RetrofitClient.authToken.isNullOrBlank()) {
+            com.smartsolar.mobile.data.api.RetrofitClient.authToken =
+                com.smartsolar.mobile.data.local.SessionManager.getToken(this)
+        }
+
         setupToolbarAndDrawer()
         setupUserProfileHeader()
 
