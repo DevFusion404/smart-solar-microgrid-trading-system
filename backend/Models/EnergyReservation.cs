@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System.Text.Json.Serialization;
 
 namespace backend.Models;
 
@@ -32,4 +33,10 @@ public class EnergyReservation
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CancelledAt { get; set; }
     public string? CancellationReason { get; set; }
+
+    // A token is issued only when Backoffice approves the reservation.
+    [JsonIgnore]
+    public string? QrToken { get; set; }
+    public DateTime? QrGeneratedAt { get; set; }
+    public bool QrIsActive { get; set; }
 }

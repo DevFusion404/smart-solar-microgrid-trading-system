@@ -32,4 +32,13 @@ public class BackofficeReservationsController : ControllerBase
         var reservation = await _reservationService.UpdateStatusForBackofficeAsync(reservationId, request);
         return Ok(reservation);
     }
+
+    /// <summary>Returns the active QR pass for an approved reservation.</summary>
+    [HttpGet("{reservationId}/qr")]
+    [Produces("image/png")]
+    public async Task<IActionResult> GetQrCode(string reservationId)
+    {
+        var qrPng = await _reservationService.GetQrPngForBackofficeAsync(reservationId);
+        return File(qrPng, "image/png", $"{reservationId}-qr.png");
+    }
 }
