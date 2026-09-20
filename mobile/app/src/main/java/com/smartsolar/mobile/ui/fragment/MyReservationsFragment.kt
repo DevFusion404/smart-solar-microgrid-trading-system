@@ -75,7 +75,7 @@ class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = ReservationMyReservationsBinding.bind(view)
-        reservationRepository = ReservationRepository()
+        reservationRepository = ReservationRepository(requireContext())
 
         reservationAdapter = MyReservationAdapter(reservations, ::showReservationDetails)
         binding.rvMyReservations.apply {
