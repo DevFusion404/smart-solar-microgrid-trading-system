@@ -11,6 +11,10 @@
     <domain-config cleartextTrafficPermitted="true">
 
         <domain includeSubdomains="true">
+            10.103.202.116
+        </domain>
+
+        <domain includeSubdomains="true">
             172.28.18.207
         </domain>
 

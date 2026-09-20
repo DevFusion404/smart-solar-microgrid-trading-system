@@ -32,7 +32,7 @@ class OperatorSlotsFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var slotAdapter: OperatorSlotAdapter
-    private var operatorId: String = "chamithu"
+    private var operatorId: String = ""
     private var assignedStations: List<Station> = emptyList()
     private var selectedStation: Station? = null
     private var selectedDate: String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
@@ -49,7 +49,9 @@ class OperatorSlotsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        operatorId = activity?.intent?.getStringExtra("OPERATOR_ID") ?: "chamithu"
+        operatorId = activity?.intent?.getStringExtra("OPERATOR_ID")
+            ?: context?.let { com.smartsolar.mobile.data.local.SessionManager.getUsername(it) }
+            ?: ""
 
         setupRecyclerView()
         setupListeners()
