@@ -48,6 +48,17 @@ public class ReservationsController : ControllerBase
         return Ok(reservations);
     }
 
+    /// <summary>Returns the authenticated prosumer's approved reservation QR pass.</summary>
+    [HttpGet("{reservationId}/qr")]
+    [Produces("image/png")]
+    public async Task<IActionResult> GetQrCode(string reservationId)
+    {
+        if (!TryGetCurrentUserId(out var userId)) return Unauthorized();
+
+        var qrPng = await _reservationService.GetQrPngForUserAsync(userId, reservationId);
+        return File(qrPng, "image/png", $"{reservationId}-qr.png");
+    }
+
     /// <summary>Changes the requested energy amount within the 12-hour edit window.</summary>
     [HttpPut("{reservationId}")]
     public async Task<IActionResult> Update(string reservationId, [FromBody] UpdateReservationDto request)
