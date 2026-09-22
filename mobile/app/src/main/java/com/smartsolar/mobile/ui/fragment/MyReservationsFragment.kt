@@ -1,6 +1,7 @@
 package com.smartsolar.mobile.ui.fragment
 
 import android.os.Bundle
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.view.Gravity
@@ -9,6 +10,7 @@ import android.widget.FrameLayout
 import android.widget.Toast
 import android.view.Window
 import android.view.WindowManager
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -47,6 +49,26 @@ class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
     private lateinit var reservationRepository: ReservationRepository
     private var isLoadingReservations = false
     private var reservationLoadMessage: String? = null
+    private var pendingQrDownload: Pair<String, ByteArray>? = null
+
+    private val saveQrPassLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("image/png")
+    ) { uri ->
+        val download = pendingQrDownload ?: return@registerForActivityResult
+        val context = context ?: return@registerForActivityResult
+        if (uri == null) return@registerForActivityResult
+
+        runCatching {
+            context.contentResolver.openOutputStream(uri)?.use { output ->
+                output.write(download.second)
+            } ?: error("Could not open the selected download location.")
+        }.onSuccess {
+            pendingQrDownload = null
+            Toast.makeText(context, "QR pass saved", Toast.LENGTH_SHORT).show()
+        }.onFailure {
+            Toast.makeText(context, "Could not save the QR pass", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private val reservations = mutableListOf<ReservationUi>()
 
@@ -146,6 +168,15 @@ class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
         sheet.tvDetailReservedEnergy.text = reservation.energy
         sheet.tvDetailCreatedAt.text = reservation.createdAt
 
+        val qrAvailable = reservation.status.equals("Approved", ignoreCase = true)
+        sheet.btnViewReservationQr.visibility = if (qrAvailable) View.VISIBLE else View.GONE
+        if (qrAvailable) {
+            sheet.btnViewReservationQr.setOnClickListener {
+                dialog.dismiss()
+                showReservationQrPass(reservation)
+            }
+        }
+
         val changesAllowed = canChangeReservation(reservation)
         sheet.tvReservationChangeWindow.text = reservation.changeWindowMessage()
         sheet.btnEditReservation.isEnabled = changesAllowed
@@ -165,6 +196,57 @@ class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
 
         dialog.expandForReservationActions()
         dialog.show()
+    }
+
+    private fun showReservationQrPass(reservation: ReservationUi) {
+        if (!isAdded) return
+
+        val dialog = android.app.Dialog(requireContext())
+        val qrPass = com.smartsolar.mobile.databinding.ReservationQrPassDialogBinding.inflate(layoutInflater)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(qrPass.root)
+        dialog.setCanceledOnTouchOutside(true)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        qrPass.tvQrPassReservationId.text = reservation.id
+        qrPass.tvQrPassSchedule.text = "${reservation.date}, ${reservation.time}"
+        qrPass.tvQrPassEnergy.text = "Accepted energy: ${reservation.energy}"
+        qrPass.btnCloseReservationQr.setOnClickListener { dialog.dismiss() }
+
+        dialog.show()
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.88f).toInt(),
+            WindowManager.LayoutParams.WRAP_CONTENT
+        )
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            reservationRepository.getReservationQr(reservation.id).fold(
+                onSuccess = { qrBytes ->
+                    val bitmap = BitmapFactory.decodeByteArray(qrBytes, 0, qrBytes.size)
+                    if (bitmap == null) {
+                        qrPass.pbReservationQr.visibility = View.GONE
+                        qrPass.tvReservationQrMessage.visibility = View.VISIBLE
+                        qrPass.tvReservationQrMessage.text = "The QR pass could not be displayed."
+                        return@fold
+                    }
+
+                    qrPass.pbReservationQr.visibility = View.GONE
+                    qrPass.ivReservationQr.visibility = View.VISIBLE
+                    qrPass.ivReservationQr.setImageBitmap(bitmap)
+                    qrPass.btnDownloadReservationQr.isEnabled = true
+                    qrPass.btnDownloadReservationQr.setOnClickListener {
+                        pendingQrDownload = reservation.id to qrBytes
+                        saveQrPassLauncher.launch("${reservation.id}-qr.png")
+                    }
+                },
+                onFailure = { error ->
+                    qrPass.pbReservationQr.visibility = View.GONE
+                    qrPass.tvReservationQrMessage.visibility = View.VISIBLE
+                    qrPass.tvReservationQrMessage.text =
+                        error.message ?: "The QR pass is not available for this reservation."
+                }
+            )
+        }
     }
 
     private fun showEditReservationSheet(reservation: ReservationUi) {
@@ -274,7 +356,9 @@ class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
 
     private fun canChangeReservation(reservation: ReservationUi): Boolean {
         val requestTime = reservation.requestedAt ?: return false
-        val editableStatus = reservation.status.equals("Pending", true) || reservation.status.equals("Confirmed", true)
+        val editableStatus = reservation.status.equals("Reviewing", true) ||
+            reservation.status.equals("Pending", true) ||
+            reservation.status.equals("Confirmed", true)
         return editableStatus && LocalDateTime.now().isBefore(requestTime.plusHours(RESERVATION_CHANGE_WINDOW_HOURS))
     }
 

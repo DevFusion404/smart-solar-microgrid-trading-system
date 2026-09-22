@@ -12,4 +12,6 @@ public interface IEnergyReservationService
     Task DeleteAsync(string userId, string reservationId);
     Task<IReadOnlyList<EnergyReservation>> GetAllForBackofficeAsync();
     Task<EnergyReservation> UpdateStatusForBackofficeAsync(string reservationId, UpdateReservationStatusDto request);
+    Task<byte[]> GetQrPngForBackofficeAsync(string reservationId);
+    Task<byte[]> GetQrPngForUserAsync(string userId, string reservationId);
 }

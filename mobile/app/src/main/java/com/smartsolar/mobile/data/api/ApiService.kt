@@ -15,6 +15,8 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Streaming
+import okhttp3.ResponseBody
 
 interface ApiService {
 
@@ -30,6 +32,12 @@ interface ApiService {
     suspend fun getReservationHistory(
         @Query("date") date: String,
     ): Response<List<Reservation>>
+
+    @Streaming
+    @GET("api/reservations/{reservationId}/qr")
+    suspend fun getReservationQr(
+        @Path("reservationId") reservationId: String,
+    ): Response<ResponseBody>
 
     @PUT("api/reservations/{reservationId}")
     suspend fun updateReservation(

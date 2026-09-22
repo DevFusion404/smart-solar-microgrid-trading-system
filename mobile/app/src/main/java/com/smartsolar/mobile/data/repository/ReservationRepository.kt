@@ -38,6 +38,20 @@ class ReservationRepository(
         }
     }
 
+    suspend fun getReservationQr(reservationId: String): Result<ByteArray> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.getReservationQr(reservationId)
+            val qrImage = response.body()?.bytes()
+            if (response.isSuccessful && qrImage != null && qrImage.isNotEmpty()) {
+                Result.success(qrImage)
+            } else {
+                Result.failure(Exception("QR pass is not available for this reservation (HTTP ${response.code()})."))
+            }
+        } catch (exception: Exception) {
+            Result.failure(exception)
+        }
+    }
+
     suspend fun createReservation(slotId: String, requestedCapacity: Double): Result<Reservation> =
         withContext(Dispatchers.IO) {
             try {

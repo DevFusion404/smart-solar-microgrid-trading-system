@@ -6,6 +6,9 @@ using backend.Models;
 using backend.Repositories;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using QRCoder;
+using System.Globalization;
+using System.Security.Cryptography;
 
 namespace backend.Services;
 
@@ -249,6 +252,12 @@ public class EnergyReservationService : IEnergyReservationService
 
         if (reservation.Status.Equals(status, StringComparison.OrdinalIgnoreCase))
         {
+            if (status.Equals("Approved", StringComparison.OrdinalIgnoreCase)
+                && (!reservation.QrIsActive || string.IsNullOrWhiteSpace(reservation.QrToken)))
+            {
+                return await ActivateQrForApprovedReservationAsync(reservationId);
+            }
+
             return reservation;
         }
 
@@ -273,7 +282,10 @@ public class EnergyReservationService : IEnergyReservationService
                     & Builders<EnergyReservation>.Filter.Ne(x => x.Status, "Cancelled"),
                 Builders<EnergyReservation>.Update
                     .Set(x => x.Status, "Cancelled")
-                    .Set(x => x.CancelledAt, DateTime.UtcNow),
+                    .Set(x => x.CancelledAt, DateTime.UtcNow)
+                    .Set(x => x.QrToken, null)
+                    .Set(x => x.QrGeneratedAt, null)
+                    .Set(x => x.QrIsActive, false),
                 new FindOneAndUpdateOptions<EnergyReservation> { ReturnDocument = ReturnDocument.After });
 
             if (cancelledReservation is not null)
@@ -287,20 +299,118 @@ public class EnergyReservationService : IEnergyReservationService
             throw new ConflictException("RESERVATION_STATUS_CHANGED", "The reservation status changed before cancellation could be completed.");
         }
 
+        var statusUpdate = Builders<EnergyReservation>.Update
+            .Set(x => x.Status, status)
+            .Set(x => x.CancelledAt, null);
+
+        if (status.Equals("Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            statusUpdate = statusUpdate
+                .Set(x => x.QrToken, CreateQrToken())
+                .Set(x => x.QrGeneratedAt, DateTime.UtcNow)
+                .Set(x => x.QrIsActive, true);
+        }
+
         return await _reservations.FindOneAndUpdateAsync(
                    Builders<EnergyReservation>.Filter.Eq(x => x.ReservationId, reservationId)
                        & Builders<EnergyReservation>.Filter.Ne(x => x.Status, "Cancelled"),
-                   Builders<EnergyReservation>.Update
-                       .Set(x => x.Status, status)
-                       .Set(x => x.CancelledAt, null),
+                   statusUpdate,
                    new FindOneAndUpdateOptions<EnergyReservation> { ReturnDocument = ReturnDocument.After })
                ?? throw new ConflictException("RESERVATION_STATUS_CHANGED", "The reservation status changed before the update could be completed.");
     }
 
+    public async Task<byte[]> GetQrPngForBackofficeAsync(string reservationId)
+    {
+        if (string.IsNullOrWhiteSpace(reservationId))
+        {
+            throw new BadRequestException("INVALID_RESERVATION", "A reservation id is required.");
+        }
+
+        var reservation = await _reservations
+            .Find(Builders<EnergyReservation>.Filter.Eq(x => x.ReservationId, reservationId))
+            .FirstOrDefaultAsync()
+            ?? throw new NotFoundException("RESERVATION_NOT_FOUND", "The reservation was not found.");
+
+        if (!reservation.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ConflictException("RESERVATION_QR_INACTIVE", "This reservation does not have an active QR code.");
+        }
+
+        // Reservations approved before QR support have no token. Issue their first
+        // QR pass here, while cancelled reservations remain blocked by the check above.
+        if (!reservation.QrIsActive || string.IsNullOrWhiteSpace(reservation.QrToken))
+        {
+            reservation = await ActivateQrForApprovedReservationAsync(reservationId);
+        }
+
+        using var generator = new QRCodeGenerator();
+        using var qrData = generator.CreateQrCode(BuildQrPayload(reservation), QRCodeGenerator.ECCLevel.Q);
+        return new PngByteQRCode(qrData).GetGraphic(12);
+    }
+
+    public async Task<byte[]> GetQrPngForUserAsync(string userId, string reservationId)
+    {
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(reservationId))
+        {
+            throw new BadRequestException("INVALID_RESERVATION", "A user and reservation id are required.");
+        }
+
+        var reservation = await _reservations
+            .Find(Builders<EnergyReservation>.Filter.Eq(x => x.ReservationId, reservationId)
+                & Builders<EnergyReservation>.Filter.Eq(x => x.UserId, userId))
+            .FirstOrDefaultAsync()
+            ?? throw new NotFoundException("RESERVATION_NOT_FOUND", "The reservation was not found.");
+
+        if (!reservation.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ConflictException("RESERVATION_QR_INACTIVE", "This reservation does not have an active QR code.");
+        }
+
+        if (!reservation.QrIsActive || string.IsNullOrWhiteSpace(reservation.QrToken))
+        {
+            reservation = await ActivateQrForApprovedReservationAsync(reservationId);
+        }
+
+        using var generator = new QRCodeGenerator();
+        using var qrData = generator.CreateQrCode(BuildQrPayload(reservation), QRCodeGenerator.ECCLevel.Q);
+        return new PngByteQRCode(qrData).GetGraphic(12);
+    }
+
+    private async Task<EnergyReservation> ActivateQrForApprovedReservationAsync(string reservationId)
+    {
+        return await _reservations.FindOneAndUpdateAsync(
+                   Builders<EnergyReservation>.Filter.Eq(x => x.ReservationId, reservationId)
+                       & Builders<EnergyReservation>.Filter.Eq(x => x.Status, "Approved"),
+                   Builders<EnergyReservation>.Update
+                       .Set(x => x.QrToken, CreateQrToken())
+                       .Set(x => x.QrGeneratedAt, DateTime.UtcNow)
+                       .Set(x => x.QrIsActive, true),
+                   new FindOneAndUpdateOptions<EnergyReservation> { ReturnDocument = ReturnDocument.After })
+               ?? throw new ConflictException("RESERVATION_STATUS_CHANGED", "The reservation status changed before a QR code could be issued.");
+    }
+
+    private static string BuildQrPayload(EnergyReservation reservation)
+    {
+        var localDate = TimeZoneInfo.ConvertTimeFromUtc(
+            DateTime.SpecifyKind(reservation.SlotDate, DateTimeKind.Utc),
+            ReservationTimeZone);
+
+        return string.Join("\n", new[]
+        {
+            "SMART SOLAR RESERVATION",
+            $"Reservation Number: {reservation.ReservationId}",
+            $"Reserved Time: {localDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)} {reservation.StartTime:hh\\:mm} - {reservation.EndTime:hh\\:mm}",
+            $"Accepted Energy: {reservation.ReservedCapacity.ToString("0.##", CultureInfo.InvariantCulture)} kWh",
+            $"Validation Token: {reservation.QrToken}",
+        });
+    }
+
+    private static string CreateQrToken() => Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
+
     private static FilterDefinition<EnergyReservation> EditableReservationFilter(string userId, string reservationId) =>
         Builders<EnergyReservation>.Filter.Eq(x => x.ReservationId, reservationId)
         & Builders<EnergyReservation>.Filter.Eq(x => x.UserId, userId)
-        & Builders<EnergyReservation>.Filter.Eq(x => x.Status, "Confirmed")
+        & Builders<EnergyReservation>.Filter.Ne(x => x.Status, "Cancelled")
         & Builders<EnergyReservation>.Filter.Gte(x => x.CreatedAt, DateTime.UtcNow.AddHours(-12));
 
     private static FilterDefinition<EnergyBookingSlot> SlotIdFilter(string slotId)
