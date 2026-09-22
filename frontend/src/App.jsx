@@ -34,6 +34,17 @@ import { ProsumerListPage as GridOperatorProsumerListPage } from './pages/gridOp
 import { ProsumerLayout } from './components/layout/ProsumerLayout'
 import { ProfilePage as ProsumerProfilePage } from './pages/prosumer/ProfilePage'
 
+// Energy transfer pages (Component 4 - Malmi)
+import { TransactionDashboard } from './pages/prosumer/TransactionDashboard'
+import { QrDisplayPage } from './pages/prosumer/QrDisplayPage'
+import { OperatorTransfersPage } from './pages/operator/OperatorTransfersPage'
+import { QrScannerPage } from './pages/operator/QrScannerPage'
+import { TransactionVerificationPage } from './pages/operator/TransactionVerificationPage'
+import { TransferCompletePage } from './pages/operator/TransferCompletePage'
+
+
+import { HomePage } from './pages/HomePage'
+
 function App() {
   return (
     <BrowserRouter>
