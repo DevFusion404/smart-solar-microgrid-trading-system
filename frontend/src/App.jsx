@@ -34,12 +34,15 @@ import { ProsumerListPage as GridOperatorProsumerListPage } from './pages/gridOp
 import { ProsumerLayout } from './components/layout/ProsumerLayout'
 import { ProfilePage as ProsumerProfilePage } from './pages/prosumer/ProfilePage'
 
+import { HomePage } from './pages/HomePage'
+
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<Navigate to="/backoffice" replace />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/home" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
