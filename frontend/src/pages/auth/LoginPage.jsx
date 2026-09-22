@@ -1,4 +1,15 @@
-import { Eye, EyeOff, AlertCircle } from 'lucide-react'
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : 3D Login Page
+File          : LoginPage.jsx
+Description   : Beautiful login form rendered inside the
+                AuthLayout glassmorphism card, with 3D
+                floating effects and micro-animations.
+=====================================================
+*/
+
+import { Eye, EyeOff, AlertCircle, LogIn } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthLayout } from './AuthLayout'
@@ -17,18 +28,12 @@ export function LoginPage() {
     event.preventDefault()
     setError('')
     setLoading(true)
-
     try {
       const result = await login({ username, password })
       const userRole = result?.user?.role || result?.role
-      
-      if (userRole === 'GridOperator') {
-        navigate('/operator')
-      } else if (userRole === 'Prosumer') {
-        navigate('/prosumer/profile')
-      } else {
-        navigate('/backoffice')
-      }
+      if (userRole === 'GridOperator') navigate('/operator')
+      else if (userRole === 'Prosumer') navigate('/prosumer/profile')
+      else navigate('/backoffice')
     } catch (err) {
       console.error('Login failed:', err)
       setError(err.message || 'Invalid credentials or server error. Please try again.')
@@ -39,68 +44,105 @@ export function LoginPage() {
 
   return (
     <AuthLayout>
-      <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold">Welcome back</h1>
-        <p className="text-slate-600 dark:text-slate-400">
-          Don&apos;t have an account?{' '}
-          <button type="button" onClick={() => navigate('/register')} className="font-medium text-blue-600 hover:text-blue-700">
-            Sign up
-          </button>
+      {/* Card header */}
+      <div className="auth-card-header">
+        <div className="auth-card-icon">
+          <LogIn size={22} strokeWidth={2} />
+        </div>
+        <h1 className="auth-card-title">Welcome Back</h1>
+        <p className="auth-card-sub">
+          Sign in to your SolarGrid account
         </p>
       </div>
 
+      {/* Error banner */}
       {error && (
-        <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
-          <AlertCircle className="h-4 w-4 shrink-0" />
+        <div id="login-error-banner" className="auth-error-banner" role="alert">
+          <AlertCircle size={16} className="shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      <form className="space-y-5" onSubmit={handleSubmit}>
-        <label className="block text-sm font-medium">
-          Username
+      {/* Form */}
+      <form id="login-form" className="auth-form" onSubmit={handleSubmit}>
+        <div className="auth-field">
+          <label htmlFor="login-username" className="auth-label">Username</label>
           <input
+            id="login-username"
             type="text"
             name="username"
+            autoComplete="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Enter your username"
             required
-            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900"
+            className="auth-input"
           />
-        </label>
-        <label className="block text-sm font-medium">
-          Password
-          <span className="relative mt-2 block">
+        </div>
+
+        <div className="auth-field">
+          <label htmlFor="login-password" className="auth-label">Password</label>
+          <div className="auth-input-wrap">
             <input
+              id="login-password"
               type={showPassword ? 'text' : 'password'}
               name="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-12 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900"
+              className="auth-input"
             />
-            <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label="Toggle password visibility" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            <button
+              type="button"
+              id="login-toggle-pw"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label="Toggle password visibility"
+              className="auth-eye-btn"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
-          </span>
-        </label>
-        <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-            <input type="checkbox" name="rememberMe" className="h-4 w-4 rounded border-slate-300 text-blue-600" />
-            Remember me
-          </label>
-          <button type="button" className="font-medium text-blue-600 hover:text-blue-700">Forgot password?</button>
+          </div>
         </div>
+
+        <div className="auth-row">
+          <label className="auth-check-label">
+            <input id="login-remember" type="checkbox" name="rememberMe" className="auth-checkbox" />
+            <span>Remember me</span>
+          </label>
+          <button type="button" id="forgot-pw-btn" className="auth-link">Forgot password?</button>
+        </div>
+
         <button
+          id="login-submit-btn"
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-slate-950 px-4 py-3 font-medium text-white transition hover:bg-blue-700 disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-500"
+          className={`auth-submit-btn ${loading ? 'loading' : ''}`}
         >
-          {loading ? 'Signing in…' : 'Sign in'}
+          {loading ? (
+            <span className="auth-spinner" aria-label="Signing in" />
+          ) : (
+            <>
+              <LogIn size={18} />
+              Sign In
+            </>
+          )}
         </button>
       </form>
+
+      {/* Switch to Register */}
+      <p className="auth-switch-text">
+        Don&apos;t have an account?{' '}
+        <button
+          id="go-to-register-btn"
+          type="button"
+          onClick={() => navigate('/register')}
+          className="auth-link auth-link-highlight"
+        >
+          Create one →
+        </button>
+      </p>
     </AuthLayout>
   )
 }
