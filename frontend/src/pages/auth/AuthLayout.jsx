@@ -1,51 +1,108 @@
-import { ArrowLeft, Moon, Sun } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : 3D Solar Grid Auth Layout
+File          : AuthLayout.jsx
+Description   : High-tech Solar Panel Microgrid background with
+                photovoltaic farm graphics, energy flow animations,
+                live node metrics, and glassmorphism card.
+=====================================================
+*/
+
+import { Moon, Sun, Zap, SunMedium, BatteryCharging, Activity } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import logoImg from '../../assets/logo3.png'
+import solarHeroImg from '../../assets/solar_panel_hero.png'
+import solar3dImg from '../../assets/solar_microgrid_3d.png'
 
-function SolarIllustration() {
+function SolarGridGraphic() {
   return (
-    <div className="relative flex h-full min-h-80 items-center justify-center overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-cyan-900 p-10">
-      <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:42px_42px]" />
-      <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-amber-300/20 blur-3xl" />
-      <div className="relative w-full max-w-lg">
-        <div className="mb-12 flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-300/20 p-2 shadow-lg shadow-amber-300/20 ring-1 ring-amber-400/40">
-            <img src={logoImg} alt="SolarGrid Logo" className="h-full w-full object-contain" />
+    <div
+      aria-hidden="true"
+      className="solar-grid-bg"
+      style={{
+        position: 'absolute',
+        inset: 0,
+        overflow: 'hidden',
+        background: '#040d1a',
+      }}
+    >
+      {/* Background Solar Farm Image with Gradient Mask */}
+      <div className="solar-hero-img-wrap">
+        <img src={solarHeroImg} alt="Solar Panel Grid" className="solar-hero-img" />
+        <div className="solar-hero-overlay" />
+      </div>
+
+      {/* Cybernetic Energy Mesh Grid Overlay */}
+      <div className="energy-mesh-grid" />
+
+      {/* Glowing Energy Node Lines */}
+      <div className="energy-line line-1" />
+      <div className="energy-line line-2" />
+      <div className="energy-line line-3" />
+
+      {/* Pulsing Microgrid Nodes */}
+      <div className="grid-node node-1">
+        <div className="node-pulse" />
+        <span className="node-label">Node Alpha · 2.4 kW</span>
+      </div>
+      <div className="grid-node node-2">
+        <div className="node-pulse" />
+        <span className="node-label">Node Beta · 3.1 kW</span>
+      </div>
+      <div className="grid-node node-3">
+        <div className="node-pulse" />
+        <span className="node-label">Battery Station · 92%</span>
+      </div>
+
+      {/* 3D Solar Microgrid Glass Visual Card */}
+      <div className="solar-3d-card-wrap">
+        <div className="solar-3d-card">
+          <img src={solar3dImg} alt="3D Solar Microgrid Node" className="solar-3d-img" />
+          <div className="solar-3d-glow" />
+        </div>
+      </div>
+
+      {/* Brand & Live Telemetry Overlay */}
+      <div className="brand-overlay">
+        <div className="brand-header">
+          <div className="brand-logo-wrap">
+            <img src={logoImg} alt="SolarGrid" className="brand-logo-img" />
           </div>
           <div>
-            <p className="text-xl font-semibold text-white">SolarGrid</p>
-            <p className="text-sm text-blue-200">Smart microgrid trading</p>
+            <h2 className="brand-title">SolarGrid</h2>
+            <p className="brand-subtitle">Smart Solar Microgrid Energy Trading</p>
           </div>
         </div>
 
-        <div className="relative h-64">
-          <div className="absolute left-1/2 top-0 h-28 w-28 -translate-x-1/2 rounded-full bg-amber-300/90 shadow-[0_0_80px_rgba(252,211,77,.7)]" />
-          <div className="absolute bottom-6 left-1/2 h-20 w-64 -translate-x-1/2 skew-x-12 rounded-lg border-4 border-cyan-200/70 bg-blue-900/80 shadow-xl shadow-cyan-500/20">
-            <div className="grid h-full grid-cols-4 divide-x divide-cyan-200/30">
-              <span /><span /><span /><span />
-            </div>
+        <div className="solar-metrics-chips">
+          <div className="metric-chip">
+            <SunMedium size={14} className="text-amber-400" />
+            <span>Solar Yield: <strong>14.2 kWh</strong></span>
           </div>
-          <div className="absolute bottom-0 left-0 h-px w-full bg-cyan-200/50" />
-          <div className="absolute bottom-20 left-8 h-px w-20 rotate-12 bg-amber-300" />
-          <div className="absolute bottom-20 right-8 h-px w-20 -rotate-12 bg-amber-300" />
-          <div className="absolute bottom-16 left-4 h-3 w-3 rounded-full bg-amber-300 shadow-[0_0_16px_#fcd34d]" />
-          <div className="absolute bottom-16 right-4 h-3 w-3 rounded-full bg-amber-300 shadow-[0_0_16px_#fcd34d]" />
+          <div className="metric-chip">
+            <Zap size={14} className="text-cyan-400" />
+            <span>P2P Price: <strong>$0.14 / kWh</strong></span>
+          </div>
+          <div className="metric-chip">
+            <BatteryCharging size={14} className="text-emerald-400" />
+            <span>Grid Storage: <strong>92%</strong></span>
+          </div>
+          <div className="metric-chip">
+            <Activity size={14} className="text-indigo-400" />
+            <span>Grid Freq: <strong>50.0 Hz</strong></span>
+          </div>
         </div>
-
-        <p className="max-w-md text-lg leading-relaxed text-blue-100">
-          Connect, trade, and optimize renewable energy across your community.
-        </p>
       </div>
     </div>
   )
 }
 
 export function AuthLayout({ children }) {
-  const navigate = useNavigate()
   const [isDark, setIsDark] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem('theme') === 'dark'
+    if (typeof window === 'undefined') return true
+    const saved = localStorage.getItem('theme')
+    return saved !== null ? saved === 'dark' : true
   })
 
   useEffect(() => {
@@ -55,28 +112,31 @@ export function AuthLayout({ children }) {
   }, [isDark])
 
   return (
-    <main className="flex min-h-screen bg-white text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-100">
-      <section className="hidden w-1/2 lg:block">
-        <SolarIllustration />
+    <main id="auth-root" className="auth-root">
+      {/* Left: 3D Solar Microgrid Visual Scene */}
+      <section className="auth-scene-panel" aria-hidden="true">
+        <SolarGridGraphic />
       </section>
-      <section className="relative flex min-h-screen w-full items-center justify-center px-6 py-12 lg:w-1/2">
+
+      {/* Right: Glassmorphism Form Panel */}
+      <section className="auth-form-panel">
         <button
           type="button"
-          onClick={() => navigate('/')}
-          aria-label="Back to home"
-          className="absolute left-6 top-6 rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => setIsDark((value) => !value)}
+          id="theme-toggle-btn"
+          onClick={() => setIsDark((v) => !v)}
           aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-          className="absolute right-6 top-6 rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
+          className="theme-toggle-btn"
         >
-          {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          {isDark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
-        <div className="w-full max-w-md">{children}</div>
+
+        <div className="auth-card">
+          {children}
+        </div>
+
+        <p className="auth-footer">
+          © 2026 SolarGrid · Smart Solar Microgrid Energy Trading System
+        </p>
       </section>
     </main>
   )

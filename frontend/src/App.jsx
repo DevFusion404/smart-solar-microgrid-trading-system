@@ -34,20 +34,13 @@ import { ProsumerListPage as GridOperatorProsumerListPage } from './pages/gridOp
 import { ProsumerLayout } from './components/layout/ProsumerLayout'
 import { ProfilePage as ProsumerProfilePage } from './pages/prosumer/ProfilePage'
 
-// Energy transfer pages (Component 4 - Malmi)
-import { TransactionDashboard } from './pages/prosumer/TransactionDashboard'
-import { QrDisplayPage } from './pages/prosumer/QrDisplayPage'
-import { OperatorTransfersPage } from './pages/operator/OperatorTransfersPage'
-import { QrScannerPage } from './pages/operator/QrScannerPage'
-import { TransactionVerificationPage } from './pages/operator/TransactionVerificationPage'
-import { TransferCompletePage } from './pages/operator/TransferCompletePage'
-
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<Navigate to="/backoffice" replace />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/home" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
