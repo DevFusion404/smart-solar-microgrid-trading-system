@@ -34,8 +34,6 @@ import { ProsumerListPage as GridOperatorProsumerListPage } from './pages/gridOp
 import { ProsumerLayout } from './components/layout/ProsumerLayout'
 import { ProfilePage as ProsumerProfilePage } from './pages/prosumer/ProfilePage'
 
-import { HomePage } from './pages/HomePage'
-
 function App() {
   return (
     <BrowserRouter>
@@ -89,6 +87,12 @@ function App() {
             <Route path="reservations/today" element={<EnergySlotReservations />} />
             <Route path="reservations/:reservationId" element={<EnergySlotReservations />} />
 
+            {/* Energy Transfers (Component 4 - Malmi) */}
+            <Route path="transfers" element={<OperatorTransfersPage />} />
+            <Route path="transfers/scan" element={<QrScannerPage />} />
+            <Route path="transfers/:transactionId/verify" element={<TransactionVerificationPage />} />
+            <Route path="transfers/:transactionId/complete" element={<TransferCompletePage />} />
+
             {/* Account management */}
             <Route path="profile" element={<GridOperatorProfilePage />} />
             <Route path="prosumers" element={<GridOperatorProsumerListPage />} />
@@ -98,8 +102,12 @@ function App() {
 
           {/* ── Prosumer Portal ── */}
           <Route path="/prosumer" element={<ProsumerLayout />}>
-            <Route index element={<Navigate to="/prosumer/profile" replace />} />
+            <Route index element={<Navigate to="/prosumer/transactions" replace />} />
             <Route path="profile" element={<ProsumerProfilePage />} />
+
+            {/* Energy Transfers (Component 4 - Malmi) */}
+            <Route path="transactions" element={<TransactionDashboard />} />
+            <Route path="transactions/:transactionId/qr" element={<QrDisplayPage />} />
             <Route path="*" element={<PlaceholderPage />} />
           </Route>
         </Routes>

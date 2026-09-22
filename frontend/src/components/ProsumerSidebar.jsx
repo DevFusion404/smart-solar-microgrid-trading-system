@@ -86,6 +86,16 @@ export function ProsumerSidebar({ collapsed = false, onToggleCollapse, onLogout,
         </NavLink>
 
         <NavLink
+          to="/prosumer/transactions"
+          className={cls}
+          onClick={onNavigate}
+          title={collapsed ? 'Energy Transfers' : undefined}
+        >
+          <Zap className="h-5 w-5 shrink-0" />
+          {!collapsed && <span>Energy Transfers</span>}
+        </NavLink>
+
+        <NavLink
           to="/prosumer/profile"
           className={cls}
           onClick={onNavigate}

@@ -14,4 +14,5 @@ export { default as profileService } from './profileService';
 export { default as userService } from './userService';
 export { default as prosumerService } from './prosumerService';
 export { default as nodeAssignmentService } from './nodeAssignmentService';
+export { default as transactionService } from './transactionService';
 export { default as reservationService } from './reservationService';
