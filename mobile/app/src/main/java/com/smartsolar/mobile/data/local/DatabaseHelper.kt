@@ -271,7 +271,8 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
         val values = ContentValues().apply {
             put(COL_SLOT_ID, slot.slotId)
             put(COL_STATION_ID, slot.stationId)
-            put(COL_DATE, slot.date)
+            val dateClean = if (slot.date.contains("T")) slot.date.split("T")[0] else slot.date
+            put(COL_DATE, dateClean)
             put(COL_START_TIME, slot.startTime)
             put(COL_END_TIME, slot.endTime)
             put(COL_TOTAL_CAPACITY, slot.totalCapacity)
