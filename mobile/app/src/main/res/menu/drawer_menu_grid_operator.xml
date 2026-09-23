@@ -19,6 +19,11 @@
             android:title="My Nodes" />
 
         <item
+            android:id="@+id/nav_grid_map"
+            android:icon="@drawable/ic_my_location"
+            android:title="Node Map" />
+
+        <item
             android:id="@+id/nav_grid_slots"
             android:icon="@drawable/ic_nav_energy"
             android:title="Energy Slots" />
