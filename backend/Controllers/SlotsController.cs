@@ -39,11 +39,12 @@ public class SlotsController : ControllerBase
     {
         // Build the domain object, binding stationId from the route.
         // TotalCapacity is set once; AvailableCapacity starts equal to it.
+        var slotDate = new DateTime(dto.Date.Year, dto.Date.Month, dto.Date.Day, 0, 0, 0, DateTimeKind.Utc);
         var slot = new EnergyBookingSlot
         {
             SlotId            = dto.SlotId,
             StationId         = stationId,
-            Date              = dto.Date,
+            Date              = slotDate,
             StartTime         = dto.StartTime,
             EndTime           = dto.EndTime,
             TotalCapacity     = dto.TotalCapacity,
@@ -72,8 +73,14 @@ public class SlotsController : ControllerBase
         string stationId,
         [FromQuery] DateTime? date)
     {
+        DateTime? filterDate = null;
+        if(date.HasValue)
+        {
+            filterDate = new DateTime(date.Value.Year, date.Value.Month, date.Value.Day, 0, 0, 0, DateTimeKind.Utc);
+        }
+
         var result =
-            await _slotService.GetSlotsByStation(stationId, date);
+            await _slotService.GetSlotsByStation(stationId, filterDate);
 
         return Ok(result);
     }
@@ -115,11 +122,17 @@ public class SlotsController : ControllerBase
         }
 
         // Overlay DTO values onto the existing document
-        // TotalCapacity is set once; AvailableCapacity is managed via the capacity endpoint
-        existing.Date      = dto.Date;
-        existing.StartTime = dto.StartTime;
-        existing.EndTime   = dto.EndTime;
-        existing.Status    = dto.Status;
+        if(dto.Date != default)
+        {
+            existing.Date = new DateTime(dto.Date.Year, dto.Date.Month, dto.Date.Day, 0, 0, 0, DateTimeKind.Utc);
+        }
+        if(dto.StartTime != default) existing.StartTime = dto.StartTime;
+        if(dto.EndTime != default) existing.EndTime = dto.EndTime;
+        if(!string.IsNullOrEmpty(dto.Status)) existing.Status = dto.Status;
+        if(dto.AvailableCapacity > 0 && dto.AvailableCapacity <= existing.TotalCapacity)
+        {
+            existing.AvailableCapacity = dto.AvailableCapacity;
+        }
 
         try
         {
@@ -167,6 +180,49 @@ public class SlotsController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
 
+    }
+
+    /// <summary>
+    /// Closes an energy booking slot if no energy has been reserved.
+    /// </summary>
+    [HttpPut("api/slots/{id}/close")]
+    public async Task<IActionResult> CloseSlot(string id)
+    {
+        try
+        {
+            var success = await _slotService.CloseSlot(id);
+            if (!success)
+            {
+                return NotFound(new { message = "Slot not found" });
+            }
+            return Ok(new { message = "Slot closed successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Permanently deletes an energy booking slot.
+    /// Only slots with status 'Closed' and no reserved energy can be deleted.
+    /// </summary>
+    [HttpDelete("api/slots/{id}")]
+    public async Task<IActionResult> DeleteSlot(string id)
+    {
+        try
+        {
+            var deleted = await _slotService.DeleteSlot(id);
+            if (!deleted)
+            {
+                return NotFound(new { message = "Slot not found" });
+            }
+            return Ok(new { message = "Energy slot deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
 }
