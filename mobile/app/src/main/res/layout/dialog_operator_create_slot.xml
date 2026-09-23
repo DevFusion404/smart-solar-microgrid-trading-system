@@ -56,20 +56,41 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- Slot Identifier Input -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilCreateSlotId"
+        style="@style/Widget.SmartSolar.TextInputLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="Slot Identifier (Auto-generated)">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etCreateSlotId"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textCapCharacters"
+            android:textColor="@color/slate_900" />
+    </com.google.android.material.textfield.TextInputLayout>
+
     <!-- Slot Date Input -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilCreateSlotDate"
         style="@style/Widget.SmartSolar.TextInputLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="10dp"
+        app:endIconMode="custom"
+        app:endIconDrawable="@drawable/ic_nav_calendar"
         android:hint="Date (YYYY-MM-DD)">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etCreateSlotDate"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="date"
+            android:clickable="true"
+            android:focusable="false"
+            android:inputType="none"
             android:textColor="@color/slate_900" />
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -87,13 +108,15 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="6dp"
             android:layout_weight="1"
-            android:hint="Start Time (e.g. 08:00 AM)">
+            android:hint="Start Time (HH:mm:ss)">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etCreateSlotStartTime"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="08:00 AM"
+                android:clickable="true"
+                android:focusable="false"
+                android:text="08:00:00"
                 android:textColor="@color/slate_900" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -104,13 +127,15 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:hint="End Time (e.g. 12:00 PM)">
+            android:hint="End Time (HH:mm:ss)">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etCreateSlotEndTime"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="12:00 PM"
+                android:clickable="true"
+                android:focusable="false"
+                android:text="12:00:00"
                 android:textColor="@color/slate_900" />
         </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
@@ -130,6 +155,24 @@
             android:layout_height="wrap_content"
             android:inputType="numberDecimal"
             android:text="50"
+            android:textColor="@color/slate_900" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Slot Status Selection (Available / Closed) -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilCreateSlotStatus"
+        style="@style/Widget.SmartSolar.TextInputLayout.ExposedDropdown"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:hint="Initial Status">
+
+        <AutoCompleteTextView
+            android:id="@+id/actvCreateSlotStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="none"
+            android:text="Available"
             android:textColor="@color/slate_900" />
     </com.google.android.material.textfield.TextInputLayout>
 
