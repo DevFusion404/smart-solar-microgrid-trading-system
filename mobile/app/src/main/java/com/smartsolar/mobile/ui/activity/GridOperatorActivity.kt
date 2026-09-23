@@ -13,6 +13,7 @@ import com.smartsolar.mobile.databinding.ActivityGridOperatorHomeBinding
 import com.smartsolar.mobile.ui.fragment.ProfileFragment
 import com.smartsolar.mobile.ui.fragment.operator.GridOperatorDashboardFragment
 import com.smartsolar.mobile.ui.fragment.operator.OperatorBookingsFragment
+import com.smartsolar.mobile.ui.fragment.operator.OperatorMapFragment
 import com.smartsolar.mobile.ui.fragment.operator.OperatorNodesFragment
 import com.smartsolar.mobile.ui.fragment.operator.OperatorSlotsFragment
 
@@ -101,6 +102,10 @@ class GridOperatorActivity : AppCompatActivity(), NavigationView.OnNavigationIte
             R.id.nav_grid_nodes -> {
                 fragment = OperatorNodesFragment()
                 title = "My Assigned Nodes"
+            }
+            R.id.nav_grid_map -> {
+                fragment = OperatorMapFragment()
+                title = "Node Map"
             }
             R.id.nav_grid_slots -> {
                 fragment = OperatorSlotsFragment()
