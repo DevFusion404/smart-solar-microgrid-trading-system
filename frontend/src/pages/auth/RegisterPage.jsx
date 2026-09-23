@@ -1,4 +1,14 @@
-import { Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : 3D Register Page
+File          : RegisterPage.jsx
+Description   : Beautiful prosumer registration form rendered
+                inside the AuthLayout glassmorphism card.
+=====================================================
+*/
+
+import { Eye, EyeOff, AlertCircle, CheckCircle2, UserPlus, LogIn } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthLayout } from './AuthLayout'
@@ -28,7 +38,6 @@ export function RegisterPage() {
     event.preventDefault()
     setError('')
     setLoading(true)
-
     try {
       await prosumerService.registerProsumer(formData)
       setSuccess(true)
@@ -43,17 +52,26 @@ export function RegisterPage() {
   if (success) {
     return (
       <AuthLayout>
-        <div className="text-center py-6">
-          <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-500 mb-4" />
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Registration Submitted!</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 max-w-sm mx-auto">
-            Your prosumer account has been registered with status <strong className="text-amber-600 dark:text-amber-400">Pending Activation</strong>. It is now awaiting review by the Backoffice team.
+        <div id="register-success-panel" className="auth-success-panel">
+          <div className="auth-success-icon-wrap">
+            <CheckCircle2 size={40} strokeWidth={1.5} />
+          </div>
+          <h1 className="auth-card-title" style={{ marginTop: '1rem' }}>Registration Submitted!</h1>
+          <p className="auth-card-sub" style={{ marginBottom: '0.5rem' }}>
+            Your prosumer account is now{' '}
+            <strong className="pending-badge">Pending Activation</strong>
+            {' '}and awaiting Backoffice review.
+          </p>
+          <p className="auth-card-sub" style={{ fontSize: '0.8rem', marginBottom: '1.5rem' }}>
+            You&apos;ll receive confirmation once your account is approved.
           </p>
           <button
+            id="go-to-login-after-register-btn"
             type="button"
             onClick={() => navigate('/login')}
-            className="w-full rounded-xl bg-blue-600 px-4 py-3 font-medium text-white transition hover:bg-blue-700"
+            className="auth-submit-btn"
           >
+            <LogIn size={18} />
             Go to Sign In
           </button>
         </div>
@@ -63,135 +81,181 @@ export function RegisterPage() {
 
   return (
     <AuthLayout>
-      <div className="mb-6">
-        <h1 className="mb-2 text-3xl font-bold">Create your account</h1>
-        <p className="text-slate-600 dark:text-slate-400">
-          Already have an account?{' '}
-          <button type="button" onClick={() => navigate('/login')} className="font-medium text-blue-600 hover:text-blue-700">
-            Sign in
-          </button>
-        </p>
+      {/* Card header */}
+      <div className="auth-card-header">
+        <div className="auth-card-icon" style={{ background: 'linear-gradient(135deg, #10b981, #0ea5e9)' }}>
+          <UserPlus size={22} strokeWidth={2} />
+        </div>
+        <h1 className="auth-card-title">Create Account</h1>
+        <p className="auth-card-sub">Register as a prosumer on SolarGrid</p>
       </div>
 
+      {/* Error banner */}
       {error && (
-        <div className="mb-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
-          <AlertCircle className="h-4 w-4 shrink-0" />
+        <div id="register-error-banner" className="auth-error-banner" role="alert">
+          <AlertCircle size={16} className="shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="block text-sm font-medium">
-            NIC Number
+      {/* Form */}
+      <form id="register-form" className="auth-form" onSubmit={handleSubmit}>
+        {/* Row 1: NIC + Username */}
+        <div className="auth-grid-2">
+          <div className="auth-field">
+            <label htmlFor="reg-nic" className="auth-label">NIC Number</label>
             <input
+              id="reg-nic"
               type="text"
               name="nic"
               value={formData.nic}
               onChange={handleChange}
               placeholder="e.g. 981234567V"
               required
-              className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900"
+              className="auth-input"
             />
-          </label>
-          <label className="block text-sm font-medium">
-            Username
+          </div>
+          <div className="auth-field">
+            <label htmlFor="reg-username" className="auth-label">Username</label>
             <input
+              id="reg-username"
               type="text"
               name="username"
+              autoComplete="username"
               value={formData.username}
               onChange={handleChange}
               placeholder="e.g. kasun.silva"
               required
-              className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900"
+              className="auth-input"
             />
-          </label>
+          </div>
         </div>
 
-        <label className="block text-sm font-medium">
-          Full Name
+        {/* Full name */}
+        <div className="auth-field">
+          <label htmlFor="reg-fullname" className="auth-label">Full Name</label>
           <input
+            id="reg-fullname"
             type="text"
             name="fullName"
             value={formData.fullName}
             onChange={handleChange}
             placeholder="Kasun Silva"
             required
-            className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900"
+            className="auth-input"
           />
-        </label>
+        </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="block text-sm font-medium">
-            Email address
+        {/* Row 2: Email + Phone */}
+        <div className="auth-grid-2">
+          <div className="auth-field">
+            <label htmlFor="reg-email" className="auth-label">Email</label>
             <input
+              id="reg-email"
               type="email"
               name="email"
+              autoComplete="email"
               value={formData.email}
               onChange={handleChange}
               placeholder="you@example.com"
               required
-              className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900"
+              className="auth-input"
             />
-          </label>
-          <label className="block text-sm font-medium">
-            Phone Number
+          </div>
+          <div className="auth-field">
+            <label htmlFor="reg-phone" className="auth-label">Phone</label>
             <input
+              id="reg-phone"
               type="tel"
               name="phoneNumber"
+              autoComplete="tel"
               value={formData.phoneNumber}
               onChange={handleChange}
               placeholder="+94 77 111 2222"
               required
-              className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900"
+              className="auth-input"
             />
-          </label>
+          </div>
         </div>
 
-        <label className="block text-sm font-medium">
-          Address
+        {/* Address */}
+        <div className="auth-field">
+          <label htmlFor="reg-address" className="auth-label">Address</label>
           <input
+            id="reg-address"
             type="text"
             name="address"
             value={formData.address}
             onChange={handleChange}
             placeholder="No. 15, Park Road, Colombo 05"
             required
-            className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900"
+            className="auth-input"
           />
-        </label>
+        </div>
 
-        <label className="block text-sm font-medium">
-          Password
-          <span className="relative mt-1.5 block">
+        {/* Password */}
+        <div className="auth-field">
+          <label htmlFor="reg-password" className="auth-label">Password</label>
+          <div className="auth-input-wrap">
             <input
+              id="reg-password"
               type={showPassword ? 'text' : 'password'}
               name="password"
+              autoComplete="new-password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Create a password"
+              placeholder="Create a strong password"
               required
-              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 pr-12 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900"
+              className="auth-input"
             />
-            <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label="Toggle password visibility" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            <button
+              type="button"
+              id="reg-toggle-pw"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label="Toggle password visibility"
+              className="auth-eye-btn"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
-          </span>
+          </div>
+        </div>
+
+        {/* Terms */}
+        <label className="auth-check-label" style={{ marginTop: '0.25rem' }}>
+          <input id="reg-terms" type="checkbox" required className="auth-checkbox" />
+          <span>I agree to the <button type="button" className="auth-link">terms &amp; privacy policy</button></span>
         </label>
 
-        <label className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400 pt-1">
-          <input type="checkbox" required className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600" />
-          I agree to the terms and privacy policy.
-        </label>
-
+        {/* Submit */}
         <button
+          id="register-submit-btn"
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-slate-950 px-4 py-3 font-medium text-white transition hover:bg-blue-700 disabled:opacity-60 dark:bg-blue-600 dark:hover:bg-blue-500"
+          className={`auth-submit-btn register-btn ${loading ? 'loading' : ''}`}
         >
-          {loading ? 'Creating account…' : 'Create prosumer account'}
+          {loading ? (
+            <span className="auth-spinner" aria-label="Creating account" />
+          ) : (
+            <>
+              <UserPlus size={18} />
+              Create Prosumer Account
+            </>
+          )}
         </button>
       </form>
+
+      {/* Switch to Login */}
+      <p className="auth-switch-text">
+        Already have an account?{' '}
+        <button
+          id="go-to-login-btn"
+          type="button"
+          onClick={() => navigate('/login')}
+          className="auth-link auth-link-highlight"
+        >
+          Sign in →
+        </button>
+      </p>
     </AuthLayout>
   )
 }
