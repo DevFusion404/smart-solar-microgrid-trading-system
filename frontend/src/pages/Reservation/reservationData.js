@@ -37,8 +37,8 @@ export const reservationRows = [
 
 export const energySlotRows = [
   { id: 'SLT-018', node: 'Colombo Solar Hub', date: today.label, time: '09:00 - 10:00', capacity: '420 kWh', reserved: '210 kWh', reservedCount: 2, remaining: '210 kWh', utilization: 50, source: 'Solar surplus', created: `${yesterday.label}, 7:15 AM`, status: 'Available' },
-  { id: 'SLT-019', node: 'Kandy Energy Station', date: today.label, time: '10:30 - 11:30', capacity: '280 kWh', reserved: '280 kWh', reservedCount: 4, remaining: '0 kWh', utilization: 100, source: 'Solar + battery', created: `${yesterday.label}, 7:02 AM`, status: 'Booked' },
+  { id: 'SLT-019', node: 'Kandy Energy Station', date: today.label, time: '10:30 - 11:30', capacity: '280 kWh', reserved: '280 kWh', reservedCount: 4, remaining: '0 kWh', utilization: 100, source: 'Solar + battery', created: `${yesterday.label}, 7:02 AM`, status: 'Closed' },
   { id: 'SLT-020', node: 'Galle Solar Hub', date: today.label, time: '01:00 - 02:00', capacity: '350 kWh', reserved: '140 kWh', reservedCount: 2, remaining: '210 kWh', utilization: 40, source: 'Solar surplus', created: `${yesterday.label}, 6:48 AM`, status: 'Available' },
-  { id: 'SLT-021', node: 'Colombo Solar Hub', date: tomorrow.label, time: '02:30 - 03:30', capacity: '500 kWh', reserved: '500 kWh', reservedCount: 5, remaining: '0 kWh', utilization: 100, source: 'Solar surplus', created: `${yesterday.label}, 6:25 AM`, status: 'Booked' },
+  { id: 'SLT-021', node: 'Colombo Solar Hub', date: tomorrow.label, time: '02:30 - 03:30', capacity: '500 kWh', reserved: '500 kWh', reservedCount: 5, remaining: '0 kWh', utilization: 100, source: 'Solar surplus', created: `${yesterday.label}, 6:25 AM`, status: 'Closed' },
   { id: 'SLT-022', node: 'Jaffna Microgrid', date: tomorrow.label, time: '04:00 - 05:00', capacity: '220 kWh', reserved: '0 kWh', reservedCount: 0, remaining: '220 kWh', utilization: 0, source: 'Wind + solar', created: `${yesterday.label}, 6:12 AM`, status: 'Available' },
 ]

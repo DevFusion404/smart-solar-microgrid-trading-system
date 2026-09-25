@@ -37,19 +37,12 @@ class LoginActivity : AppCompatActivity() {
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
         }
 
-        // Handle Quick Grid Operator Login shortcut
-        binding.btnQuickOperatorLogin.setOnClickListener {
-            binding.etEmail.setText("chamithu")
-            binding.etPassword.setText("Sithma#1122")
-            authViewModel.login(this, "chamithu", "Sithma#1122")
-        }
-
         // Handle Login Submission
         binding.btnLogin.setOnClickListener {
             if (validateInputs()) {
-                val identifier = binding.etEmail.text?.toString()?.trim().orEmpty()
+                val username = binding.etUsername.text?.toString()?.trim().orEmpty()
                 val password = binding.etPassword.text?.toString()?.trim().orEmpty()
-                authViewModel.login(this, identifier, password)
+                authViewModel.login(this, username, password)
             }
         }
 
@@ -142,6 +135,7 @@ class LoginActivity : AppCompatActivity() {
                     role.equals("Grid Operator", ignoreCase = true) -> {
                         val intent = Intent(this, RoleRedirectionActivity::class.java).apply {
                             putExtra("USER_NAME", displayName)
+                            putExtra("OPERATOR_ID", username)
                             putExtra("USER_ROLE", RoleRedirectionActivity.ROLE_GRID_OPERATOR)
                         }
                         startActivity(intent)
@@ -164,16 +158,16 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun validateInputs(): Boolean {
-        val emailOrUsername = binding.etEmail.text?.toString()?.trim().orEmpty()
+        val username = binding.etUsername.text?.toString()?.trim().orEmpty()
         val password = binding.etPassword.text?.toString()?.trim().orEmpty()
 
         var isValid = true
 
-        if (emailOrUsername.isEmpty()) {
-            binding.tilEmail.error = "Username or Email is required"
+        if (username.isEmpty()) {
+            binding.tilUsername.error = getString(R.string.err_empty_username)
             isValid = false
         } else {
-            binding.tilEmail.error = null
+            binding.tilUsername.error = null
         }
 
         if (password.isEmpty()) {

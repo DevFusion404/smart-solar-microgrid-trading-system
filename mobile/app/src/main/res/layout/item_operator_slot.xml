@@ -146,6 +146,25 @@
                 app:iconPadding="6dp"
                 app:iconSize="14dp"
                 app:iconTint="@color/white" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDeleteSlot"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="8dp"
+                android:insetLeft="0dp"
+                android:insetTop="0dp"
+                android:insetRight="0dp"
+                android:insetBottom="0dp"
+                android:padding="0dp"
+                app:cornerRadius="10dp"
+                app:icon="@drawable/ic_trash"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="16dp"
+                app:iconTint="@color/reservation_danger"
+                app:strokeColor="@color/surface_stroke" />
         </LinearLayout>
 
     </LinearLayout>

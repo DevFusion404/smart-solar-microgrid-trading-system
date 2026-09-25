@@ -33,7 +33,7 @@ class ReservationHistoryFragment : Fragment(R.layout.reservation_history) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = ReservationHistoryBinding.bind(view)
-        reservationRepository = ReservationRepository()
+        reservationRepository = ReservationRepository(requireContext())
 
         historyAdapter = ReservationHistoryAdapter(emptyList())
         binding.rvReservationHistory.apply {

@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp"
+    android:height="44dp"
+    android:viewportWidth="44"
+    android:viewportHeight="44">
+    <!-- Outer Accuracy Radar Halo / Glow -->
+    <path
+        android:fillAlpha="0.25"
+        android:fillColor="#3B82F6"
+        android:pathData="M22,22m-20,0a20,20 0 1,1 40,0a20,20 0 1,1 -40,0" />
+    <!-- White Beacon Ring Base -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M22,22m-11,0a11,11 0 1,1 22,0a11,11 0 1,1 -22,0" />
+    <!-- Vibrant Blue User Location Core -->
+    <path
+        android:fillColor="#2563EB"
+        android:pathData="M22,22m-8,0a8,8 0 1,1 16,0a8,8 0 1,1 -16,0" />
+    <!-- Center White Specular Dot -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M22,22m-3,0a3,3 0 1,1 6,0a3,3 0 1,1 -6,0" />
+</vector>

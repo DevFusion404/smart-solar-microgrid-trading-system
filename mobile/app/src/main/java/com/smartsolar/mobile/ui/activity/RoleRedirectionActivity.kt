@@ -79,16 +79,20 @@ class RoleRedirectionActivity : AppCompatActivity() {
     }
 
     private fun scheduleRedirection(role: String, name: String) {
+        val operatorId = intent.getStringExtra("OPERATOR_ID")
         lifecycleScope.launch {
             delay(1500)
-            val intent = when (role) {
+            val targetIntent = when (role) {
                 ROLE_GRID_OPERATOR -> Intent(this@RoleRedirectionActivity, GridOperatorActivity::class.java)
                 else -> Intent(this@RoleRedirectionActivity, MainActivity::class.java)
             }
-            intent.putExtra("USER_NAME", name)
-            intent.putExtra("USER_ROLE", role)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
+            targetIntent.putExtra("USER_NAME", name)
+            targetIntent.putExtra("USER_ROLE", role)
+            if (!operatorId.isNullOrBlank()) {
+                targetIntent.putExtra("OPERATOR_ID", operatorId)
+            }
+            targetIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(targetIntent)
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
             finish()
         }

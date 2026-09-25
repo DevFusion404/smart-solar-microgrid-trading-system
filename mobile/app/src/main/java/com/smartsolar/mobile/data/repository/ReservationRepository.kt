@@ -10,18 +10,47 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class ReservationRepository(
+    private val context: android.content.Context? = null,
     private val apiService: ApiService = RetrofitClient.apiService,
+    private val dbHelper: com.smartsolar.mobile.data.local.DatabaseHelper? = context?.let { com.smartsolar.mobile.data.local.DatabaseHelper(it) }
 ) {
     suspend fun getAllReservations(): Result<List<Reservation>> = withContext(Dispatchers.IO) {
         try {
+            // Ensure Retrofit has active token if context is available
+            context?.let { ctx ->
+                if (RetrofitClient.authToken.isNullOrBlank()) {
+                    val token = com.smartsolar.mobile.data.local.SessionManager.getToken(ctx)
+                    if (!token.isNullOrBlank()) {
+                        RetrofitClient.authToken = token
+                    }
+                }
+            }
+
             val response = apiService.getReservations()
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                val list = response.body()!!
+                dbHelper?.let { helper ->
+                    for (item in list) {
+                        helper.insertReservation(item)
+                    }
+                }
+                Result.success(list)
             } else {
-                Result.failure(Exception("Could not load reservations (HTTP ${response.code()})."))
+                // If remote returned an error, try offline SQLite cache before failing
+                val local = dbHelper?.getAllReservations() ?: emptyList()
+                if (local.isNotEmpty()) {
+                    Result.success(local)
+                } else {
+                    Result.failure(Exception("Could not load reservations (HTTP ${response.code()})."))
+                }
             }
         } catch (exception: Exception) {
-            Result.failure(exception)
+            val local = dbHelper?.getAllReservations() ?: emptyList()
+            if (local.isNotEmpty()) {
+                Result.success(local)
+            } else {
+                Result.failure(exception)
+            }
         }
     }
 

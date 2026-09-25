@@ -793,7 +793,7 @@ public class EnergyTransactionService : IEnergyTransactionService
                          & Builders<EnergyBookingSlot>.Filter.Lte(x => x.AvailableCapacity, 0)
                          & Builders<EnergyBookingSlot>.Filter.Eq(x => x.Status, "Available");
 
-            var update = Builders<EnergyBookingSlot>.Update.Set(x => x.Status, "Booked");
+            var update = Builders<EnergyBookingSlot>.Update.Set(x => x.Status, "Closed");
 
             await _slots.UpdateOneAsync(filter, update);
         }
