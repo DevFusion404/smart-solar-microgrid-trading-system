@@ -23,6 +23,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 {
     private readonly JwtSettings _settings;
 
+    // Initializes the generator with the configured JWT issuer, audience, key and expiry
     public JwtTokenGenerator(JwtSettings settings)
     {
         _settings = settings;
