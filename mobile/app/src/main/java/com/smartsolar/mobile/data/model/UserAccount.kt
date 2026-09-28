@@ -1,3 +1,13 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : UserAccount.kt
+ * Description : Client-side copy of a UserDetails document as returned by the API
+ *               (profile and registration responses).
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.data.model
 
 import com.google.gson.annotations.SerializedName
