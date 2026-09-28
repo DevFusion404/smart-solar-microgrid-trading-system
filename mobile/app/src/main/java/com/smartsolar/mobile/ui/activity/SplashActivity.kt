@@ -1,3 +1,14 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : SplashActivity.kt
+ * Description : Launch screen. Restores the saved SQLite session: a valid
+ *               session goes straight to the role's home, an expired JWT
+ *               goes to the Session Expired screen, no session goes to Login.
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.ui.activity
 
 import android.annotation.SuppressLint
@@ -16,6 +27,7 @@ class SplashActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySplashBinding
 
+    // Inflates the splash layout, starts the animation and schedules navigation
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySplashBinding.inflate(layoutInflater)
@@ -25,6 +37,7 @@ class SplashActivity : AppCompatActivity() {
         navigateNextAfterDelay()
     }
 
+    // Fades/scales in the logo, name, tagline and footer
     private fun startAnimations() {
         binding.logoWrapper.alpha = 0f
         binding.logoWrapper.scaleX = 0.7f
@@ -71,6 +84,7 @@ class SplashActivity : AppCompatActivity() {
             .start()
     }
 
+    // After the animation, decides where to go based on the saved session
     private fun navigateNextAfterDelay() {
         lifecycleScope.launch {
             delay(2400)
@@ -79,9 +93,15 @@ class SplashActivity : AppCompatActivity() {
             // Only users registered in MongoDB can have a session row here.
             val session = SessionManager.getActiveSession(this@SplashActivity)
 
-            val intent = if (session != null) {
-                // Restore the JWT into Retrofit for immediate API calls
+            val intent = if (session != null && SessionManager.isExpired(session)) {
+                // The saved JWT is no longer valid: end the session and ask the user to sign in again
+                SessionManager.clearSession(this@SplashActivity)
+                Intent(this@SplashActivity, SessionExpiredActivity::class.java)
+            } else if (session != null) {
+                // Restore the JWT into Retrofit for immediate API calls,
+                // and handle a 401 if the server rejects it later
                 com.smartsolar.mobile.data.api.RetrofitClient.authToken = session.jwtToken
+                SessionManager.installSessionExpiryHandler(this@SplashActivity)
 
                 val displayName = session.fullName.ifBlank { session.username }
 

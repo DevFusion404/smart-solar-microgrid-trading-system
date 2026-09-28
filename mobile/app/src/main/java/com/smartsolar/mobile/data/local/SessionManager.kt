@@ -1,10 +1,25 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : SessionManager.kt
+ * Description : Local login/session persistence using the SQLite `sessions`
+ *               table. Saves the session after login, restores it on app
+ *               start (only while the JWT is still valid), and ends it on
+ *               logout, token expiry or a 401 from the API.
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.data.local
 
 import android.content.Context
+import android.content.Intent
 import com.smartsolar.mobile.data.api.RetrofitClient
 import com.smartsolar.mobile.data.api.UserSummary
 import com.smartsolar.mobile.data.model.SessionRecord
+import com.smartsolar.mobile.ui.activity.SessionExpiredActivity
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * SessionManager — Singleton that manages the authenticated user session
@@ -20,6 +35,9 @@ import java.time.Instant
  * on every successful login from the server.
  */
 object SessionManager {
+
+    // Prevents several parallel 401 responses from opening the expired screen more than once
+    private val expiryHandled = AtomicBoolean(false)
 
     /**
      * Persists the authenticated session to SQLite and syncs the JWT
@@ -65,6 +83,7 @@ object SessionManager {
 
         // Keep Retrofit in-memory token in sync
         RetrofitClient.authToken = token
+        expiryHandled.set(false)
 
         // Also mirror to SharedPreferences so existing TokenManager consumers
         // continue to work without modification during the migration period.
@@ -84,6 +103,35 @@ object SessionManager {
      */
     fun getActiveSession(context: Context): SessionRecord? {
         return DatabaseHelper(context).use { it.getActiveSession() }
+    }
+
+    /**
+     * True when the session's JWT expiry time has passed.
+     * If the stored value cannot be parsed, the API's 401 response is used instead.
+     */
+    fun isExpired(session: SessionRecord, now: Instant = Instant.now()): Boolean {
+        return try {
+            !Instant.parse(session.expiresAt).isAfter(now)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Registers what happens when the API rejects our token (401): clear the local
+     * session and show SessionExpiredActivity. Uses the application context so it
+     * is safe to call from any activity.
+     */
+    fun installSessionExpiryHandler(context: Context) {
+        val appContext = context.applicationContext
+        RetrofitClient.onUnauthorized = {
+            if (expiryHandled.compareAndSet(false, true)) {
+                clearSession(appContext)
+                val intent = Intent(appContext, SessionExpiredActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                appContext.startActivity(intent)
+            }
+        }
     }
 
     /**
