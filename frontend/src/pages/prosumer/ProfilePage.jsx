@@ -1,3 +1,14 @@
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : Identity and Account Management (Component 1)
+File          : ProfilePage.jsx (prosumer)
+Description   : Prosumer self-service profile: view details, edit
+                name/phone/address, and submit a deactivation request
+                that a Backoffice officer must approve.
+=====================================================
+*/
+
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   AlertTriangle,
@@ -18,7 +29,9 @@ import {
 import { useCallback, useEffect, useState } from 'react'
 import { profileService } from '../../services'
 import { useAuth } from '../../context/AuthContext'
+import { validatePhone, validateReason } from '../../utils/validators'
 
+// One labelled field in the personal information card
 function InfoRow({ icon: Icon, label, value, mono }) {
   return (
     <div className="flex items-start gap-3 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
@@ -46,7 +59,7 @@ const statusInfo = {
     icon: Clock,
     desc: 'Your registration is pending Backoffice review. You will be notified once approved.',
   },
-  PendingDeactivation: {
+  DeactivationRequested: {
     color: 'bg-orange-100 text-orange-700 dark:bg-orange-400/10 dark:text-orange-300',
     icon: Clock,
     desc: 'Your deactivation request is pending Backoffice review.',
@@ -58,6 +71,7 @@ const statusInfo = {
   },
 }
 
+// Prosumer's own profile: view/edit details and request account deactivation
 export function ProfilePage() {
   const { updateUserProfile } = useAuth()
   const [profile, setProfile] = useState(null)
@@ -71,7 +85,10 @@ export function ProfilePage() {
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false)
   const [deactivationSubmitted, setDeactivationSubmitted] = useState(false)
   const [deactivating, setDeactivating] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [deactivationError, setDeactivationError] = useState('')
 
+  // Loads the profile from GET /api/profile
   const loadProfile = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -95,13 +112,23 @@ export function ProfilePage() {
     loadProfile()
   }, [loadProfile])
 
+  // Formats an ISO date for display
   const formatDate = (iso) =>
     iso
       ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
       : 'N/A'
 
+  // Validates the edit form and saves it through PUT /api/profile
   const handleSave = async (e) => {
     e.preventDefault()
+    const problem = (form.fullName.trim().length < 2 ? 'Full name must be at least 2 characters.' : '')
+      || validatePhone(form.phoneNumber)
+      || (form.address.trim().length < 5 ? 'Address must be at least 5 characters.' : '')
+    if (problem) {
+      setFormError(problem)
+      return
+    }
+    setFormError('')
     setSaving(true)
     try {
       await updateUserProfile(form)
@@ -110,22 +137,28 @@ export function ProfilePage() {
       loadProfile()
       setTimeout(() => setSaved(false), 3500)
     } catch (err) {
-      alert(err.message || 'Failed to update profile.')
+      setFormError(err.message || 'Failed to update profile.')
     } finally {
       setSaving(false)
     }
   }
 
+  // Sends the deactivation request (reason must be 10-500 characters, same as the API rule)
   const handleRequestDeactivation = async () => {
-    if (!deactivationReason.trim()) return
+    const problem = validateReason(deactivationReason)
+    if (problem) {
+      setDeactivationError(problem)
+      return
+    }
+    setDeactivationError('')
     setDeactivating(true)
     try {
-      await profileService.requestDeactivation(deactivationReason)
+      await profileService.requestDeactivation(deactivationReason.trim())
       setShowDeactivateConfirm(false)
       setDeactivationSubmitted(true)
       loadProfile()
     } catch (err) {
-      alert(err.message || 'Failed to submit deactivation request.')
+      setDeactivationError(err.message || 'Failed to submit deactivation request.')
     } finally {
       setDeactivating(false)
     }
@@ -223,6 +256,7 @@ export function ProfilePage() {
                   <Edit3 className="h-4 w-4 text-emerald-500" />
                   <h2 className="font-semibold text-slate-900 dark:text-white">Edit Profile</h2>
                 </div>
+                {formError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">{formError}</p>}
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Full Name
                   <input type="text" value={form.fullName} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))} required className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
@@ -282,14 +316,16 @@ export function ProfilePage() {
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                   <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800/40 dark:bg-red-400/5">
                     <p className="text-sm font-medium text-red-700 dark:text-red-300 mb-2">Confirm Deactivation Request</p>
-                    <p className="text-xs text-red-600 dark:text-red-400 mb-3">Please provide a reason for your deactivation request.</p>
+                    <p className="text-xs text-red-600 dark:text-red-400 mb-3">Please tell us why you want to close your account (10-500 characters).</p>
                     <textarea
                       value={deactivationReason}
-                      onChange={(e) => setDeactivationReason(e.target.value)}
+                      onChange={(e) => { setDeactivationReason(e.target.value); setDeactivationError('') }}
                       placeholder="Enter your reason here…"
                       rows={3}
                       className="w-full rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/20 dark:border-red-700/40 dark:bg-slate-800 dark:text-slate-100 resize-none"
                     />
+                    <p className="mt-1 text-right text-xs text-red-400">{deactivationReason.trim().length}/500</p>
+                    {deactivationError && <p className="mt-1 text-xs font-medium text-red-600 dark:text-red-400">{deactivationError}</p>}
                     <div className="mt-3 flex gap-2">
                       <button type="button" onClick={handleRequestDeactivation} disabled={deactivating || !deactivationReason.trim()} className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50 transition">
                         {deactivating ? 'Submitting…' : 'Submit Request'}
@@ -303,7 +339,7 @@ export function ProfilePage() {
               )}
             </AnimatePresence>
 
-            {status === 'PendingDeactivation' && (
+            {status === 'DeactivationRequested' && (
               <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-700/40 dark:bg-orange-400/5">
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-orange-500" />
@@ -315,7 +351,7 @@ export function ProfilePage() {
               </div>
             )}
 
-            {status !== 'Active' && status !== 'PendingDeactivation' && (
+            {status !== 'Active' && status !== 'DeactivationRequested' && (
               <p className="text-sm text-slate-400">No account actions available for your current status.</p>
             )}
           </motion.div>
