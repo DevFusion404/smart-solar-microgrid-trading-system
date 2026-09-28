@@ -1,3 +1,14 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : DeactivationSubmittedActivity.kt
+ * Description : Summary screen after a prosumer submits a deactivation request. The
+ *               account stays usable (DeactivationRequested) until a Backoffice
+ *               officer approves the request.
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.ui.activity
 
 import android.content.Intent
@@ -15,6 +26,7 @@ class DeactivationSubmittedActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityDeactivationSubmittedBinding
 
+    // Inflates the screen, animates the icon and wires the button
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityDeactivationSubmittedBinding.inflate(layoutInflater)
@@ -24,6 +36,7 @@ class DeactivationSubmittedActivity : AppCompatActivity() {
         setupListeners()
     }
 
+    // Scales and fades in the confirmation icon
     private fun animateIcon() {
         val interpolator = AccelerateDecelerateInterpolator()
         binding.deactSubmittedIconWrapper.alpha = 0f
@@ -39,6 +52,7 @@ class DeactivationSubmittedActivity : AppCompatActivity() {
             .start()
     }
 
+    // "Back to Profile" returns to the prosumer home on the profile tab
     private fun setupListeners() {
         binding.btnBackToProfile.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
@@ -51,6 +65,7 @@ class DeactivationSubmittedActivity : AppCompatActivity() {
         }
     }
 
+    // Back behaves like the "Back to Profile" button
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         // Redirect back via the button to ensure consistent state
