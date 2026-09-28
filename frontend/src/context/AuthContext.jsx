@@ -9,9 +9,18 @@ Description   : React Context providing authentication state, token persistence,
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { authService, profileService } from '../services';
+import apiClient from '../config/api';
 
 const AuthContext = createContext(null);
 
+// Removes every stored credential from the browser
+function clearStoredSession() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('user');
+}
+
+// Provides the logged-in user, JWT and login/logout helpers to the whole app
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
@@ -32,9 +41,7 @@ export function AuthProvider({ children }) {
         } catch (err) {
           console.error('Session restoration failed:', err);
           // Token expired or invalid
-          localStorage.removeItem('token');
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user');
+          clearStoredSession();
           setToken('');
           setUser(null);
         }
@@ -45,6 +52,26 @@ export function AuthProvider({ children }) {
     initializeAuth();
   }, []);
 
+  // If any API call returns 401 (expired or invalid JWT), end the local session so
+  // RequireRole sends the user back to the login page instead of showing broken screens.
+  useEffect(() => {
+    const interceptorId = apiClient.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        const status = error.response?.status;
+        const url = error.response?.config?.url || '';
+        if (status === 401 && !url.includes('/Auth/login')) {
+          clearStoredSession();
+          setToken('');
+          setUser(null);
+        }
+        return Promise.reject(error);
+      }
+    );
+    return () => apiClient.interceptors.response.eject(interceptorId);
+  }, []);
+
+  // Logs in, stores the JWT, then loads the full user record from /api/Auth/me
   const login = async (credentials) => {
     const data = await authService.login(credentials);
     if (data && data.token) {
@@ -62,7 +89,7 @@ export function AuthProvider({ children }) {
         const summaryUser = {
           username: data.user?.username || credentials.username,
           fullName: data.user?.fullName || '',
-          role: data.user?.role || 'Backoffice',
+          role: data.user?.role || '',
           status: data.user?.status || 'Active',
           nic: data.user?.nic || null,
         };
@@ -74,20 +101,20 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  // Tells the API the user logged out, then clears the local session
   const logout = async () => {
     try {
       await authService.logout();
     } catch (err) {
       console.error('Logout request error:', err);
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
+      clearStoredSession();
       setToken('');
       setUser(null);
     }
   };
 
+  // Saves profile changes through the API and merges them into the cached user
   const updateUserProfile = async (profileData) => {
     const updated = await profileService.updateProfile(profileData);
     setUser((prev) => {
@@ -98,6 +125,7 @@ export function AuthProvider({ children }) {
     return updated;
   };
 
+  // Reloads the current user (e.g. after an account status change)
   const refreshCurrentUser = async () => {
     try {
       const currentUser = await authService.getCurrentUser();
@@ -124,6 +152,7 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// Hook for components to read the auth state; must be used inside AuthProvider
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

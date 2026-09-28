@@ -20,6 +20,15 @@ export const prosumerService = {
   },
 
   /**
+   * Creates a prosumer account from the Backoffice (account is Active immediately)
+   * @param {Object} data - { nic, fullName, email, phoneNumber, address, username, password }
+   */
+  async createProsumer(data) {
+    const response = await apiClient.post('/prosumers', data);
+    return response.data;
+  },
+
+  /**
    * Retrieves paginated list of prosumer profiles filtered by optional account status
    * @param {Object} params - { status, page, pageSize }
    */
@@ -104,11 +113,14 @@ export const prosumerService = {
   },
 
   /**
-   * Approves deactivation request and deactivates prosumer account
+   * Deactivates a prosumer account. The reason is optional when approving the prosumer's
+   * own request, and required (10-500 chars) when deactivating an Active account directly.
    * @param {string} nic
+   * @param {string} [reason]
    */
-  async approveDeactivation(nic) {
-    const response = await apiClient.post(`/prosumers/${encodeURIComponent(nic)}/deactivate`);
+  async approveDeactivation(nic, reason) {
+    const body = reason && reason.trim() ? { reason: reason.trim() } : {};
+    const response = await apiClient.post(`/prosumers/${encodeURIComponent(nic)}/deactivate`, body);
     return response.data;
   },
 
