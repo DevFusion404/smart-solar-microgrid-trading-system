@@ -30,6 +30,20 @@ public class ProsumerService : IProsumerService
     // Handles prosumer self-registration with Sri Lankan NIC primary key and initial PendingActivation status
     public async Task<ProsumerResponseDto> RegisterProsumerAsync(RegisterProsumerDto request)
     {
+        var user = await CreateProsumerAccountAsync(request, AccountStatus.PendingActivation, null);
+        return MapToResponse(user);
+    }
+
+    // Creates a prosumer account on behalf of a customer by a Backoffice officer (account is Active immediately)
+    public async Task<ProsumerResponseDto> CreateProsumerByBackofficeAsync(RegisterProsumerDto request, string actingUsername)
+    {
+        var user = await CreateProsumerAccountAsync(request, AccountStatus.Active, actingUsername);
+        return MapToResponse(user);
+    }
+
+    // Shared creation logic: validates input, enforces unique NIC/username/email, hashes password and saves the account
+    private async Task<UserDetails> CreateProsumerAccountAsync(RegisterProsumerDto request, AccountStatus initialStatus, string? actingUsername)
+    {
         ValidateRegisterProsumer(request);
 
         var normalizedNic = request.Nic.Trim().ToUpperInvariant();
@@ -64,18 +78,25 @@ public class ProsumerService : IProsumerService
             Address = request.Address.Trim(),
             Username = normalizedUsername,
             Role = UserRole.Prosumer,
-            Status = AccountStatus.PendingActivation, // BR-03
+            Status = initialStatus, // BR-03: self-registered accounts start as PendingActivation
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             ActivationRequestedAt = DateTime.UtcNow,
             Version = 1
         };
 
+        // Accounts created by a Backoffice officer are approved at creation time
+        if (initialStatus == AccountStatus.Active)
+        {
+            user.ActivatedAt = DateTime.UtcNow;
+            user.ActivatedBy = actingUsername;
+        }
+
         user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
 
         await _userRepository.CreateAsync(user);
 
-        return MapToResponse(user);
+        return user;
     }
 
     // Returns paginated list of prosumer accounts filtered by account status
@@ -277,8 +298,8 @@ public class ProsumerService : IProsumerService
         };
     }
 
-    // Approves deactivation request and updates prosumer account status to Deactivated
-    public async Task<ProsumerResponseDto> ApproveDeactivationAsync(string nic, string actingUsername)
+    // Deactivates a prosumer: approves a pending request, or directly deactivates an Active account (reason required)
+    public async Task<ProsumerResponseDto> ApproveDeactivationAsync(string nic, string actingUsername, string? reason = null)
     {
         var user = await _userRepository.GetByNicAsync(nic.Trim());
         if (user == null || user.Role != UserRole.Prosumer)
@@ -289,6 +310,23 @@ public class ProsumerService : IProsumerService
         if (user.Status != AccountStatus.DeactivationRequested && user.Status != AccountStatus.Active)
         {
             throw new ConflictException("INVALID_STATUS_TRANSITION", $"Cannot deactivate prosumer in state '{user.Status}'.");
+        }
+
+        var trimmedReason = reason?.Trim();
+        if (!string.IsNullOrEmpty(trimmedReason) && (trimmedReason.Length < 10 || trimmedReason.Length > 500))
+        {
+            throw new BadRequestException("REASON_REQUIRED", "Deactivation reason must be between 10 and 500 characters.");
+        }
+
+        // An officer-initiated deactivation (no request from the prosumer) must be justified
+        if (user.Status == AccountStatus.Active && string.IsNullOrEmpty(trimmedReason))
+        {
+            throw new BadRequestException("REASON_REQUIRED", "A reason (10-500 characters) is required to deactivate an active account.");
+        }
+
+        if (!string.IsNullOrEmpty(trimmedReason))
+        {
+            user.DeactivationReason = trimmedReason;
         }
 
         user.Status = AccountStatus.Deactivated;
@@ -311,6 +349,12 @@ public class ProsumerService : IProsumerService
         if (user.Status == AccountStatus.Active)
         {
             throw new ConflictException("ALREADY_ACTIVE", "Prosumer account is already active.");
+        }
+
+        // New registrations must go through the activate/reject review instead of reactivation
+        if (user.Status == AccountStatus.PendingActivation)
+        {
+            throw new ConflictException("INVALID_STATUS_TRANSITION", "Pending registrations must be activated, not reactivated.");
         }
 
         user.Status = AccountStatus.Active;
@@ -386,8 +430,12 @@ public class ProsumerService : IProsumerService
             FullName = user.FullName,
             Email = user.Email,
             PhoneNumber = user.PhoneNumber,
+            Username = user.Username,
             Status = user.Status.ToString(),
-            CreatedAt = user.CreatedAt
+            CreatedAt = user.CreatedAt,
+            ActivationRequestedAt = user.ActivationRequestedAt,
+            DeactivationRequestedAt = user.DeactivationRequestedAt,
+            DeactivationReason = user.DeactivationReason
         };
     }
 
