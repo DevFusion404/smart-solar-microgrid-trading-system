@@ -19,6 +19,8 @@ const statusStyles = {
   Offline: 'bg-rose-50 text-rose-700 dark:bg-rose-400/10 dark:text-rose-300',
   Active: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300',
   Deactivated: 'bg-rose-50 text-rose-700 dark:bg-rose-400/10 dark:text-rose-300',
+  'Pending activation': 'bg-amber-50 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300',
+  'Deactivation requested': 'bg-orange-50 text-orange-700 dark:bg-orange-400/10 dark:text-orange-300',
 }
 
 export function StatusBadge({ status }) {

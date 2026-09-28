@@ -83,7 +83,8 @@ public class MongoDbContext
             users.Indexes.CreateOne(new CreateIndexModel<UserDetails>(
                 emailKeys, new CreateIndexOptions { Unique = true, Name = "idx_email_unique" }));
 
-            // NIC sparse unique index
+            // NIC sparse unique index: makes the NIC the prosumer's primary key.
+            // Sparse so web users (Backoffice / GridOperator), who have no NIC, are not indexed.
             var nicKeys = Builders<UserDetails>.IndexKeys.Ascending(u => u.Nic);
             users.Indexes.CreateOne(new CreateIndexModel<UserDetails>(
                 nicKeys, new CreateIndexOptions { Unique = true, Sparse = true, Name = "idx_nic_unique" }));
