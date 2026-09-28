@@ -1,3 +1,13 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : RegistrationSubmittedActivity.kt
+ * Description : Summary screen after a successful prosumer registration: the account
+ *               is PendingActivation until a Backoffice officer approves it.
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.ui.activity
 
 import android.content.Intent
@@ -16,6 +26,7 @@ class RegistrationSubmittedActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityRegistrationSubmittedBinding
 
+    // Inflates the screen, animates the success icon and wires the button
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityRegistrationSubmittedBinding.inflate(layoutInflater)
@@ -25,6 +36,7 @@ class RegistrationSubmittedActivity : AppCompatActivity() {
         setupListeners()
     }
 
+    // Scales and fades in the success tick
     private fun animateSuccessIcon() {
         val interpolator = AccelerateDecelerateInterpolator()
 
@@ -41,12 +53,14 @@ class RegistrationSubmittedActivity : AppCompatActivity() {
             .start()
     }
 
+    // "Back to Login" button
     private fun setupListeners() {
         binding.btnRegSubmittedBackToLogin.setOnClickListener {
             navigateToLogin()
         }
     }
 
+    // Clears the back stack and opens the login screen
     private fun navigateToLogin() {
         val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

@@ -15,6 +15,7 @@ import com.smartsolar.mobile.R
 import com.smartsolar.mobile.data.repository.SlotRepository
 import com.smartsolar.mobile.data.repository.StationRepository
 import com.smartsolar.mobile.databinding.ActivityMainBinding
+import com.smartsolar.mobile.ui.fragment.HomeDashboardFragment
 import com.smartsolar.mobile.ui.fragment.MyReservationsFragment
 import com.smartsolar.mobile.ui.fragment.ReservationHistoryFragment
 import com.smartsolar.mobile.ui.fragment.ReserveEnergyFragment
@@ -32,9 +33,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Ensure Retrofit token is actively restored from SQLite session
+        if (com.smartsolar.mobile.data.api.RetrofitClient.authToken.isNullOrBlank()) {
+            com.smartsolar.mobile.data.api.RetrofitClient.authToken =
+                com.smartsolar.mobile.data.local.SessionManager.getToken(this)
+        }
+
         setupToolbarAndDrawer()
         setupUserProfileHeader()
         setupBackPressHandler()
+
+        if (savedInstanceState == null) {
+            showReservationScreen(HomeDashboardFragment(), "Smart Solar")
+        }
     }
 
     /**
@@ -42,8 +53,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
      * Can be passed via Intent extras ("USER_NAME", "USER_ROLE") or loaded from user session.
      */
     private fun setupUserProfileHeader() {
-        val userName = intent.getStringExtra("USER_NAME") ?: getString(R.string.default_user_name)
-        val userRole = intent.getStringExtra("USER_ROLE") ?: getString(R.string.default_user_role)
+        val userName = intent.getStringExtra("USER_NAME")
+            ?: com.smartsolar.mobile.data.local.SessionManager.getDisplayName(this)
+            ?: com.smartsolar.mobile.data.local.SessionManager.getUsername(this)
+            ?: getString(R.string.default_user_name)
+        val userRole = intent.getStringExtra("USER_ROLE")
+            ?: com.smartsolar.mobile.data.local.SessionManager.getRole(this)
+            ?: getString(R.string.default_user_role)
 
         val headerView = binding.navigationView.getHeaderView(0)
         val tvName = headerView.findViewById<android.widget.TextView>(R.id.tvNavUserName)
@@ -81,9 +97,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.nav_home -> {
-                binding.topToolbar.title = "Home"
-                binding.tvCurrentScreenTitle.text = "Solar Home Dashboard"
-                binding.tvScreenDescription.text = "Overview of microgrid trading, active bookings, and solar production."
+                showReservationScreen(HomeDashboardFragment(), "Smart Solar")
             }
 
             R.id.nav_stations -> {
@@ -140,6 +154,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
 
             R.id.nav_logout -> {
+                com.smartsolar.mobile.data.local.SessionManager.clearSession(this)
                 Toast.makeText(this, "Signed out successfully", Toast.LENGTH_SHORT).show()
                 val intent = Intent(this, LoginActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -172,7 +187,23 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             .commit()
     }
 
-    private fun showReservationScreen(fragment: Fragment, title: String) {
+    fun navigateToReservation(fragment: Fragment = ReserveEnergyFragment(), title: String = "Reserve Energy") {
+        showReservationScreen(fragment, title)
+    }
+
+    fun navigateToStations() {
+        showReservationScreen(StationsFragment(), "Microgrid Stations")
+    }
+
+    fun navigateToMyReservations() {
+        showReservationScreen(MyReservationsFragment(), "My Reservations")
+    }
+
+    fun navigateToHome() {
+        showReservationScreen(HomeDashboardFragment(), "Smart Solar")
+    }
+
+    fun showReservationScreen(fragment: Fragment, title: String) {
         binding.topToolbar.title = title
         supportFragmentManager.beginTransaction()
             .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
@@ -186,8 +217,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
                     binding.drawerLayout.closeDrawer(GravityCompat.START)
                 } else {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
+                    val currentFragment = supportFragmentManager.findFragmentById(R.id.fragmentContainer)
+                    if (currentFragment != null && currentFragment !is HomeDashboardFragment) {
+                        navigateToHome()
+                    } else {
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                    }
                 }
             }
         })

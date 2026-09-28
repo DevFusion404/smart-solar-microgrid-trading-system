@@ -1,3 +1,21 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : PendingActivationActivity.kt
+ * Description : Shown when a prosumer signs in before a Backoffice officer
+ *               has approved the registration (API 403
+ *               ACCOUNT_PENDING_ACTIVATION). No session is stored for a
+ *               pending account. "Check Again" returns to the login screen
+ *               with the username filled in; the next sign-in asks the server
+ *               for the current status.
+ *
+ * Intent extras:
+ *   - "USER_NAME"  -> name shown on the card (the username/email typed at login)
+ *   - "USER_EMAIL" -> shown under the name; also used to pre-fill the login form
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.ui.activity
 
 import android.content.Intent
@@ -6,19 +24,11 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.smartsolar.mobile.databinding.ActivityPendingActivationBinding
 
-/**
- * PendingActivationActivity – Screen 5
- * Shown when a prosumer has logged in but their account status is PENDING.
- * Offers a "Check Again" action and a "Log Out" text link.
- *
- * Pass user details via Intent extras:
- *   - "USER_NAME"  → displayed as the user's name
- *   - "USER_EMAIL" → displayed under the name
- */
 class PendingActivationActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPendingActivationBinding
 
+    // Inflates the screen, fills the user card and wires the buttons
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityPendingActivationBinding.inflate(layoutInflater)
@@ -28,6 +38,7 @@ class PendingActivationActivity : AppCompatActivity() {
         setupListeners()
     }
 
+    // Shows who is waiting for approval
     private fun populateUserInfo() {
         val name = intent.getStringExtra("USER_NAME") ?: "User"
         val email = intent.getStringExtra("USER_EMAIL") ?: "—"
@@ -37,19 +48,24 @@ class PendingActivationActivity : AppCompatActivity() {
         binding.tvPendingInitial.text = name.firstOrNull()?.uppercase() ?: "U"
     }
 
+    // "Check Again" re-checks by signing in again; "Log out" just returns to login
     private fun setupListeners() {
         binding.btnCheckAgain.setOnClickListener {
-            // TODO: Replace with real status check API call via ViewModel
-            Toast.makeText(this, "Checking account status…", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Sign in again to check your account status", Toast.LENGTH_SHORT).show()
+            returnToLogin(prefillUsername = intent.getStringExtra("USER_EMAIL"))
         }
 
         binding.tvLogOutLink.setOnClickListener {
-            logOut()
+            returnToLogin(prefillUsername = null)
         }
     }
 
-    private fun logOut() {
+    // Opens a fresh login screen, optionally with the username already filled in
+    private fun returnToLogin(prefillUsername: String?) {
         val intent = Intent(this, LoginActivity::class.java)
+        if (!prefillUsername.isNullOrBlank()) {
+            intent.putExtra(LoginActivity.EXTRA_PREFILL_USERNAME, prefillUsername)
+        }
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
