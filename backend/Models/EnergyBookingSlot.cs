@@ -15,6 +15,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace backend.Models;
 
+[BsonIgnoreExtraElements]
 public class EnergyBookingSlot
 {
 
@@ -28,7 +29,9 @@ public class EnergyBookingSlot
     // Related microgrid station
     public string StationId {get;set;}
 
-    // Available booking date
+    // Available booking date. The service normalizes new values to UTC midnight,
+    // while allowing existing records with a time component to be read safely.
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime Date {get;set;}
 
     // Slot starting time
