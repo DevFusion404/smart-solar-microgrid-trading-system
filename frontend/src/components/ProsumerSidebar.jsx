@@ -1,15 +1,24 @@
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : Identity and Account Management (Component 1)
+File          : ProsumerSidebar.jsx
+Description   : Sidebar for the prosumer web portal: Dashboard, Energy
+                Transfers, My Profile, Account Settings and Logout.
+=====================================================
+*/
+
 import {
   CircleUserRound,
   LayoutDashboard,
   LogOut,
   PanelLeft,
   PanelLeftClose,
-  Settings2,
   ShieldAlert,
   Zap,
 } from 'lucide-react'
 import clsx from 'clsx'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import logoImg from '../assets/logo3.png'
 
 const linkClass = ({ isActive }) =>
@@ -20,9 +29,8 @@ const linkClass = ({ isActive }) =>
       : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
   )
 
+// Navigation for the prosumer web portal
 export function ProsumerSidebar({ collapsed = false, onToggleCollapse, onLogout, onNavigate }) {
-  const navigate = useNavigate()
-
   const collapsedLinkClass = ({ isActive }) =>
     clsx(
       'flex min-h-11 items-center justify-center rounded-xl px-2 py-2.5 text-sm transition-colors',
@@ -86,6 +94,16 @@ export function ProsumerSidebar({ collapsed = false, onToggleCollapse, onLogout,
         </NavLink>
 
         <NavLink
+          to="/prosumer/transactions"
+          className={cls}
+          onClick={onNavigate}
+          title={collapsed ? 'Energy Transfers' : undefined}
+        >
+          <Zap className="h-5 w-5 shrink-0" />
+          {!collapsed && <span>Energy Transfers</span>}
+        </NavLink>
+
+        <NavLink
           to="/prosumer/profile"
           className={cls}
           onClick={onNavigate}
@@ -103,16 +121,6 @@ export function ProsumerSidebar({ collapsed = false, onToggleCollapse, onLogout,
         >
           <ShieldAlert className="h-5 w-5 shrink-0" />
           {!collapsed && <span>Account Settings</span>}
-        </NavLink>
-
-        <NavLink
-          to="/prosumer/settings"
-          className={cls}
-          onClick={onNavigate}
-          title={collapsed ? 'Preferences' : undefined}
-        >
-          <Settings2 className="h-5 w-5 shrink-0" />
-          {!collapsed && <span>Preferences</span>}
         </NavLink>
       </nav>
 
@@ -135,6 +143,7 @@ export function ProsumerSidebar({ collapsed = false, onToggleCollapse, onLogout,
   )
 }
 
+// Hamburger button that opens the sidebar on small screens
 export function ProsumerMobileToggle({ onClick }) {
   return (
     <button
