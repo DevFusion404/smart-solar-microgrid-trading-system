@@ -1,3 +1,15 @@
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : Identity and Account Management (Component 1)
+File          : ProsumersPage.jsx
+Description   : Backoffice prosumer list. Search by name/NIC/email,
+                filter by status, and run lifecycle actions:
+                activate / reject (PendingActivation), deactivate or
+                approve a deactivation request, reactivate (Deactivated).
+=====================================================
+*/
+
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronLeft,
@@ -11,25 +23,28 @@ import {
   Filter,
   Users,
   AlertCircle,
+  UserPlus,
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { prosumerService } from '../../services'
+import { validateReason } from '../../utils/validators'
 
-const STATUS_TABS = ['All', 'Active', 'PendingActivation', 'PendingDeactivation', 'Deactivated']
+const STATUS_TABS = ['All', 'Active', 'PendingActivation', 'DeactivationRequested', 'Deactivated']
 
 const statusStyle = {
   Active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300',
   PendingActivation: 'bg-amber-100 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300',
-  PendingDeactivation: 'bg-orange-100 text-orange-700 dark:bg-orange-400/10 dark:text-orange-300',
+  DeactivationRequested: 'bg-orange-100 text-orange-700 dark:bg-orange-400/10 dark:text-orange-300',
   Deactivated: 'bg-red-100 text-red-700 dark:bg-red-400/10 dark:text-red-300',
 }
 
 const statusLabel = {
   PendingActivation: 'Pending Activation',
-  PendingDeactivation: 'Pending Deactivation',
+  DeactivationRequested: 'Pending Deactivation',
 }
 
+// Coloured pill showing a prosumer's account status
 function StatusBadge({ status }) {
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle[status] ?? ''}`}>
@@ -38,7 +53,8 @@ function StatusBadge({ status }) {
   )
 }
 
-function ConfirmDialog({ title, description, confirmLabel, confirmClass, onConfirm, onCancel, children }) {
+// Modal used to confirm activate / reject / deactivate / reactivate actions
+function ConfirmDialog({ title, description, confirmLabel, confirmClass, onConfirm, onCancel, children, error }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
       <motion.div
@@ -50,6 +66,7 @@ function ConfirmDialog({ title, description, confirmLabel, confirmClass, onConfi
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h3>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{description}</p>
         {children}
+        {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
         <div className="mt-5 flex items-center justify-end gap-3">
           <button type="button" onClick={onCancel} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
             Cancel
@@ -63,6 +80,7 @@ function ConfirmDialog({ title, description, confirmLabel, confirmClass, onConfi
   )
 }
 
+// Backoffice list of all prosumers with search, status filter and lifecycle actions
 export function ProsumersPage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('All')
@@ -75,9 +93,11 @@ export function ProsumersPage() {
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [dialogError, setDialogError] = useState('')
 
   const PAGE_SIZE = 10
 
+  // Loads the current page, using search when a query is typed
   const fetchProsumers = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -103,29 +123,40 @@ export function ProsumersPage() {
     fetchProsumers()
   }, [fetchProsumers])
 
+  // Opens the confirmation dialog for an action on one prosumer
   const handleAction = (type, prosumer) => {
     setRejectReason('')
     setDeactivateReason('')
+    setDialogError('')
     setDialog({ type, prosumer })
   }
 
+  // Runs the confirmed action; reasons are checked with the same 10-500 character rule as the API
   const confirmAction = async () => {
     if (!dialog) return
     const { type, prosumer } = dialog
+    // A reason is required to reject, and to deactivate an account that did not ask for it
+    const needsDeactivateReason = type === 'deactivate' && prosumer.status === 'Active'
+    const reasonError = type === 'reject' ? validateReason(rejectReason)
+      : needsDeactivateReason ? validateReason(deactivateReason) : ''
+    if (reasonError) {
+      setDialogError(reasonError)
+      return
+    }
     try {
       if (type === 'activate') {
         await prosumerService.activateProsumer(prosumer.nic)
       } else if (type === 'reject') {
         await prosumerService.rejectProsumerActivation(prosumer.nic, rejectReason)
       } else if (type === 'deactivate') {
-        await prosumerService.approveDeactivation(prosumer.nic)
+        await prosumerService.approveDeactivation(prosumer.nic, deactivateReason)
       } else if (type === 'reactivate') {
         await prosumerService.reactivateProsumer(prosumer.nic)
       }
       setDialog(null)
       fetchProsumers()
     } catch (err) {
-      alert(err.message || 'Action failed.')
+      setDialogError(err.message || 'Action failed.')
     }
   }
 
@@ -133,11 +164,16 @@ export function ProsumersPage() {
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-slate-950 dark:text-white">Prosumer Management</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Manage all prosumer accounts — activate, reject, deactivate, or reactivate.
-        </p>
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-950 dark:text-white">Prosumer Management</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Manage all prosumer accounts — create, activate, reject, deactivate, or reactivate.
+          </p>
+        </div>
+        <button type="button" onClick={() => navigate('/backoffice/prosumers/new')} className="flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-300">
+          <UserPlus className="h-4 w-4" /> New Prosumer
+        </button>
       </motion.div>
 
       {error && (
@@ -266,7 +302,12 @@ export function ProsumersPage() {
                             <UserMinus className="h-3.5 w-3.5" /> Deactivate
                           </button>
                         )}
-                        {(p.status === 'Deactivated' || p.status === 'PendingDeactivation') && (
+                        {p.status === 'DeactivationRequested' && (
+                          <button type="button" onClick={() => handleAction('deactivate', p)} className="flex items-center gap-1 rounded-lg bg-red-500 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-red-600">
+                            <UserMinus className="h-3.5 w-3.5" /> Approve Deactivation
+                          </button>
+                        )}
+                        {p.status === 'Deactivated' && (
                           <button type="button" onClick={() => handleAction('reactivate', p)} className="flex items-center gap-1 rounded-lg bg-blue-500 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-600">
                             <RefreshCw className="h-3.5 w-3.5" /> Reactivate
                           </button>
@@ -306,16 +347,18 @@ export function ProsumersPage() {
             confirmClass="bg-emerald-500 text-white hover:bg-emerald-600"
             onConfirm={confirmAction}
             onCancel={() => setDialog(null)}
+            error={dialogError}
           />
         )}
         {dialog?.type === 'reject' && (
           <ConfirmDialog
             title={`Reject ${dialog.prosumer.fullName}'s activation?`}
-            description="Provide a reason for rejection (optional)."
+            description="Give the reason for rejecting this registration (10-500 characters)."
             confirmLabel="Reject Activation"
             confirmClass="bg-red-500 text-white hover:bg-red-600"
             onConfirm={confirmAction}
             onCancel={() => setDialog(null)}
+            error={dialogError}
           >
             <textarea
               value={rejectReason}
@@ -329,11 +372,14 @@ export function ProsumersPage() {
         {dialog?.type === 'deactivate' && (
           <ConfirmDialog
             title={`Deactivate ${dialog.prosumer.fullName}?`}
-            description="Provide a mandatory reason for this deactivation."
+            description={dialog.prosumer.status === 'Active'
+              ? 'This prosumer did not request deactivation, so a reason (10-500 characters) is required.'
+              : "Approve the prosumer's own deactivation request. Their stated reason is kept unless you enter a new one."}
             confirmLabel="Deactivate Account"
             confirmClass="bg-red-500 text-white hover:bg-red-600"
             onConfirm={confirmAction}
             onCancel={() => setDialog(null)}
+            error={dialogError}
           >
             <textarea
               value={deactivateReason}
@@ -353,6 +399,7 @@ export function ProsumersPage() {
             confirmClass="bg-blue-500 text-white hover:bg-blue-600"
             onConfirm={confirmAction}
             onCancel={() => setDialog(null)}
+            error={dialogError}
           />
         )}
       </AnimatePresence>

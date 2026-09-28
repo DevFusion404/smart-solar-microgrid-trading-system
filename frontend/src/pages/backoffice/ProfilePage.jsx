@@ -1,10 +1,19 @@
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : Identity and Account Management (Component 1)
+File          : ProfilePage.jsx (backoffice)
+Description   : Backoffice officer's own profile backed by
+                GET/PUT /api/profile.
+=====================================================
+*/
+
 import { motion } from 'framer-motion'
 import {
   CircleUserRound,
   Clock,
   Edit3,
   Mail,
-  MapPin,
   Phone,
   Save,
   Shield,
@@ -15,7 +24,9 @@ import {
 import { useEffect, useState } from 'react'
 import { profileService } from '../../services'
 import { useAuth } from '../../context/AuthContext'
+import { validatePhone } from '../../utils/validators'
 
+// One labelled field in the account information card
 function InfoRow({ icon: Icon, label, value }) {
   return (
     <div className="flex items-start gap-3 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
@@ -32,6 +43,7 @@ function InfoRow({ icon: Icon, label, value }) {
   )
 }
 
+// Coloured pill showing the account status
 function StatusBadge({ status }) {
   const map = {
     Active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300',
@@ -45,6 +57,7 @@ function StatusBadge({ status }) {
   )
 }
 
+// Backoffice officer's own profile: view and edit name/phone
 export function ProfilePage() {
   const { updateUserProfile } = useAuth()
   const [profile, setProfile] = useState(null)
@@ -54,7 +67,9 @@ export function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [formError, setFormError] = useState('')
 
+  // Loads the logged-in officer's profile from GET /api/profile
   const loadProfile = async () => {
     setLoading(true)
     setError('')
@@ -78,8 +93,15 @@ export function ProfilePage() {
     loadProfile()
   }, [])
 
+  // Validates and saves name/phone changes through PUT /api/profile
   const handleSave = async (e) => {
     e.preventDefault()
+    const problem = (form.fullName.trim().length < 2 ? 'Full name must be at least 2 characters.' : '') || validatePhone(form.phoneNumber)
+    if (problem) {
+      setFormError(problem)
+      return
+    }
+    setFormError('')
     setSaving(true)
     try {
       await updateUserProfile(form)
@@ -88,12 +110,13 @@ export function ProfilePage() {
       loadProfile()
       setTimeout(() => setSaved(false), 3500)
     } catch (err) {
-      alert(err.message || 'Failed to save profile changes.')
+      setFormError(err.message || 'Failed to save profile changes.')
     } finally {
       setSaving(false)
     }
   }
 
+  // Formats an ISO date for display
   const formatDate = (iso) =>
     iso
       ? new Date(iso).toLocaleDateString('en-GB', {
@@ -217,6 +240,7 @@ export function ProfilePage() {
                 <Edit3 className="h-4 w-4 text-amber-400" />
                 <h2 className="font-semibold text-slate-900 dark:text-white">Edit Details</h2>
               </div>
+              {formError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">{formError}</p>}
 
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                 Full Name
@@ -237,16 +261,6 @@ export function ProfilePage() {
                   onChange={(e) => setForm((f) => ({ ...f, phoneNumber: e.target.value }))}
                   required
                   className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                />
-              </label>
-
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Address
-                <textarea
-                  value={form.address}
-                  onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                  rows={3}
-                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 resize-none"
                 />
               </label>
 
@@ -282,7 +296,6 @@ export function ProfilePage() {
                 <InfoRow icon={User} label="Username" value={`@${profile.username}`} />
                 <InfoRow icon={Mail} label="Email Address" value={profile.email} />
                 <InfoRow icon={Phone} label="Phone Number" value={profile.phoneNumber} />
-                <InfoRow icon={MapPin} label="Address" value={profile.address} />
                 <InfoRow icon={Shield} label="Role" value={profile.role} />
               </div>
             </div>
