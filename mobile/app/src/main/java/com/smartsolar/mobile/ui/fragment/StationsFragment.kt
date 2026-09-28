@@ -19,6 +19,10 @@ import com.smartsolar.mobile.ui.adapter.StationAdapter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import androidx.activity.result.contract.ActivityResultContracts
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
@@ -39,6 +43,34 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
     private var currentStatusFilter: String = "ALL" // ALL, ACTIVE, DEACTIVATED
     private var isMapViewActive: Boolean = false
     private var searchJob: Job? = null
+
+    // User Location Tracking
+    private var userLocationMarker: Marker? = null
+    private var currentUserLocation: Location? = null
+    private var locationManager: LocationManager? = null
+
+    private val locationListener = object : LocationListener {
+        override fun onLocationChanged(location: Location) {
+            currentUserLocation = location
+            updateUserLocationMarker(location)
+        }
+        @Deprecated("Deprecated in Java")
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+        override fun onProviderEnabled(provider: String) {}
+        override fun onProviderDisabled(provider: String) {}
+    }
+
+    private val requestLocationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineGranted = permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseGranted = permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (fineGranted || coarseGranted) {
+            startLocationUpdates(animateToUser = true)
+        } else {
+            Toast.makeText(context, "Location permission denied. Cannot locate on map.", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -168,6 +200,99 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
         binding.btnRefreshStations.setOnClickListener {
             loadStations(forceRefresh = true)
         }
+
+        binding.fabMyLocation.setOnClickListener {
+            checkAndRequestLocation()
+        }
+    }
+
+    private fun checkAndRequestLocation() {
+        val fineGranted = ContextCompat.checkSelfPermission(
+            requireContext(),
+            android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(
+            requireContext(),
+            android.Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        if (fineGranted || coarseGranted) {
+            startLocationUpdates(animateToUser = true)
+        } else {
+            requestLocationPermissionLauncher.launch(
+                arrayOf(
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        }
+    }
+
+    private fun startLocationUpdates(animateToUser: Boolean) {
+        val ctx = context ?: return
+        if (locationManager == null) {
+            locationManager = ctx.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        }
+        val lm = locationManager ?: return
+
+        try {
+            val fineGranted = ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            val coarseGranted = ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+            if (!fineGranted && !coarseGranted) return
+
+            var bestLastLocation: Location? = null
+            if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3000L, 5f, locationListener)
+                bestLastLocation = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            }
+            if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 3000L, 5f, locationListener)
+                val netLoc = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                if (bestLastLocation == null || (netLoc != null && netLoc.time > bestLastLocation.time)) {
+                    bestLastLocation = netLoc
+                }
+            }
+
+            bestLastLocation?.let { loc ->
+                currentUserLocation = loc
+                updateUserLocationMarker(loc)
+                if (animateToUser && isMapViewActive) {
+                    val userPoint = GeoPoint(loc.latitude, loc.longitude)
+                    binding.mapViewStations.controller.setZoom(15.0)
+                    binding.mapViewStations.controller.animateTo(userPoint)
+                }
+            }
+        } catch (e: SecurityException) {
+            // Permission revoked
+        }
+    }
+
+    private fun updateUserLocationMarker(location: Location) {
+        val mapView = _binding?.mapViewStations ?: return
+        val userPoint = GeoPoint(location.latitude, location.longitude)
+
+        if (userLocationMarker == null) {
+            val userPin = ContextCompat.getDrawable(requireContext(), R.drawable.ic_my_location_marker)
+            userLocationMarker = Marker(mapView).apply {
+                position = userPoint
+                title = "My Current Location"
+                snippet = "You are here"
+                icon = userPin
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                setOnMarkerClickListener { _, _ ->
+                    Toast.makeText(requireContext(), "📍 You are here", Toast.LENGTH_SHORT).show()
+                    true
+                }
+            }
+        } else {
+            userLocationMarker?.position = userPoint
+        }
+
+        if (userLocationMarker != null && !mapView.overlays.contains(userLocationMarker)) {
+            mapView.overlays.add(userLocationMarker)
+        }
+        mapView.invalidate()
     }
 
     private fun loadStations(forceRefresh: Boolean) {
@@ -251,6 +376,11 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
     private fun updateMapMarkers(stations: List<Station>) {
         val mapView = _binding?.mapViewStations ?: return
         mapView.overlays.clear()
+
+        // Re-attach user location beacon if available
+        currentUserLocation?.let { loc ->
+            updateUserLocationMarker(loc)
+        }
 
         val validStations = stations.filter { it.latitude != 0.0 || it.longitude != 0.0 }
 
@@ -363,11 +493,14 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
     }
 
     override fun onPause() {
+        locationManager?.removeUpdates(locationListener)
         _binding?.mapViewStations?.onPause()
         super.onPause()
     }
 
     override fun onDestroyView() {
+        locationManager?.removeUpdates(locationListener)
+        userLocationMarker = null
         _binding?.mapViewStations?.onDetach()
         super.onDestroyView()
         _binding = null

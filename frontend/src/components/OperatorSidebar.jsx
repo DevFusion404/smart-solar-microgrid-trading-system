@@ -9,6 +9,7 @@ import {
   LogOut,
   PanelLeft,
   PanelLeftClose,
+  QrCode,
   Settings2,
 } from 'lucide-react'
 
@@ -18,6 +19,21 @@ import clsx from 'clsx'
 import logoImg from '../assets/logo3.png'
 
 const navigationGroups = [
+  {
+    label: 'Energy Transfers',
+    icon: QrCode,
+    items: [
+      {
+        label: 'Transfer Dashboard',
+        to: '/operator/transfers',
+        end: true,
+      },
+      {
+        label: 'Scan QR Code',
+        to: '/operator/transfers/scan',
+      },
+    ],
+  },
   {
     label: 'Reservations',
     icon: CalendarDays,

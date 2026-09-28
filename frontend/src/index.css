@@ -629,6 +629,16 @@
   color: #334155;
 }
 
+/* Per-field validation message under an auth input */
+.auth-field-error {
+  font-size: 0.75rem;
+  color: #fca5a5;
+}
+
+:root.light .auth-field-error {
+  color: #dc2626;
+}
+
 .auth-input-wrap {
   position: relative;
   display: flex;

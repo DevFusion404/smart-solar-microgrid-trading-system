@@ -25,6 +25,9 @@
 
         <!-- Custom Widget Styles -->
         <item name="textInputStyle">@style/Widget.SmartSolar.TextInputLayout</item>
+
+        <!-- High-visibility DatePicker dialog themes -->
+        <item name="android:datePickerDialogTheme">@style/SmartSolar.DatePickerDialog</item>
     </style>
 
     <!-- Full-screen Theme for Splash Screen -->
@@ -104,6 +107,27 @@
         <item name="android:textSize">12sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:letterSpacing">0.08</item>
+    </style>
+
+    <!-- High-visibility DatePickerDialog Style (Fixes white-on-white text bug) -->
+    <style name="SmartSolar.DatePickerDialog" parent="android:Theme.Material.Light.Dialog.Alert">
+        <item name="android:colorPrimary">@color/solar_primary</item>
+        <item name="android:colorPrimaryDark">@color/solar_primary_dark</item>
+        <item name="android:colorAccent">@color/solar_primary</item>
+        <item name="android:textColorPrimary">@color/slate_900</item>
+        <item name="android:textColorSecondary">@color/slate_600</item>
+        <item name="android:textColor">@color/slate_900</item>
+        <item name="android:windowBackground">@color/white</item>
+        <item name="android:background">@color/white</item>
+        <item name="android:colorBackground">@color/white</item>
+    </style>
+
+    <!-- MaterialCalendar Theme for MaterialDatePicker -->
+    <style name="ThemeOverlay.SmartSolar.MaterialCalendar" parent="ThemeOverlay.MaterialComponents.MaterialCalendar">
+        <item name="colorPrimary">@color/solar_primary</item>
+        <item name="colorOnPrimary">@color/slate_950</item>
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/slate_900</item>
     </style>
 
 </resources>
