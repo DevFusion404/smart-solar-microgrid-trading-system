@@ -1,3 +1,11 @@
+/*
+ * File Name    : EnergyReservation.cs
+ * Project      : Smart Solar Microgrid Trading System
+ * Description  : Represents an energy reservation document, including its slot snapshot, prosumer details, workflow status, and QR pass fields.
+ * Author       : Project Team
+ * Date         : 28 Sep 2026
+ */
+
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using System.Text.Json.Serialization;
