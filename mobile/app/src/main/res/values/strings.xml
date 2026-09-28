@@ -35,6 +35,15 @@
     <string name="role_hint">Select Account Role</string>
     <string name="confirm_password_label">Confirm Password</string>
     <string name="confirm_password_hint">Re-enter your password</string>
+    <string name="nic_hint">NIC (e.g. 981234567V or 199812345678)</string>
+    <string name="username_hint">Username (letters, numbers, _)</string>
+    <string name="phone_hint">Phone (e.g. 0771234567)</string>
+    <string name="address_hint">Home address</string>
+    <string name="err_invalid_nic">NIC must be 9 digits + V/X, or 12 digits</string>
+    <string name="err_invalid_phone">Use 0771234567 or +94771234567</string>
+    <string name="err_invalid_username">4–30 letters, numbers or underscores</string>
+    <string name="err_invalid_address">Address must be at least 5 characters</string>
+    <string name="err_weak_password">At least 8 characters with an uppercase letter, a lowercase letter and a number</string>
     <string name="btn_register">Create Account</string>
     <string name="already_have_account">Already have an account? </string>
     <string name="btn_login_link">Sign In</string>

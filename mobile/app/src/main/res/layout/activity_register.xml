@@ -96,13 +96,36 @@
                         android:textColor="@color/slate_500"
                         android:textSize="13sp" />
 
+                    <!-- NIC Input (unique key for the prosumer account) -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilNic"
+                        style="@style/Widget.SmartSolar.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:hint="@string/nic_hint"
+                        app:startIconDrawable="@drawable/ic_id_card"
+                        app:startIconTint="@color/slate_400">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etNic"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textCapCharacters"
+                            android:digits="0123456789VXvx"
+                            android:maxLength="12"
+                            android:maxLines="1"
+                            android:textColor="@color/slate_900"
+                            android:textSize="15sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
                     <!-- Full Name Input -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilFullName"
                         style="@style/Widget.SmartSolar.TextInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp"
+                        android:layout_marginTop="14dp"
                         android:hint="@string/full_name_hint"
                         app:startIconDrawable="@drawable/ic_person"
                         app:startIconTint="@color/slate_400">
@@ -112,6 +135,28 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="textPersonName"
+                            android:maxLines="1"
+                            android:textColor="@color/slate_900"
+                            android:textSize="15sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Username Input -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilUsername"
+                        style="@style/Widget.SmartSolar.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:hint="@string/username_hint"
+                        app:startIconDrawable="@drawable/ic_person"
+                        app:startIconTint="@color/slate_400">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etUsername"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="text"
+                            android:maxLength="30"
                             android:maxLines="1"
                             android:textColor="@color/slate_900"
                             android:textSize="15sp" />
@@ -138,24 +183,46 @@
                             android:textSize="15sp" />
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- Role Dropdown / Input -->
+                    <!-- Phone Input -->
                     <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/tilRole"
-                        style="@style/Widget.SmartSolar.TextInputLayout.ExposedDropdown"
+                        android:id="@+id/tilPhone"
+                        style="@style/Widget.SmartSolar.TextInputLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
-                        android:hint="@string/role_hint"
-                        app:startIconDrawable="@drawable/ic_role"
+                        android:hint="@string/phone_hint"
+                        app:startIconDrawable="@drawable/ic_phone"
                         app:startIconTint="@color/slate_400">
 
-                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                            android:id="@+id/actRole"
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etPhone"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="none"
-                            android:paddingTop="16dp"
-                            android:paddingBottom="16dp"
+                            android:inputType="phone"
+                            android:digits="0123456789+"
+                            android:maxLength="12"
+                            android:maxLines="1"
+                            android:textColor="@color/slate_900"
+                            android:textSize="15sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Address Input -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilAddress"
+                        style="@style/Widget.SmartSolar.TextInputLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:hint="@string/address_hint"
+                        app:startIconDrawable="@drawable/ic_home_address"
+                        app:startIconTint="@color/slate_400">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etAddress"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textPostalAddress|textMultiLine"
+                            android:maxLines="3"
                             android:textColor="@color/slate_900"
                             android:textSize="15sp" />
                     </com.google.android.material.textfield.TextInputLayout>
