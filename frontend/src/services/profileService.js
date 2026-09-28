@@ -28,6 +28,15 @@ export const profileService = {
   },
 
   /**
+   * Changes the logged-in user's password
+   * @param {Object} data - { currentPassword, newPassword, confirmPassword }
+   */
+  async changePassword(data) {
+    const response = await apiClient.post('/profile/change-password', data);
+    return response.data;
+  },
+
+  /**
    * Submits voluntary account deactivation request for prosumers
    * @param {string} reason
    */
