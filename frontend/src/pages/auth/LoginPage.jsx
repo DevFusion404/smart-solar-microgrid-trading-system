@@ -11,19 +11,30 @@ Description   : Beautiful login form rendered inside the
 
 import { Eye, EyeOff, AlertCircle, LogIn } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout } from './AuthLayout'
 import { useAuth } from '../../context/AuthContext'
+import { homePathForRole, isPathAllowedForRole } from '../../utils/roleRoutes'
 
+// Login form: authenticates against /api/Auth/login and sends the user to their role's home area
 export function LoginPage() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const location = useLocation()
+  const { login, isAuthenticated, role, loading: sessionLoading } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Page the user tried to open before being sent to login (set by RequireRole)
+  const requestedPath = location.state?.from
+
+  // Chooses where to go after login: the requested page if the role may open it, otherwise the role's home
+  const destinationFor = (userRole) =>
+    isPathAllowedForRole(requestedPath, userRole) ? requestedPath : homePathForRole(userRole)
+
+  // Submits credentials; on success redirects by role, on failure shows the API's message
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
@@ -31,15 +42,18 @@ export function LoginPage() {
     try {
       const result = await login({ username, password })
       const userRole = result?.user?.role || result?.role
-      if (userRole === 'GridOperator') navigate('/operator')
-      else if (userRole === 'Prosumer') navigate('/prosumer/profile')
-      else navigate('/backoffice')
+      navigate(destinationFor(userRole), { replace: true })
     } catch (err) {
       console.error('Login failed:', err)
       setError(err.message || 'Invalid credentials or server error. Please try again.')
     } finally {
       setLoading(false)
     }
+  }
+
+  // Already logged in: skip the form and go straight to the role's area
+  if (!sessionLoading && isAuthenticated) {
+    return <Navigate to={destinationFor(role)} replace />
   }
 
   return (

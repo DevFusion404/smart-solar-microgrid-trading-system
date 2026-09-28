@@ -1,3 +1,16 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : RequestDeactivationActivity.kt
+ * Description : Prosumer's request to close their account
+ *               (POST api/account/request-deactivation). The reason must be
+ *               10-500 characters. On success the account becomes
+ *               DeactivationRequested and a summary screen is shown; only a
+ *               Backoffice officer can approve it (and later reactivate).
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.ui.activity
 
 import android.content.Intent
@@ -9,6 +22,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.smartsolar.mobile.databinding.ActivityRequestDeactivationBinding
+import com.smartsolar.mobile.utils.AccountValidators
 import com.smartsolar.mobile.viewmodel.AccountViewModel
 import kotlinx.coroutines.launch
 
@@ -22,6 +36,7 @@ class RequestDeactivationActivity : AppCompatActivity() {
     private lateinit var binding: ActivityRequestDeactivationBinding
     private val accountViewModel: AccountViewModel by viewModels()
 
+    // Inflates the form and wires toolbar, buttons and result observer
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityRequestDeactivationBinding.inflate(layoutInflater)
@@ -32,12 +47,14 @@ class RequestDeactivationActivity : AppCompatActivity() {
         observeViewModel()
     }
 
+    // Shows a back arrow that closes the screen
     private fun setupToolbar() {
         setSupportActionBar(binding.deactivationToolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.deactivationToolbar.setNavigationOnClickListener { finish() }
     }
 
+    // Submit validates then sends the request; Cancel closes the screen
     private fun setupListeners() {
         binding.btnSubmitDeactivation.setOnClickListener {
             if (validateReason()) {
@@ -51,10 +68,11 @@ class RequestDeactivationActivity : AppCompatActivity() {
         }
     }
 
+    // Checks the reason is 10-500 characters (same rule as the API)
     private fun validateReason(): Boolean {
         val reason = binding.etDeactivationReason.text?.toString()?.trim().orEmpty()
-        return if (reason.length < 10) {
-            binding.tilDeactivationReason.error = "Deactivation reason must be at least 10 characters"
+        return if (!AccountValidators.isValidReason(reason)) {
+            binding.tilDeactivationReason.error = "Reason must be between 10 and 500 characters"
             false
         } else {
             binding.tilDeactivationReason.error = null
@@ -62,12 +80,14 @@ class RequestDeactivationActivity : AppCompatActivity() {
         }
     }
 
+    // Disables the button and asks the view model to send the request
     private fun submitRequest(reason: String) {
         binding.btnSubmitDeactivation.isEnabled = false
         binding.btnSubmitDeactivation.text = "Submitting..."
         accountViewModel.requestDeactivation(reason)
     }
 
+    // On success opens the summary screen; on error shows the server's message
     private fun observeViewModel() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {

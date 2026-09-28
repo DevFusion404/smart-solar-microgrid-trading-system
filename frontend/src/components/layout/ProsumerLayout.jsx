@@ -1,3 +1,14 @@
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : Identity and Account Management (Component 1)
+File          : ProsumerLayout.jsx
+Description   : Layout for the prosumer web portal (profile and
+                account settings). Access is limited to the Prosumer role
+                by RequireRole in App.jsx.
+=====================================================
+*/
+
 import { Bell, ChevronDown, Moon, Sun, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
@@ -7,13 +18,12 @@ import { IconButton } from '../common/IconButton'
 import { useAuth } from '../../context/AuthContext'
 
 const pageNames = {
-  '/prosumer': 'Dashboard',
   '/prosumer/profile': 'My Profile',
   '/prosumer/account': 'Account Settings',
-  '/prosumer/settings': 'Preferences',
   '/prosumer/transactions': 'Energy Transfers',
 }
 
+// Top bar with page title, theme toggle and user menu
 function ProsumerHeader({ onOpenMenu, isDark, onToggleTheme }) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -65,6 +75,7 @@ function ProsumerHeader({ onOpenMenu, isDark, onToggleTheme }) {
   )
 }
 
+// Shell for the prosumer portal: sidebar + header + routed page
 export function ProsumerLayout() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
@@ -82,10 +93,12 @@ export function ProsumerLayout() {
     localStorage.setItem('theme', isDark ? 'dark' : 'light')
   }, [isDark])
 
+  // Logs out and returns to the login page
   const logout = async () => {
     await authLogout()
     navigate('/login')
   }
+  // Collapses or expands the desktop sidebar
   const toggleSidebar = () => {
     setSidebarCollapsed((c) => {
       localStorage.setItem('prosumer-sidebar-collapsed', String(!c))

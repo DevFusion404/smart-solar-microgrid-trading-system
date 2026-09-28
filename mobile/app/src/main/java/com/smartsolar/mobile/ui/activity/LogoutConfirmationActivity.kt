@@ -1,3 +1,13 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : LogoutConfirmationActivity.kt
+ * Description : Logout confirmation for both roles. "Sign Out" clears the SQLite
+ *               session and the in-memory JWT, then opens the login screen.
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.ui.activity
 
 import android.content.Intent
@@ -19,6 +29,7 @@ class LogoutConfirmationActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLogoutConfirmationBinding
 
+    // Inflates the dialog-style screen and wires its buttons
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLogoutConfirmationBinding.inflate(layoutInflater)
@@ -29,12 +40,14 @@ class LogoutConfirmationActivity : AppCompatActivity() {
         setupListeners()
     }
 
+    // Shows the user's name and initial on the card
     private fun populateUser() {
         val name = intent.getStringExtra("USER_NAME") ?: "User"
         binding.tvLogoutUserName.text = name
         binding.tvLogoutUserInitial.text = name.firstOrNull()?.uppercase() ?: "U"
     }
 
+    // Sign out, stay logged in, or tap outside the card to dismiss
     private fun setupListeners() {
         binding.btnConfirmSignOut.setOnClickListener {
             signOut()
@@ -54,6 +67,7 @@ class LogoutConfirmationActivity : AppCompatActivity() {
         binding.logoutConfirmCard.setOnClickListener { /* consume */ }
     }
 
+    // Ends the session and returns to login with a cleared back stack
     private fun signOut() {
         // Clear SQLite session (also clears SharedPreferences and in-memory Retrofit token)
         SessionManager.clearSession(this)

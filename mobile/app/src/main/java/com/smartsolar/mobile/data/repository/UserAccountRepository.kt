@@ -1,3 +1,13 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : UserAccountRepository.kt
+ * Description : Account API calls for the logged-in user: get/update profile, change
+ *               password and request deactivation. Each call returns Result<T>.
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.data.repository
 
 import com.smartsolar.mobile.data.api.AccountApiService
@@ -101,6 +111,7 @@ class UserAccountRepository(
             }
         }
 
+    // Turns the API's error JSON (message / validationErrors) into one readable message
     private fun extractErrorMessage(jsonString: String?, defaultMessage: String): String {
         if (jsonString.isNullOrBlank()) return defaultMessage
         return try {

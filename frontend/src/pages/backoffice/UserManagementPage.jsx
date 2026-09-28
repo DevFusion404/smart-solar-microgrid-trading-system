@@ -1,3 +1,14 @@
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : Identity and Account Management (Component 1)
+File          : UserManagementPage.jsx
+Description   : Backoffice administration of web users (Backoffice and
+                Grid Operator roles) via /api/web-users: create, edit,
+                deactivate with a reason, and reactivate.
+=====================================================
+*/
+
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronLeft,
@@ -16,6 +27,7 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { userService } from '../../services'
+import { validateEmail, validatePassword, validatePhone, validateReason, validateUsername } from '../../utils/validators'
 
 const ROLE_TABS = ['All', 'Backoffice', 'GridOperator']
 const STATUS_TABS = ['All', 'Active', 'Deactivated']
@@ -30,14 +42,17 @@ const statusStyle = {
   Deactivated: 'bg-red-100 text-red-700 dark:bg-red-400/10 dark:text-red-300',
 }
 
+// Coloured pill for Backoffice / GridOperator
 function RoleBadge({ role }) {
   return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${roleStyle[role] ?? ''}`}><Shield className="h-3 w-3" />{role}</span>
 }
+// Coloured pill for Active / Deactivated
 function StatusBadge({ status }) {
   return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle[status] ?? ''}`}>{status}</span>
 }
 
-function Modal({ title, onClose, children }) {
+// Generic modal wrapper; shows an error line above the content when given
+function Modal({ title, onClose, children, error }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
@@ -45,12 +60,16 @@ function Modal({ title, onClose, children }) {
           <h3 className="font-semibold text-slate-900 dark:text-white">{title}</h3>
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-4 w-4" /></button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="p-6">
+          {error && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">{error}</p>}
+          {children}
+        </div>
       </motion.div>
     </div>
   )
 }
 
+// Backoffice page to create, edit, deactivate and reactivate Backoffice / Grid Operator accounts
 export function UserManagementPage() {
   const [users, setUsers] = useState([])
   const [totalCount, setTotalCount] = useState(0)
@@ -67,7 +86,9 @@ export function UserManagementPage() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
   const [error, setError] = useState('')
+  const [modalError, setModalError] = useState('')
 
+  // Loads a page of web users with the selected role/status filters
   const fetchUsers = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -93,13 +114,29 @@ export function UserManagementPage() {
     fetchUsers()
   }, [fetchUsers])
 
+  // Opens a modal with a clean error state
+  const openModal = (name) => {
+    setModalError('')
+    setModal(name)
+  }
+
+  // Shows a success message for a few seconds
   const showToast = (msg) => {
     setToast(msg)
     setTimeout(() => setToast(''), 3500)
   }
 
+  // Validates the new account (same rules as the API) and creates it
   const handleCreate = async (e) => {
     e.preventDefault()
+    const problem = (newUser.fullName.trim().length < 2 ? 'Full name must be at least 2 characters.' : '')
+      || validateEmail(newUser.email) || validateUsername(newUser.username)
+      || validatePhone(newUser.phoneNumber) || validatePassword(newUser.password)
+    if (problem) {
+      setModalError(problem)
+      return
+    }
+    setModalError('')
     setSaving(true)
     try {
       await userService.createWebUser(newUser)
@@ -108,14 +145,21 @@ export function UserManagementPage() {
       showToast('✓ User created successfully.')
       fetchUsers()
     } catch (err) {
-      alert(err.message || 'Failed to create user.')
+      setModalError(err.message || 'Failed to create user.')
     } finally {
       setSaving(false)
     }
   }
 
+  // Validates and saves changes to a web user's contact details
   const handleEdit = async (e) => {
     e.preventDefault()
+    const problem = validateEmail(editForm.email) || validatePhone(editForm.phoneNumber)
+    if (problem) {
+      setModalError(problem)
+      return
+    }
+    setModalError('')
     setSaving(true)
     try {
       await userService.updateWebUser(selected.username, editForm)
@@ -123,14 +167,20 @@ export function UserManagementPage() {
       showToast('✓ User profile updated successfully.')
       fetchUsers()
     } catch (err) {
-      alert(err.message || 'Failed to update user.')
+      setModalError(err.message || 'Failed to update user.')
     } finally {
       setSaving(false)
     }
   }
 
+  // Deactivates the selected web user; a 10-500 character reason is required
   const handleDeactivate = async () => {
-    if (!deactivateReason.trim()) return
+    const problem = validateReason(deactivateReason)
+    if (problem) {
+      setModalError(problem)
+      return
+    }
+    setModalError('')
     setSaving(true)
     try {
       await userService.deactivateWebUser(selected.username, deactivateReason)
@@ -139,27 +189,31 @@ export function UserManagementPage() {
       showToast('✓ User account deactivated.')
       fetchUsers()
     } catch (err) {
-      alert(err.message || 'Failed to deactivate user.')
+      setModalError(err.message || 'Failed to deactivate user.')
     } finally {
       setSaving(false)
     }
   }
 
+  // Reactivates a deactivated web user
   const handleReactivate = async (username) => {
     try {
       await userService.reactivateWebUser(username)
       showToast('✓ User account reactivated.')
       fetchUsers()
     } catch (err) {
-      alert(err.message || 'Failed to reactivate user.')
+      setError(err.message || 'Failed to reactivate user.')
     }
   }
 
+  // Opens the edit modal pre-filled with the user's details
   const openEdit = (user) => {
     setSelected(user)
     setEditForm({ fullName: user.fullName, email: user.email, phoneNumber: user.phoneNumber })
-    setModal('edit')
+    openModal('edit')
   }
+
+  // Client-side text filter over the loaded page
 
   const filtered = users.filter((u) => {
     const q = search.toLowerCase()
@@ -175,7 +229,7 @@ export function UserManagementPage() {
           <h1 className="text-2xl font-bold text-slate-950 dark:text-white">User Management</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Manage Backoffice officers and Grid Operators.</p>
         </div>
-        <button type="button" onClick={() => setModal('create')} className="flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-300">
+        <button type="button" onClick={() => openModal('create')} className="flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-300">
           <Plus className="h-4 w-4" /> Create User
         </button>
       </motion.div>
@@ -270,7 +324,7 @@ export function UserManagementPage() {
                           <Edit3 className="h-3.5 w-3.5" /> Edit
                         </button>
                         {u.status === 'Active' ? (
-                          <button type="button" onClick={() => { setSelected(u); setModal('deactivate') }} className="flex items-center gap-1 rounded-lg bg-red-500 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-red-600">
+                          <button type="button" onClick={() => { setSelected(u); setDeactivateReason(''); openModal('deactivate') }} className="flex items-center gap-1 rounded-lg bg-red-500 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-red-600">
                             <UserMinus className="h-3.5 w-3.5" /> Deactivate
                           </button>
                         ) : (
@@ -302,8 +356,8 @@ export function UserManagementPage() {
       {/* Modals */}
       <AnimatePresence>
         {modal === 'create' && (
-          <Modal title="Create Web User" onClose={() => setModal(null)}>
-            <form onSubmit={handleCreate} className="space-y-4">
+          <Modal title="Create Web User" onClose={() => setModal(null)} error={modalError}>
+            <form onSubmit={handleCreate} className="space-y-4" noValidate>
               {[['Full Name', 'fullName', 'text'], ['Email', 'email', 'email'], ['Username', 'username', 'text'], ['Phone Number', 'phoneNumber', 'tel'], ['Password', 'password', 'password']].map(([label, key, type]) => (
                 <label key={key} className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   {label}
@@ -325,8 +379,8 @@ export function UserManagementPage() {
           </Modal>
         )}
         {modal === 'edit' && selected && (
-          <Modal title={`Edit — ${selected.fullName}`} onClose={() => setModal(null)}>
-            <form onSubmit={handleEdit} className="space-y-4">
+          <Modal title={`Edit — ${selected.fullName}`} onClose={() => setModal(null)} error={modalError}>
+            <form onSubmit={handleEdit} className="space-y-4" noValidate>
               {[['Full Name', 'fullName', 'text'], ['Email', 'email', 'email'], ['Phone Number', 'phoneNumber', 'tel']].map(([label, key, type]) => (
                 <label key={key} className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   {label}
@@ -341,8 +395,8 @@ export function UserManagementPage() {
           </Modal>
         )}
         {modal === 'deactivate' && selected && (
-          <Modal title={`Deactivate — ${selected.fullName}`} onClose={() => setModal(null)}>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">Provide a mandatory reason for this deactivation.</p>
+          <Modal title={`Deactivate — ${selected.fullName}`} onClose={() => setModal(null)} error={modalError}>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">Provide a reason for this deactivation (10-500 characters). You cannot deactivate your own account.</p>
             <textarea value={deactivateReason} onChange={(e) => setDeactivateReason(e.target.value)} placeholder="Reason for deactivation…" rows={3} required className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 resize-none" />
             <div className="mt-4 flex gap-3">
               <button type="button" onClick={handleDeactivate} disabled={saving} className="flex items-center gap-2 rounded-xl bg-red-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60"><UserMinus className="h-4 w-4" /> {saving ? 'Deactivating…' : 'Deactivate'}</button>

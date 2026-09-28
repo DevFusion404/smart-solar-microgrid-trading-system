@@ -42,8 +42,12 @@ public class ProsumerSummaryDto
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+    public DateTime? ActivationRequestedAt { get; set; }
+    public DateTime? DeactivationRequestedAt { get; set; }
+    public string? DeactivationReason { get; set; }
 }
 
 public class ProsumerListResponseDto

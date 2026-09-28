@@ -1,33 +1,34 @@
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : Identity and Account Management (Component 1)
+File          : ProfilePage.jsx (grid operator)
+Description   : Grid Operator's own profile. Loads GET /api/profile and
+                saves name/phone changes through PUT /api/profile.
+                (Address is a prosumer-only field, so it is not shown.)
+=====================================================
+*/
+
 import { motion } from 'framer-motion'
 import {
+  AlertCircle,
   CircleUserRound,
   Clock,
   Edit3,
   Mail,
-  MapPin,
   Phone,
+  RefreshCw,
   Save,
   Shield,
   User,
   X,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { profileService } from '../../services'
+import { useAuth } from '../../context/AuthContext'
+import { validatePhone } from '../../utils/validators'
 
-// Mock data matching GET /api/profile response for GridOperator
-const mockProfile = {
-  username: 'alex.ops',
-  fullName: 'Alex Fernando',
-  email: 'alex.fernando@solargrid.lk',
-  phoneNumber: '+94 77 200 3002',
-  role: 'GridOperator',
-  status: 'Active',
-  nic: null,
-  address: '18 Flower Road, Colombo 07',
-  createdAt: '2024-02-20T08:00:00Z',
-  updatedAt: '2026-06-12T10:00:00Z',
-  lastLoginAt: '2026-09-14T13:00:00Z',
-}
-
+// One labelled field in the account information card
 function InfoRow({ icon: Icon, label, value }) {
   return (
     <div className="flex items-start gap-3 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
@@ -44,40 +45,94 @@ function InfoRow({ icon: Icon, label, value }) {
   )
 }
 
+// Formats an ISO date for display
+function formatDate(iso) {
+  return iso
+    ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : 'Never'
+}
+
+// Grid Operator profile page backed by the profile API
 export function ProfilePage() {
-  const [profile] = useState(mockProfile)
+  const { updateUserProfile } = useAuth()
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({
-    fullName: profile.fullName,
-    phoneNumber: profile.phoneNumber,
-    address: profile.address ?? '',
-  })
+  const [form, setForm] = useState({ fullName: '', phoneNumber: '' })
+  const [formError, setFormError] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  const initials = profile.fullName
+  // Loads the logged-in operator's profile
+  const loadProfile = useCallback(async () => {
+    setLoading(true)
+    setLoadError('')
+    try {
+      const data = await profileService.getProfile()
+      setProfile(data)
+      setForm({ fullName: data.fullName || '', phoneNumber: data.phoneNumber || '' })
+    } catch (err) {
+      setLoadError(err.message || 'Failed to load your profile.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadProfile()
+  }, [loadProfile])
+
+  // Validates and saves name/phone changes
+  const handleSave = async (e) => {
+    e.preventDefault()
+    const problem = (form.fullName.trim().length < 2 ? 'Full name must be at least 2 characters.' : '') || validatePhone(form.phoneNumber)
+    if (problem) {
+      setFormError(problem)
+      return
+    }
+    setFormError('')
+    setSaving(true)
+    try {
+      await updateUserProfile({ fullName: form.fullName.trim(), phoneNumber: form.phoneNumber.trim() })
+      setSaved(true)
+      setEditing(false)
+      loadProfile()
+      setTimeout(() => setSaved(false), 3000)
+    } catch (err) {
+      setFormError(err.message || 'Failed to save profile changes.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="py-20 text-center text-slate-400">
+        <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 opacity-50" />
+        Loading your profile…
+      </div>
+    )
+  }
+
+  if (loadError || !profile) {
+    return (
+      <div className="py-12 text-center text-red-500">
+        <AlertCircle className="h-10 w-10 mx-auto mb-2" />
+        <p className="font-semibold">{loadError || 'Unable to fetch profile.'}</p>
+        <button type="button" onClick={loadProfile} className="mt-3 rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300">
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  const initials = (profile.fullName || 'GO')
     .split(' ')
     .map((n) => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2)
-
-  const handleSave = async (e) => {
-    e.preventDefault()
-    setSaving(true)
-    await new Promise((r) => setTimeout(r, 800))
-    setSaving(false)
-    setSaved(true)
-    setEditing(false)
-    setTimeout(() => setSaved(false), 3000)
-  }
-
-  const formatDate = (iso) =>
-    iso
-      ? new Date(iso).toLocaleDateString('en-GB', {
-          day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-        })
-      : 'Never'
 
   return (
     <div className="space-y-6">
@@ -112,7 +167,7 @@ export function ProfilePage() {
           <div className="mt-6 w-full space-y-2 text-xs text-slate-500 dark:text-slate-400">
             <div className="flex items-center gap-2">
               <Clock className="h-3.5 w-3.5 shrink-0" />
-              <span>Member since {new Date(profile.createdAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</span>
+              <span>Member since {profile.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-3.5 w-3.5 shrink-0" />
@@ -122,7 +177,7 @@ export function ProfilePage() {
 
           <button
             type="button"
-            onClick={() => setEditing((v) => !v)}
+            onClick={() => { setEditing((v) => !v); setFormError('') }}
             className={`mt-6 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
               editing
                 ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
@@ -136,21 +191,19 @@ export function ProfilePage() {
         {/* Details */}
         <motion.div initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 }} className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           {editing ? (
-            <form onSubmit={handleSave} className="p-6 space-y-5">
+            <form onSubmit={handleSave} className="p-6 space-y-5" noValidate>
               <div className="flex items-center gap-2 mb-2">
                 <Edit3 className="h-4 w-4 text-blue-500" />
                 <h2 className="font-semibold text-slate-900 dark:text-white">Edit Details</h2>
               </div>
+              {formError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">{formError}</p>}
               {[['Full Name', 'fullName', 'text'], ['Phone Number', 'phoneNumber', 'tel']].map(([label, key, type]) => (
                 <label key={key} className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   {label}
-                  <input type={type} value={form[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} required className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                  <input type={type} value={form[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                 </label>
               ))}
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Address
-                <textarea value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} rows={3} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 resize-none" />
-              </label>
+              <p className="text-xs text-slate-400">Email and username can only be changed by a Backoffice officer.</p>
               <div className="flex items-center gap-3 pt-2">
                 <button type="submit" disabled={saving} className="flex items-center gap-2 rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-60"><Save className="h-4 w-4" />{saving ? 'Saving…' : 'Save Changes'}</button>
                 <button type="button" onClick={() => setEditing(false)} className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">Cancel</button>
@@ -167,8 +220,7 @@ export function ProfilePage() {
               <InfoRow icon={User} label="Username" value={`@${profile.username}`} />
               <InfoRow icon={Mail} label="Email Address" value={profile.email} />
               <InfoRow icon={Phone} label="Phone Number" value={profile.phoneNumber} />
-              <InfoRow icon={MapPin} label="Address" value={profile.address} />
-              <InfoRow icon={Shield} label="Role" value={profile.role} />
+              <InfoRow icon={Shield} label="Role" value="Grid Operator" />
             </div>
           )}
         </motion.div>

@@ -1,3 +1,14 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : TokenManager.kt
+ * Description : Legacy SharedPreferences copy of the session, kept in sync by
+ *               SessionManager for older screens. SQLite (SessionManager) is the
+ *               main session store.
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.data.local
 
 import android.content.Context
@@ -17,6 +28,7 @@ object TokenManager {
     private const val KEY_USER_STATUS = "user_status"
     private const val KEY_NIC = "user_nic"
 
+    // Opens the private preferences file used for the session copy
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
     }
@@ -62,10 +74,19 @@ object TokenManager {
         return !getToken(context).isNullOrBlank()
     }
 
+    // Stored username, or null when logged out
     fun getUsername(context: Context): String? = getPrefs(context).getString(KEY_USERNAME, null)
+
+    // Stored full name, or null when logged out
     fun getFullName(context: Context): String? = getPrefs(context).getString(KEY_FULL_NAME, null)
+
+    // Stored role (Prosumer / GridOperator), or null when logged out
     fun getUserRole(context: Context): String? = getPrefs(context).getString(KEY_USER_ROLE, null)
+
+    // Stored account status, or null when logged out
     fun getUserStatus(context: Context): String? = getPrefs(context).getString(KEY_USER_STATUS, null)
+
+    // Stored NIC (prosumers only), or null
     fun getNic(context: Context): String? = getPrefs(context).getString(KEY_NIC, null)
 
     /**

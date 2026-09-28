@@ -1,10 +1,12 @@
 /*
 =====================================================
 Project       : Smart Solar Microgrid Trading System
-Component     : 3D Register Page
+Component     : Identity and Account Management (Component 1)
 File          : RegisterPage.jsx
-Description   : Beautiful prosumer registration form rendered
-                inside the AuthLayout glassmorphism card.
+Description   : Prosumer self-registration with NIC as the unique key.
+                Fields are checked on the client with the same rules as
+                the API, then POST /api/prosumers/register creates the
+                account in PendingActivation status.
 =====================================================
 */
 
@@ -13,7 +15,9 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthLayout } from './AuthLayout'
 import { prosumerService } from '../../services'
+import { validateProsumerForm } from '../../utils/validators'
 
+// Public registration form for new prosumers
 export function RegisterPage() {
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
@@ -29,19 +33,32 @@ export function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({})
 
+  // Updates a field and clears its error message
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+    setFieldErrors((prev) => ({ ...prev, [e.target.name]: '' }))
   }
 
+  // Validates all fields, then sends the registration to the API
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
+    const found = validateProsumerForm(formData)
+    setFieldErrors(found)
+    if (Object.keys(found).length > 0) {
+      setError('Please correct the highlighted fields.')
+      return
+    }
     setLoading(true)
     try {
-      await prosumerService.registerProsumer(formData)
+      await prosumerService.registerProsumer({ ...formData, nic: formData.nic.trim().toUpperCase() })
       setSuccess(true)
     } catch (err) {
+      if (err.validationErrors) {
+        setFieldErrors(Object.fromEntries(Object.entries(err.validationErrors).map(([k, v]) => [k, Array.isArray(v) ? v.join(' ') : v])))
+      }
       console.error('Registration failed:', err)
       setError(err.message || 'Registration failed. Please check your inputs and try again.')
     } finally {
@@ -114,6 +131,7 @@ export function RegisterPage() {
               required
               className="auth-input"
             />
+            {fieldErrors.nic && <span className="auth-field-error">{fieldErrors.nic}</span>}
           </div>
           <div className="auth-field">
             <label htmlFor="reg-username" className="auth-label">Username</label>
@@ -124,10 +142,11 @@ export function RegisterPage() {
               autoComplete="username"
               value={formData.username}
               onChange={handleChange}
-              placeholder="e.g. kasun.silva"
+              placeholder="e.g. kasun_silva"
               required
               className="auth-input"
             />
+            {fieldErrors.username && <span className="auth-field-error">{fieldErrors.username}</span>}
           </div>
         </div>
 
@@ -144,6 +163,7 @@ export function RegisterPage() {
             required
             className="auth-input"
           />
+          {fieldErrors.fullName && <span className="auth-field-error">{fieldErrors.fullName}</span>}
         </div>
 
         {/* Row 2: Email + Phone */}
@@ -161,6 +181,7 @@ export function RegisterPage() {
               required
               className="auth-input"
             />
+            {fieldErrors.email && <span className="auth-field-error">{fieldErrors.email}</span>}
           </div>
           <div className="auth-field">
             <label htmlFor="reg-phone" className="auth-label">Phone</label>
@@ -171,10 +192,11 @@ export function RegisterPage() {
               autoComplete="tel"
               value={formData.phoneNumber}
               onChange={handleChange}
-              placeholder="+94 77 111 2222"
+              placeholder="0771112222"
               required
               className="auth-input"
             />
+            {fieldErrors.phoneNumber && <span className="auth-field-error">{fieldErrors.phoneNumber}</span>}
           </div>
         </div>
 
@@ -191,6 +213,7 @@ export function RegisterPage() {
             required
             className="auth-input"
           />
+          {fieldErrors.address && <span className="auth-field-error">{fieldErrors.address}</span>}
         </div>
 
         {/* Password */}
@@ -218,6 +241,7 @@ export function RegisterPage() {
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+          {fieldErrors.password && <span className="auth-field-error">{fieldErrors.password}</span>}
         </div>
 
         {/* Terms */}

@@ -1,3 +1,13 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : SessionRecord.kt
+ * Description : One row of the local SQLite `sessions` table (login session
+ *               persistence).
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.data.model
 
 // ──────────────────────────────────────────────────────────────────────────────

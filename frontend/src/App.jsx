@@ -1,5 +1,17 @@
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : Application Routing
+File          : App.jsx
+Description   : Declares every web route. Each role area (/backoffice,
+                /operator, /prosumer) is wrapped in RequireRole so only
+                users with that role can open its pages.
+=====================================================
+*/
+
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { RequireRole } from './components/auth/RequireRole'
 import { DashboardLayout } from './components/layout/DashboardLayout'
 import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
@@ -12,6 +24,10 @@ import { ProsumersPage } from './pages/backoffice/ProsumersPage'
 import { ProsumerRequestsPage } from './pages/backoffice/ProsumerRequestsPage'
 import { ProsumerDetailPage } from './pages/backoffice/ProsumerDetailPage'
 import { UserManagementPage } from './pages/backoffice/UserManagementPage'
+import { CreateProsumerPage } from './pages/backoffice/CreateProsumerPage'
+
+// Shared account pages (Component 1)
+import { AccountSettingsPage } from './pages/account/AccountSettingsPage'
 
 // Microgrid Node pages (Component 2 - Sithmaka)
 import { NodesListPage } from './pages/backoffice/nodes/NodesListPage'
@@ -45,6 +61,7 @@ import { TransferCompletePage } from './pages/operator/TransferCompletePage'
 
 import { HomePage } from './pages/HomePage'
 
+// Root component: provides auth state and the role-protected route tree
 function App() {
   return (
     <BrowserRouter>
@@ -55,7 +72,8 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
-          {/* ── Backoffice ── */}
+          {/* ── Backoffice (only Backoffice officers) ── */}
+          <Route element={<RequireRole roles={['Backoffice']} />}>
           <Route path="/backoffice" element={<DashboardLayout />}>
             <Route index element={<DashboardPage />} />
 
@@ -63,8 +81,10 @@ function App() {
             <Route path="profile" element={<BackofficeProfilePage />} />
             <Route path="users" element={<UserManagementPage />} />
             <Route path="prosumers" element={<ProsumersPage />} />
+            <Route path="prosumers/new" element={<CreateProsumerPage />} />
             <Route path="prosumers/requests" element={<ProsumerRequestsPage />} />
             <Route path="prosumers/:nic" element={<ProsumerDetailPage />} />
+            <Route path="settings" element={<AccountSettingsPage />} />
 
             {/* Microgrid Nodes (Component 2 - Sithmaka) */}
             <Route path="nodes" element={<NodesListPage />} />
@@ -79,8 +99,10 @@ function App() {
 
             <Route path="*" element={<PlaceholderPage />} />
           </Route>
+          </Route>
 
-          {/* ── Grid Operator ── */}
+          {/* ── Grid Operator (only Grid Operators) ── */}
+          <Route element={<RequireRole roles={['GridOperator']} />}>
           <Route path="/operator" element={<OperatorLayout />}>
             <Route index element={<OperatorDashboard />} />
 
@@ -107,19 +129,24 @@ function App() {
             {/* Account management */}
             <Route path="profile" element={<GridOperatorProfilePage />} />
             <Route path="prosumers" element={<GridOperatorProsumerListPage />} />
+            <Route path="settings" element={<AccountSettingsPage />} />
 
             <Route path="*" element={<PlaceholderPage />} />
           </Route>
+          </Route>
 
-          {/* ── Prosumer Portal ── */}
+          {/* ── Prosumer Portal (only Prosumers) ── */}
+          <Route element={<RequireRole roles={['Prosumer']} />}>
           <Route path="/prosumer" element={<ProsumerLayout />}>
             <Route index element={<Navigate to="/prosumer/transactions" replace />} />
             <Route path="profile" element={<ProsumerProfilePage />} />
+            <Route path="account" element={<AccountSettingsPage />} />
 
             {/* Energy Transfers (Component 4 - Malmi) */}
             <Route path="transactions" element={<TransactionDashboard />} />
             <Route path="transactions/:transactionId/qr" element={<QrDisplayPage />} />
-            <Route path="*" element={<PlaceholderPage />} />
+            <Route path="*" element={<Navigate to="/prosumer/transactions" replace />} />
+          </Route>
           </Route>
         </Routes>
       </AuthProvider>

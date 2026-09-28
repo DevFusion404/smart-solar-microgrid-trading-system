@@ -1,3 +1,14 @@
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : Identity and Account Management (Component 1)
+File          : ProsumerRequestsPage.jsx
+Description   : Backoffice review queues:
+                - Pending activations: activate or reject (reason required)
+                - Deactivation requests: approve (shows the prosumer's reason)
+=====================================================
+*/
+
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   CheckCircle2,
@@ -12,13 +23,27 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { prosumerService } from '../../services'
+import { validateReason } from '../../utils/validators'
 
 const TABS = ['Pending Activations', 'Deactivation Requests']
 
+// One request card with the prosumer's details and the approve/reject buttons
 function ProsumerCard({ prosumer, actions, type }) {
   const initials = prosumer.fullName ? prosumer.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'PR'
   const [rejectReason, setRejectReason] = useState('')
   const [showReject, setShowReject] = useState(false)
+  const [rejectError, setRejectError] = useState('')
+
+  // Rejects the registration once a valid reason has been entered
+  const confirmReject = async () => {
+    const problem = validateReason(rejectReason)
+    if (problem) {
+      setRejectError(problem)
+      return
+    }
+    const ok = await actions.reject(prosumer.nic, rejectReason)
+    if (ok) setShowReject(false)
+  }
 
   return (
     <motion.div
@@ -75,11 +100,12 @@ function ProsumerCard({ prosumer, actions, type }) {
               >
                 <textarea
                   value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="Reason for rejection (optional)…"
+                  onChange={(e) => { setRejectReason(e.target.value); setRejectError('') }}
+                  placeholder="Reason for rejection (10-500 characters)…"
                   rows={2}
                   className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 resize-none"
                 />
+                {rejectError && <p className="mt-1 text-xs text-red-500">{rejectError}</p>}
               </motion.div>
             )}
           </AnimatePresence>
@@ -98,7 +124,7 @@ function ProsumerCard({ prosumer, actions, type }) {
                   <>
                     <button
                       type="button"
-                      onClick={() => { actions.reject(prosumer.nic, rejectReason); setShowReject(false) }}
+                      onClick={confirmReject}
                       className="flex items-center gap-1.5 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
                     >
                       <UserX className="h-4 w-4" /> Confirm Reject
@@ -136,13 +162,16 @@ function ProsumerCard({ prosumer, actions, type }) {
   )
 }
 
+// Backoffice queue of pending registrations and deactivation requests
 export function ProsumerRequestsPage() {
   const [activeTab, setActiveTab] = useState(TABS[0])
   const [pending, setPending] = useState([])
   const [deactivation, setDeactivation] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
+  // Loads both queues in parallel
   const fetchRequests = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -158,6 +187,10 @@ export function ProsumerRequestsPage() {
       if (deactRes.status === 'fulfilled') {
         setDeactivation(deactRes.value.items || [])
       }
+      const failed = [pendingRes, deactRes].find((r) => r.status === 'rejected')
+      if (failed) {
+        setError(failed.reason?.message || 'Some requests could not be loaded.')
+      }
     } catch (err) {
       console.error('Failed to load prosumer requests:', err)
       setError(err.message || 'Failed to connect to prosumer service.')
@@ -170,31 +203,25 @@ export function ProsumerRequestsPage() {
     fetchRequests()
   }, [fetchRequests])
 
+  // Runs an API action, then refreshes the queues; returns true on success
+  const run = async (apiCall, successMessage) => {
+    setError('')
+    setNotice('')
+    try {
+      await apiCall()
+      setNotice(successMessage)
+      fetchRequests()
+      return true
+    } catch (err) {
+      setError(err.message || 'Action failed.')
+      return false
+    }
+  }
+
   const actions = {
-    activate: async (nic) => {
-      try {
-        await prosumerService.activateProsumer(nic)
-        fetchRequests()
-      } catch (err) {
-        alert(err.message || 'Failed to activate prosumer.')
-      }
-    },
-    reject: async (nic, reason) => {
-      try {
-        await prosumerService.rejectProsumerActivation(nic, reason)
-        fetchRequests()
-      } catch (err) {
-        alert(err.message || 'Failed to reject prosumer activation.')
-      }
-    },
-    approveDeactivation: async (nic) => {
-      try {
-        await prosumerService.approveDeactivation(nic)
-        fetchRequests()
-      } catch (err) {
-        alert(err.message || 'Failed to approve deactivation.')
-      }
-    },
+    activate: (nic) => run(() => prosumerService.activateProsumer(nic), `Prosumer ${nic} activated.`),
+    reject: (nic, reason) => run(() => prosumerService.rejectProsumerActivation(nic, reason), `Registration ${nic} rejected.`),
+    approveDeactivation: (nic) => run(() => prosumerService.approveDeactivation(nic), `Prosumer ${nic} deactivated.`),
   }
 
   const items = activeTab === TABS[0] ? pending : deactivation
@@ -208,6 +235,13 @@ export function ProsumerRequestsPage() {
           Review and action pending activation and deactivation requests.
         </p>
       </motion.div>
+
+      {notice && (
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-700/40 dark:bg-emerald-400/10 dark:text-emerald-300">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>{notice}</span>
+        </div>
+      )}
 
       {error && (
         <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">
