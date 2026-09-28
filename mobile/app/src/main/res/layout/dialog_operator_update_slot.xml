@@ -102,6 +102,24 @@
             android:textColor="@color/slate_900" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Slot Status Selection (Available / Closed) -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilUpdateSlotStatus"
+        style="@style/Widget.SmartSolar.TextInputLayout.ExposedDropdown"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:hint="Slot Status">
+
+        <AutoCompleteTextView
+            android:id="@+id/actvUpdateSlotStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="none"
+            android:text="Available"
+            android:textColor="@color/slate_900" />
+    </com.google.android.material.textfield.TextInputLayout>
+
     <!-- Actions -->
     <LinearLayout
         android:layout_width="match_parent"

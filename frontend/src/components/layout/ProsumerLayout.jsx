@@ -20,6 +20,7 @@ import { useAuth } from '../../context/AuthContext'
 const pageNames = {
   '/prosumer/profile': 'My Profile',
   '/prosumer/account': 'Account Settings',
+  '/prosumer/transactions': 'Energy Transfers',
 }
 
 // Top bar with page title, theme toggle and user menu

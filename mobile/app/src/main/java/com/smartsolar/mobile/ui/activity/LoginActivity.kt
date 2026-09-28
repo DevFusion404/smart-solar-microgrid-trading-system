@@ -46,7 +46,7 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        intent.getStringExtra(EXTRA_PREFILL_USERNAME)?.let { binding.etEmail.setText(it) }
+        intent.getStringExtra(EXTRA_PREFILL_USERNAME)?.let { binding.etUsername.setText(it) }
 
         setupListeners()
         observeViewModel()
@@ -64,10 +64,10 @@ class LoginActivity : AppCompatActivity() {
         // Handle Login Submission
         binding.btnLogin.setOnClickListener {
             if (validateInputs()) {
-                val identifier = binding.etEmail.text?.toString()?.trim().orEmpty()
+                val username = binding.etUsername.text?.toString()?.trim().orEmpty()
                 // Passwords are sent exactly as typed (spaces are allowed characters)
                 val password = binding.etPassword.text?.toString().orEmpty()
-                authViewModel.login(this, identifier, password)
+                authViewModel.login(this, username, password)
             }
         }
 
@@ -133,7 +133,7 @@ class LoginActivity : AppCompatActivity() {
 
     // Registration is not approved yet: show the pending screen (no session is created)
     private fun openPendingActivation() {
-        val identifier = binding.etEmail.text?.toString()?.trim().orEmpty()
+        val identifier = binding.etUsername.text?.toString()?.trim().orEmpty()
         val intent = Intent(this, PendingActivationActivity::class.java).apply {
             putExtra("USER_NAME", identifier)
             putExtra("USER_EMAIL", identifier)
@@ -170,7 +170,8 @@ class LoginActivity : AppCompatActivity() {
             }
             role.equals("GridOperator", ignoreCase = true) ||
             role.equals("Grid Operator", ignoreCase = true) ->
-                openHome(displayName, RoleRedirectionActivity.ROLE_GRID_OPERATOR)
+                // Operator screens use OPERATOR_ID (the username) to load their assigned nodes
+                openHome(displayName, RoleRedirectionActivity.ROLE_GRID_OPERATOR, operatorId = username)
             else ->
                 // Prosumer (default role)
                 openHome(displayName, RoleRedirectionActivity.ROLE_PROSUMER)
@@ -178,11 +179,12 @@ class LoginActivity : AppCompatActivity() {
     }
 
     // Starts watching for 401s (expired token) and opens the role's home via the redirect screen
-    private fun openHome(displayName: String, role: String) {
+    private fun openHome(displayName: String, role: String, operatorId: String? = null) {
         SessionManager.installSessionExpiryHandler(this)
         val intent = Intent(this, RoleRedirectionActivity::class.java).apply {
             putExtra("USER_NAME", displayName)
             putExtra("USER_ROLE", role)
+            if (operatorId != null) putExtra("OPERATOR_ID", operatorId)
         }
         startActivity(intent)
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
@@ -191,16 +193,16 @@ class LoginActivity : AppCompatActivity() {
 
     // Both fields are required before calling the API
     private fun validateInputs(): Boolean {
-        val emailOrUsername = binding.etEmail.text?.toString()?.trim().orEmpty()
+        val username = binding.etUsername.text?.toString()?.trim().orEmpty()
         val password = binding.etPassword.text?.toString().orEmpty()
 
         var isValid = true
 
-        if (emailOrUsername.isEmpty()) {
-            binding.tilEmail.error = "Username or Email is required"
+        if (username.isEmpty()) {
+            binding.tilUsername.error = getString(R.string.err_empty_username)
             isValid = false
         } else {
-            binding.tilEmail.error = null
+            binding.tilUsername.error = null
         }
 
         if (password.isEmpty()) {

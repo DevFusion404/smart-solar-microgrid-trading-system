@@ -111,6 +111,7 @@ class SplashActivity : AppCompatActivity() {
                         Intent(this@SplashActivity, RoleRedirectionActivity::class.java).apply {
                             putExtra("USER_NAME", displayName)
                             putExtra("USER_ROLE", RoleRedirectionActivity.ROLE_GRID_OPERATOR)
+                            putExtra("OPERATOR_ID", session.username)
                         }
                     }
                     session.role.equals("Backoffice", ignoreCase = true) -> {

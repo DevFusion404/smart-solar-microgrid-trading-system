@@ -116,6 +116,16 @@ interface ApiService {
         @Body capacity: SlotCapacityUpdate
     ): Response<Map<String, String>>
 
+    @PUT("api/slots/{id}/close")
+    suspend fun closeSlot(
+        @Path("id") id: String
+    ): Response<Map<String, String>>
+
+    @DELETE("api/slots/{id}")
+    suspend fun deleteSlot(
+        @Path("id") id: String
+    ): Response<Map<String, String>>
+
     // ── Grid Operator & Auth Endpoints ─────────────────────────────────────────
 
     @POST("api/Auth/login")

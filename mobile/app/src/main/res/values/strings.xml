@@ -16,6 +16,8 @@
     <!-- Login Screen -->
     <string name="login_title">Welcome Back</string>
     <string name="login_subtitle">Sign in to manage your microgrid nodes and energy slots</string>
+    <string name="username_label">Username</string>
+    <string name="username_hint">Enter your username</string>
     <string name="email_label">Email Address</string>
     <string name="email_hint">Enter your email</string>
     <string name="password_label">Password</string>
@@ -36,7 +38,7 @@
     <string name="confirm_password_label">Confirm Password</string>
     <string name="confirm_password_hint">Re-enter your password</string>
     <string name="nic_hint">NIC (e.g. 981234567V or 199812345678)</string>
-    <string name="username_hint">Username (letters, numbers, _)</string>
+    <string name="register_username_hint">Username (letters, numbers, _)</string>
     <string name="phone_hint">Phone (e.g. 0771234567)</string>
     <string name="address_hint">Home address</string>
     <string name="err_invalid_nic">NIC must be 9 digits + V/X, or 12 digits</string>
@@ -50,6 +52,7 @@
     <string name="terms_agreement">By registering, you agree to our Terms of Service and Privacy Policy</string>
 
     <!-- Validation & Alerts -->
+    <string name="err_empty_username">Username is required</string>
     <string name="err_empty_email">Email address is required</string>
     <string name="err_empty_password">Password is required</string>
     <string name="err_empty_name">Full name is required</string>

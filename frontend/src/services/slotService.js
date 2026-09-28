@@ -80,6 +80,26 @@ const slotService = {
     });
     return response.data;
   },
+
+  /**
+   * Closes an existing slot if no energy has been reserved.
+   * @param {string} id - Slot document ID
+   * @returns {Promise<Object>} API response message
+   */
+  closeSlot: async (id) => {
+    const response = await apiClient.put(`/slots/${id}/close`);
+    return response.data;
+  },
+
+  /**
+   * Permanently deletes a closed slot if no energy has been reserved.
+   * @param {string} id - Slot document ID
+   * @returns {Promise<Object>} API response message
+   */
+  deleteSlot: async (id) => {
+    const response = await apiClient.delete(`/slots/${id}`);
+    return response.data;
+  },
 };
 
 export default slotService;

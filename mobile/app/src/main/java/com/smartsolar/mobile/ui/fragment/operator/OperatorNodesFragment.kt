@@ -22,7 +22,7 @@ class OperatorNodesFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var adapter: OperatorNodeAdapter
-    private var operatorId: String = "chamithu"
+    private var operatorId: String = ""
     private var assignedStations: List<Station> = emptyList()
 
     override fun onCreateView(
@@ -37,7 +37,9 @@ class OperatorNodesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        operatorId = activity?.intent?.getStringExtra("OPERATOR_ID") ?: "chamithu"
+        operatorId = activity?.intent?.getStringExtra("OPERATOR_ID")
+            ?: context?.let { com.smartsolar.mobile.data.local.SessionManager.getUsername(it) }
+            ?: ""
 
         setupRecyclerView()
         setupListeners()

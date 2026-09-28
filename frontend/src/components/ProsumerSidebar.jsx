@@ -3,17 +3,19 @@
 Project       : Smart Solar Microgrid Trading System
 Component     : Identity and Account Management (Component 1)
 File          : ProsumerSidebar.jsx
-Description   : Sidebar for the prosumer web portal: My Profile,
-                Account Settings and Logout.
+Description   : Sidebar for the prosumer web portal: Dashboard, Energy
+                Transfers, My Profile, Account Settings and Logout.
 =====================================================
 */
 
 import {
   CircleUserRound,
+  LayoutDashboard,
   LogOut,
   PanelLeft,
   PanelLeftClose,
   ShieldAlert,
+  Zap,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { NavLink } from 'react-router-dom'
@@ -27,7 +29,7 @@ const linkClass = ({ isActive }) =>
       : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'
   )
 
-// Navigation for the prosumer web portal (profile and account settings)
+// Navigation for the prosumer web portal
 export function ProsumerSidebar({ collapsed = false, onToggleCollapse, onLogout, onNavigate }) {
   const collapsedLinkClass = ({ isActive }) =>
     clsx(
@@ -80,6 +82,27 @@ export function ProsumerSidebar({ collapsed = false, onToggleCollapse, onLogout,
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-1" aria-label="Prosumer navigation">
+        <NavLink
+          to="/prosumer"
+          end
+          className={cls}
+          onClick={onNavigate}
+          title={collapsed ? 'Dashboard' : undefined}
+        >
+          <LayoutDashboard className="h-5 w-5 shrink-0" />
+          {!collapsed && <span>Dashboard</span>}
+        </NavLink>
+
+        <NavLink
+          to="/prosumer/transactions"
+          className={cls}
+          onClick={onNavigate}
+          title={collapsed ? 'Energy Transfers' : undefined}
+        >
+          <Zap className="h-5 w-5 shrink-0" />
+          {!collapsed && <span>Energy Transfers</span>}
+        </NavLink>
+
         <NavLink
           to="/prosumer/profile"
           className={cls}
