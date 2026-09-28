@@ -29,8 +29,9 @@ public class EnergyBookingSlot
     // Related microgrid station
     public string StationId {get;set;}
 
-    // Available booking date (stored as UTC midnight DateOnly to avoid timezone shift)
-    [BsonDateTimeOptions(Kind = DateTimeKind.Utc, DateOnly = true)]
+    // Available booking date. The service normalizes new values to UTC midnight,
+    // while allowing existing records with a time component to be read safely.
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime Date {get;set;}
 
     // Slot starting time
