@@ -1,3 +1,11 @@
+/*
+ * File Name    : BackofficeReservationsController.cs
+ * Project      : Smart Solar Microgrid Trading System
+ * Description  : Exposes Backoffice endpoints for listing reservations, updating their workflow status, and downloading approved reservation QR passes.
+ * Author       : Project Team
+ * Date         : 28 Sep 2026
+ */
+
 using backend.DTOs;
 using backend.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -12,6 +20,7 @@ public class BackofficeReservationsController : ControllerBase
 {
     private readonly IEnergyReservationService _reservationService;
 
+    // Initializes the controller with the reservation service.
     public BackofficeReservationsController(IEnergyReservationService reservationService)
     {
         _reservationService = reservationService;
@@ -19,6 +28,7 @@ public class BackofficeReservationsController : ControllerBase
 
     /// <summary>Returns all reservation details for the Backoffice reservation dashboard.</summary>
     [HttpGet]
+    // Retrieves all reservation records for the Backoffice reservation dashboard.
     public async Task<IActionResult> GetAll()
     {
         var reservations = await _reservationService.GetAllForBackofficeAsync();
@@ -27,6 +37,7 @@ public class BackofficeReservationsController : ControllerBase
 
     /// <summary>Updates a reservation's workflow status.</summary>
     [HttpPatch("{reservationId}/status")]
+    // Updates the workflow status of the specified reservation.
     public async Task<IActionResult> UpdateStatus(string reservationId, [FromBody] UpdateReservationStatusDto request)
     {
         var reservation = await _reservationService.UpdateStatusForBackofficeAsync(reservationId, request);
@@ -36,6 +47,7 @@ public class BackofficeReservationsController : ControllerBase
     /// <summary>Returns the active QR pass for an approved reservation.</summary>
     [HttpGet("{reservationId}/qr")]
     [Produces("image/png")]
+    // Returns the specified approved reservation QR pass as a PNG file.
     public async Task<IActionResult> GetQrCode(string reservationId)
     {
         var qrPng = await _reservationService.GetQrPngForBackofficeAsync(reservationId);

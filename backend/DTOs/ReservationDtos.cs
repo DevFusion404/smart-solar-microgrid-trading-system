@@ -1,3 +1,11 @@
+/*
+ * File Name    : ReservationDtos.cs
+ * Project      : Smart Solar Microgrid Trading System
+ * Description  : Defines request data transfer objects for creating reservations, changing reserved energy, and changing Backoffice reservation status.
+ * Author       : Project Team
+ * Date         : 28 Sep 2026
+ */
+
 using System.ComponentModel.DataAnnotations;
 
 namespace backend.DTOs;
