@@ -1,7 +1,7 @@
 import { CalendarDays, Check, CheckCircle2, CircleUserRound, Download, MapPin, QrCode, RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Panel, SectionHeading } from '../../components/common/Panel'
 import { StatusBadge } from '../../components/common/StatusBadge'
 import { reservationService } from '../../services'
@@ -78,8 +78,17 @@ function toReservationRow(reservation) {
   }
 }
 
+// This screen is mounted for Backoffice and for Grid Operators alike, so detail
+// navigation has to return to whichever section the user is already in rather
+// than throwing an operator into /backoffice.
+function useReservationsBasePath() {
+  const { pathname } = useLocation()
+  return pathname.startsWith('/operator') ? '/operator/reservations' : '/backoffice/energy-slots/reservations'
+}
+
 function ReservationDetail({ reservation }) {
   const navigate = useNavigate()
+  const basePath = useReservationsBasePath()
   const initials = reservation.prosumer.split(' ').map((part) => part[0]).join('').slice(0, 2)
 
   useEffect(() => {
@@ -89,14 +98,14 @@ function ReservationDetail({ reservation }) {
   }, [])
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-slate-950/75 p-4 backdrop-blur-md" role="presentation" onClick={() => navigate('/backoffice/energy-slots/reservations')}>
+    <div className="fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-slate-950/75 p-4 backdrop-blur-md" role="presentation" onClick={() => navigate(basePath)}>
       <Panel role="dialog" aria-modal="true" aria-labelledby="reservation-detail-title" className="max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto border border-white/10 shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div className="flex items-start justify-between border-b border-slate-200 p-5 dark:border-slate-800">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">Reservation details</p>
             <h2 id="reservation-detail-title" className="mt-1 text-xl font-bold text-slate-950 dark:text-white">{reservation.id}</h2>
           </div>
-          <button type="button" title="Close details" aria-label="Close details" onClick={() => navigate('/backoffice/energy-slots/reservations')} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"><X className="h-4 w-4" /></button>
+          <button type="button" title="Close details" aria-label="Close details" onClick={() => navigate(basePath)} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"><X className="h-4 w-4" /></button>
         </div>
         <div className="space-y-5 p-5">
           <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/50">
@@ -114,7 +123,7 @@ function ReservationDetail({ reservation }) {
             <div className="flex items-start gap-3"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" /><div><p className="text-xs font-medium text-slate-500 dark:text-slate-400">Microgrid node</p><p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">{reservation.node}</p></div></div>
             <div className="flex items-start gap-3 border-t border-slate-100 pt-4 dark:border-slate-800"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" /><div><p className="text-xs font-medium text-slate-500 dark:text-slate-400">Scheduled window</p><p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">{reservation.date}</p><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{reservation.time}</p></div></div>
           </div>
-          <button type="button" onClick={() => navigate('/backoffice/energy-slots/reservations')} className="inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 dark:bg-amber-400 dark:text-slate-950 dark:hover:bg-amber-300">Close details</button>
+          <button type="button" onClick={() => navigate(basePath)} className="inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 dark:bg-amber-400 dark:text-slate-950 dark:hover:bg-amber-300">Close details</button>
         </div>
       </Panel>
     </div>,
@@ -185,6 +194,7 @@ function ReservationAction({ reservation, onStatusChange, onViewQr, updating }) 
 export function EnergySlotReservations() {
   const { reservationId } = useParams()
   const navigate = useNavigate()
+  const basePath = useReservationsBasePath()
   const [reservations, setReservations] = useState([])
   const [selectedDate, setSelectedDate] = useState(toDateKey())
   const [statusFilter, setStatusFilter] = useState('All')
@@ -242,12 +252,12 @@ export function EnergySlotReservations() {
     setStatusFilter('All')
     setNodeFilter('All')
     setSearchTerm('')
-    if (reservationId) navigate('/backoffice/energy-slots/reservations')
+    if (reservationId) navigate(basePath)
   }
 
   const changeDate = (value) => {
     setSelectedDate(value)
-    if (reservationId) navigate('/backoffice/energy-slots/reservations')
+    if (reservationId) navigate(basePath)
   }
 
   const showReservationQr = async (reservation) => {
@@ -285,7 +295,7 @@ export function EnergySlotReservations() {
     }
   }
 
-  const openDetails = (id) => navigate(`/backoffice/energy-slots/reservations/${id}`)
+  const openDetails = (id) => navigate(`${basePath}/${id}`)
   const openDetailsFromKeyboard = (event, id) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()

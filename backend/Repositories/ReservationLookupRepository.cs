@@ -65,6 +65,24 @@ public class ReservationLookupRepository : IReservationLookupRepository
     }
 
     /// <inheritdoc />
+    public async Task<ReservationSnapshot?> GetByQrTokenAsync(string qrToken)
+    {
+        if (string.IsNullOrWhiteSpace(qrToken))
+        {
+            return null;
+        }
+
+        // Component 3 clears QrIsActive when a booking is cancelled, so an
+        // inactive pass must not resolve to anything.
+        var filter = Builders<BsonDocument>.Filter.Eq("QrToken", qrToken.Trim())
+            & Builders<BsonDocument>.Filter.Eq("QrIsActive", true);
+
+        var document = await _reservations.Find(filter).FirstOrDefaultAsync();
+
+        return document is null ? null : Map(document);
+    }
+
+    /// <inheritdoc />
     public async Task<List<ReservationSnapshot>> GetApprovedFromDateAsync(string? prosumerNic, string? username, DateTime fromDate)
     {
         // Without any owner key there is nothing safe to return.

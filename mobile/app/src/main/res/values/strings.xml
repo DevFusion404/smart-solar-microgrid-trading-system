@@ -174,4 +174,109 @@
     <string name="settings_app_version">Version 1.0.0 (Build 1042)</string>
     <string name="settings_terms">Terms of Service &amp; Privacy Policy</string>
 
+
+    <!-- ── Component 4: Energy Transfer & Transaction Management ── -->
+    <!-- Prosumer dashboard -->
+    <string name="transfer_prosumer_dashboard_title">Energy Transfers</string>
+    <string name="transfer_dashboard_greeting">Your transfer activity</string>
+    <string name="transfer_card_current">Current Bookings</string>
+    <string name="transfer_card_pending">Pending Bookings</string>
+    <string name="transfer_card_approved">Approved Bookings</string>
+    <string name="transfer_card_completed">Completed Transfers</string>
+    <string name="transfer_total_energy">Total energy transferred</string>
+
+    <!-- Prosumer navigation buttons -->
+    <string name="transfer_btn_current">View Current Bookings</string>
+    <string name="transfer_btn_pending">View Pending Bookings</string>
+    <string name="transfer_btn_approved">View Approved Bookings</string>
+    <string name="transfer_btn_history">Booking History</string>
+    <string name="transfer_btn_search">Search Booking</string>
+    <string name="transfer_btn_show_qr">Show QR Code</string>
+
+    <!-- Screen titles -->
+    <string name="transfer_title_current">Current Bookings</string>
+    <string name="transfer_title_pending">Pending Bookings</string>
+    <string name="transfer_title_approved">Approved Bookings</string>
+    <string name="transfer_title_history">Booking History</string>
+    <string name="transfer_title_search">Search Bookings</string>
+    <string name="transfer_title_qr">Transfer QR Code</string>
+    <string name="transfer_title_operator_dashboard">Operator Transfers</string>
+    <string name="transfer_title_scanner">Scan Transfer QR</string>
+    <string name="transfer_title_verification">Verification Result</string>
+    <string name="transfer_title_complete">Complete Transfer</string>
+
+    <!-- Row labels -->
+    <string name="transfer_label_date">Date</string>
+    <string name="transfer_label_slot">Time Slot</string>
+    <string name="transfer_label_energy">Energy</string>
+    <string name="transfer_label_station">Station</string>
+    <string name="transfer_label_prosumer">Prosumer</string>
+    <string name="transfer_label_booking">Booking ID</string>
+    <string name="transfer_label_transaction">Transaction ID</string>
+    <string name="transfer_label_status">Status</string>
+
+    <!-- QR screen -->
+    <string name="transfer_generate_qr">Generate QR Code</string>
+    <string name="transfer_view_qr">View QR Code</string>
+    <string name="transfer_qr_hint">Show this code to the grid operator at the station.</string>
+    <string name="transfer_qr_expires">Expires</string>
+    <string name="transfer_qr_expired">This QR code has expired</string>
+    <string name="transfer_qr_token">Token</string>
+
+    <!-- Operator dashboard -->
+    <string name="transfer_card_pending_transfers">Pending Transfers</string>
+    <string name="transfer_card_today">Today\'s Bookings</string>
+    <string name="transfer_card_completed_transfers">Completed Transfers</string>
+    <string name="transfer_btn_scan">Scan QR</string>
+    <string name="transfer_btn_transaction_history">Transaction History</string>
+    <string name="transfer_pending_queue">Pending queue</string>
+
+    <!-- Scanner -->
+    <string name="transfer_scanner_hint">Point the camera at the prosumer QR code</string>
+    <string name="transfer_scanner_permission">Camera permission is required to scan QR codes</string>
+    <string name="transfer_scanner_manual">Enter token manually</string>
+
+    <!-- Verification results -->
+    <string name="transfer_qr_valid">QR Code Valid</string>
+    <string name="transfer_qr_invalid">Invalid QR Code</string>
+    <string name="transfer_qr_expired_title">QR Code Expired</string>
+    <string name="transfer_qr_used">Transaction Already Completed</string>
+    <string name="transfer_btn_confirm">Confirm and Complete</string>
+    <string name="transfer_btn_reject">Reject Transfer</string>
+    <string name="transfer_btn_scan_again">Scan Another Code</string>
+    <string name="transfer_delivered_energy">Delivered energy (kWh)</string>
+    <string name="transfer_remarks">Remarks (optional)</string>
+    <string name="transfer_reject_reason">Reason for rejection</string>
+
+    <!-- Completion -->
+    <string name="transfer_complete_success">Transaction Completed Successfully</string>
+    <string name="transfer_btn_done">Done</string>
+
+    <!-- Search filters -->
+    <string name="transfer_search_station">Station name</string>
+    <string name="transfer_search_date">Slot date</string>
+    <string name="transfer_search_status">Status</string>
+    <string name="transfer_search_apply">Search</string>
+    <string name="transfer_search_clear">Clear</string>
+
+    <!-- Error and empty states -->
+    <string name="transfer_error_offline">Unable to connect to server</string>
+    <string name="transfer_error_verify">QR verification failed</string>
+    <string name="transfer_error_expired">This QR code has expired</string>
+    <string name="transfer_error_used">This transaction is already completed</string>
+    <string name="transfer_empty_bookings">No booking records found</string>
+    <string name="transfer_empty_approved">No approved reservations ready for a QR</string>
+    <string name="transfer_empty_pending">No pending transfers</string>
+    <string name="transfer_showing_cached">Showing saved data - you are offline</string>
+
+    <!-- Reservation approval queue (Grid Operator) -->
+    <string name="reservation_queue_title">Pending Reservations</string>
+    <string name="reservation_queue_button">Pending Reservations</string>
+    <string name="reservation_queue_empty">No reservations are waiting for a decision</string>
+    <string name="reservation_approve">Approve</string>
+    <string name="reservation_decline">Decline</string>
+    <string name="reservation_decline_confirm">Decline %1$s? This releases the reserved capacity and cannot be undone.</string>
+    <string name="reservation_approved">Reservation approved</string>
+    <string name="reservation_approved_with_qr">Approved - QR pass issued to the prosumer</string>
+    <string name="reservation_declined">Reservation declined</string>
 </resources>

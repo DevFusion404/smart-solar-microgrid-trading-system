@@ -9,6 +9,7 @@ import androidx.core.view.GravityCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.navigation.NavigationView
 import com.smartsolar.mobile.R
+import com.smartsolar.mobile.ui.activity.transfer.OperatorDashboardActivity
 import com.smartsolar.mobile.databinding.ActivityGridOperatorHomeBinding
 import com.smartsolar.mobile.ui.fragment.ProfileFragment
 import com.smartsolar.mobile.ui.fragment.operator.GridOperatorDashboardFragment
@@ -85,6 +86,13 @@ class GridOperatorActivity : AppCompatActivity(), NavigationView.OnNavigationIte
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        // Component 4: transfers live in their own activity, not a drawer fragment.
+        if (item.itemId == R.id.nav_grid_transfers) {
+            startActivity(Intent(this, OperatorDashboardActivity::class.java))
+            binding.gridOpDrawerLayout.closeDrawer(GravityCompat.START)
+            return true
+        }
+
         navigateToTab(item.itemId)
         binding.gridOpDrawerLayout.closeDrawer(GravityCompat.START)
         return true
