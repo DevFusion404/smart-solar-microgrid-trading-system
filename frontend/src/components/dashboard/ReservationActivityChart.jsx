@@ -1,7 +1,5 @@
-import { BarChart3, Download } from 'lucide-react'
+import { BarChart3, RefreshCw } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { reservationActivity } from '../../data/dashboardMockData'
-import { IconButton } from '../common/IconButton'
 import { Panel, SectionHeading } from '../common/Panel'
 
 function ChartTooltip({ active, payload, label }) {
@@ -12,7 +10,7 @@ function ChartTooltip({ active, payload, label }) {
       <p className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
       {payload.map((entry) => (
         <p key={entry.dataKey} className="text-xs font-semibold text-slate-800 dark:text-slate-100">
-          <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
+          <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
           {entry.name}: {entry.value}
         </p>
       ))}
@@ -20,38 +18,90 @@ function ChartTooltip({ active, payload, label }) {
   )
 }
 
-export function ReservationActivityChart() {
+function computeWeeklyActivity(reservations) {
+  const days = []
+  const today = new Date()
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(today.getDate() - i)
+    const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' })
+    const dateKey = d.toISOString().split('T')[0]
+    days.push({
+      day: dayStr,
+      dateKey,
+      approved: 0,
+      pending: 0,
+      cancelled: 0,
+    })
+  }
+
+  ;(reservations || []).forEach((r) => {
+    const rawDate = r.slotDate || r.createdAt
+    if (!rawDate) return
+    const key = (typeof rawDate === 'string' ? rawDate : new Date(rawDate).toISOString()).split('T')[0]
+    const slot = days.find((item) => item.dateKey === key)
+    if (slot) {
+      const status = (r.status || '').toLowerCase()
+      if (status === 'approved' || status === 'confirmed') {
+        slot.approved += 1
+      } else if (status === 'pending') {
+        slot.pending += 1
+      } else if (status === 'cancelled') {
+        slot.cancelled += 1
+      }
+    }
+  })
+
+  return days
+}
+
+export function ReservationActivityChart({ reservations = [], loading = false }) {
+  const activityData = computeWeeklyActivity(reservations)
+
   return (
     <Panel className="p-5 md:p-6">
       <SectionHeading
         title="Reservation activity"
-        description="Approved, pending, and cancelled requests"
+        description="Daily throughput of approved, pending, and cancelled requests (Last 7 days)"
         action={
           <div className="flex items-center gap-2">
-            <div className="hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-medium text-slate-600 dark:border-slate-700 dark:text-slate-300 sm:flex">
-              <BarChart3 className="h-3.5 w-3.5" /> Weekly view
+            <div className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-medium text-slate-600 dark:border-slate-700 dark:text-slate-300">
+              <BarChart3 className="h-3.5 w-3.5" /> 7-Day Window
             </div>
-            <IconButton label="Download reservation activity report"><Download className="h-4 w-4" /></IconButton>
           </div>
         }
       />
       <div className="mt-5 flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Approved</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-blue-500" /> Pending</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-400" /> Cancelled</span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Approved
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-blue-500" /> Pending
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-rose-400" /> Cancelled
+        </span>
       </div>
       <div className="mt-4 h-64 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={reservationActivity} barGap={8} margin={{ top: 12, right: 0, left: -20, bottom: 0 }}>
-            <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="4 4" />
-            <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
-            <Tooltip cursor={{ fill: '#f8fafc' }} content={<ChartTooltip />} />
-            <Bar dataKey="approved" name="Approved" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={18} />
-            <Bar dataKey="pending" name="Pending" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={18} />
-            <Bar dataKey="cancelled" name="Cancelled" fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={18} />
-          </BarChart>
-        </ResponsiveContainer>
+        {loading ? (
+          <div className="flex h-full items-center justify-center text-sm text-slate-400">
+            <RefreshCw className="mr-2 h-5 w-5 animate-spin opacity-50" />
+            Computing activity timeline…
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={activityData} barGap={8} margin={{ top: 12, right: 0, left: -20, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="4 4" />
+              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
+              <Tooltip cursor={{ fill: '#f8fafc' }} content={<ChartTooltip />} />
+              <Bar dataKey="approved" name="Approved" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={18} />
+              <Bar dataKey="pending" name="Pending" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={18} />
+              <Bar dataKey="cancelled" name="Cancelled" fill="#f87171" radius={[4, 4, 0, 0]} maxBarSize={18} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </Panel>
   )

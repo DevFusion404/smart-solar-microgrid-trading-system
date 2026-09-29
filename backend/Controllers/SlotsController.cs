@@ -9,6 +9,7 @@ Author        : Sithmaka
 */
 
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using backend.DTOs;
 using backend.Interfaces;
@@ -17,6 +18,7 @@ using backend.Models;
 namespace backend.Controllers;
 
 [ApiController]
+[Authorize]
 public class SlotsController : ControllerBase
 {
 
@@ -33,6 +35,7 @@ public class SlotsController : ControllerBase
     /// StationId comes from the route; all other fields from the body.
     /// </summary>
     [HttpPost("api/stations/{stationId}/slots")]
+    [Authorize(Roles = "Backoffice,GridOperator,Administrator")]
     public async Task<IActionResult> CreateSlot(
         string stationId,
         [FromBody] SlotCreateDto dto)
@@ -69,6 +72,7 @@ public class SlotsController : ControllerBase
     /// Optionally pass ?date=YYYY-MM-DD to filter to a specific day.
     /// </summary>
     [HttpGet("api/stations/{stationId}/slots")]
+    [Authorize(Roles = "Backoffice,GridOperator,Prosumer,Administrator")]
     public async Task<IActionResult> GetSlots(
         string stationId,
         [FromQuery] DateTime? date)
@@ -90,6 +94,7 @@ public class SlotsController : ControllerBase
     /// Returns 404 if the slot does not exist.
     /// </summary>
     [HttpGet("api/slots/{id}")]
+    [Authorize(Roles = "Backoffice,GridOperator,Prosumer,Administrator")]
     public async Task<IActionResult> GetSlotById(string id)
     {
         var result = await _slotService.GetSlotById(id);
@@ -109,6 +114,7 @@ public class SlotsController : ControllerBase
     /// Returns 404 if no slot matches the given id.
     /// </summary>
     [HttpPut("api/slots/{id}")]
+    [Authorize(Roles = "Backoffice,GridOperator,Administrator")]
     public async Task<IActionResult> UpdateSlot(
         string id,
         [FromBody] SlotUpdateDto dto)
@@ -158,6 +164,7 @@ public class SlotsController : ControllerBase
     /// when a reservation is confirmed or cancelled.
     /// </summary>
     [HttpPut("api/slots/{id}/capacity")]
+    [Authorize(Roles = "Backoffice,GridOperator,Administrator")]
     public async Task<IActionResult> AdjustCapacity(
         string id,
         [FromBody] SlotCapacityDto dto)
@@ -186,6 +193,7 @@ public class SlotsController : ControllerBase
     /// Closes an energy booking slot if no energy has been reserved.
     /// </summary>
     [HttpPut("api/slots/{id}/close")]
+    [Authorize(Roles = "Backoffice,GridOperator,Administrator")]
     public async Task<IActionResult> CloseSlot(string id)
     {
         try
@@ -208,6 +216,7 @@ public class SlotsController : ControllerBase
     /// Only slots with status 'Closed' and no reserved energy can be deleted.
     /// </summary>
     [HttpDelete("api/slots/{id}")]
+    [Authorize(Roles = "Backoffice,GridOperator,Administrator")]
     public async Task<IActionResult> DeleteSlot(string id)
     {
         try

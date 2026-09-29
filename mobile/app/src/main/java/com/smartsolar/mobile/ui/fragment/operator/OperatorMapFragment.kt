@@ -129,7 +129,7 @@ class OperatorMapFragment : Fragment(R.layout.fragment_operator_map) {
         lifecycleScope.launch {
             try {
                 val response = RetrofitClient.apiService.getAssignedNodesByOperator(operatorId)
-                if (response.isSuccessful && !response.body().isNullOrEmpty()) {
+                if (response.isSuccessful && response.body() != null) {
                     assignedStations = response.body()!!
                 } else {
                     val allResp = RetrofitClient.apiService.getStations()
@@ -137,12 +137,17 @@ class OperatorMapFragment : Fragment(R.layout.fragment_operator_map) {
                         assignedStations = allResp.body()!!.filter {
                             it.assignedOperatorId?.equals(operatorId, ignoreCase = true) == true ||
                                     it.assignedOperatorName?.equals(operatorId, ignoreCase = true) == true
-                        }.ifEmpty { allResp.body()!!.take(3) }
+                        }
+                    } else {
+                        assignedStations = emptyList()
                     }
                 }
             } catch (e: Exception) {
                 val dbHelper = com.smartsolar.mobile.data.local.DatabaseHelper(requireContext())
-                assignedStations = dbHelper.getAllStations()
+                assignedStations = dbHelper.getAllStations().filter {
+                    it.assignedOperatorId?.equals(operatorId, ignoreCase = true) == true ||
+                            it.assignedOperatorName?.equals(operatorId, ignoreCase = true) == true
+                }
             } finally {
                 binding.pbMapLoading.visibility = View.GONE
             }

@@ -13,7 +13,7 @@ Author        : Malmi
 import { CheckCircle2, Clock3, QrCode, Search, Trash2, Zap } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { transactionService } from '../../services'
+import { authService, nodeAssignmentService, transactionService } from '../../services'
 import {
   EmptyState,
   ErrorBanner,
@@ -42,10 +42,28 @@ export function OperatorTransfersPage() {
   const [dashboard, setDashboard] = useState(null)
   const [results, setResults] = useState(null)
   const [filters, setFilters] = useState(EMPTY_FILTERS)
+  const [assignedStations, setAssignedStations] = useState([])
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [searching, setSearching] = useState(false)
   const [error, setError] = useState('')
+
+  // Load operator's assigned stations for filtering
+  useEffect(() => {
+    const fetchAssigned = async () => {
+      try {
+        const user = authService.getCurrentUser()
+        if (user) {
+          const identifier = user.id || user.username
+          const res = await nodeAssignmentService.getNodesByOperator(identifier)
+          setAssignedStations(res || [])
+        }
+      } catch (err) {
+        console.error('Failed to load assigned stations for transfer filter', err)
+      }
+    }
+    fetchAssigned()
+  }, [])
 
   // Headline counters and the operator's queues.
   const loadDashboard = useCallback(async () => {
@@ -191,14 +209,21 @@ export function OperatorTransfersPage() {
                 className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               />
 
-              <input
-                type="text"
+              <select
                 value={filters.stationId}
                 onChange={(e) => setFilters({ ...filters, stationId: e.target.value })}
-                placeholder="Station ID"
                 aria-label="Filter by station"
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-              />
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              >
+                <option value="">
+                  {assignedStations.length === 0 ? 'All assigned stations (none)' : 'All assigned stations'}
+                </option>
+                {assignedStations.map((station) => (
+                  <option key={station.stationId || station.id} value={station.stationId || station.id}>
+                    {station.stationName || station.stationId}
+                  </option>
+                ))}
+              </select>
 
               <input
                 type="text"

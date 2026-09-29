@@ -442,7 +442,8 @@ public class EnergyTransactionService : IEnergyTransactionService
         DateTime? fromDate,
         DateTime? toDate,
         int page,
-        int pageSize)
+        int pageSize,
+        IEnumerable<string>? allowedStationIds = null)
     {
         // Clamp paging so a bad query string cannot pull the whole collection.
         page = page < 1 ? 1 : page;
@@ -463,7 +464,8 @@ public class EnergyTransactionService : IEnergyTransactionService
             fromDate,
             toDate,
             page,
-            pageSize);
+            pageSize,
+            allowedStationIds);
 
         return new PagedResultDto<TransactionResponseDto>
         {
@@ -565,21 +567,70 @@ public class EnergyTransactionService : IEnergyTransactionService
     }
 
     /// <inheritdoc />
-    public async Task<OperatorDashboardDto> GetOperatorDashboardAsync()
+    public async Task<OperatorDashboardDto> GetOperatorDashboardAsync(IEnumerable<string>? stationIds = null)
     {
-        var summary = await GetSummaryAsync(null);
+        var stationIdList = stationIds?.ToList();
+        if (stationIdList != null && stationIdList.Count == 0)
+        {
+            return new OperatorDashboardDto
+            {
+                Summary = new DashboardSummaryDto
+                {
+                    Scope = "Operator",
+                    PendingTransfers = 0,
+                    VerifiedTransfers = 0,
+                    CompletedTransfers = 0,
+                    TodayTransfers = 0,
+                    FailedTransfers = 0,
+                    TotalEnergyTransferred = 0
+                },
+                TodayTransfers = new List<TransactionResponseDto>(),
+                PendingTransfers = new List<TransactionResponseDto>(),
+                RecentCompleted = new List<TransactionResponseDto>()
+            };
+        }
 
-        var todayTask = _transactions.GetBySlotDateAsync(DateTime.UtcNow.Date, 25);
-        var pendingTask = _transactions.GetRecentByStatusAsync(TransferStatus.Pending, DashboardListSize);
-        var verifiedTask = _transactions.GetRecentByStatusAsync(TransferStatus.Verified, DashboardListSize);
-        var completedTask = _transactions.GetRecentByStatusAsync(TransferStatus.Completed, DashboardListSize);
+        var todayTask = _transactions.GetBySlotDateAsync(DateTime.UtcNow.Date, 50);
+        var pendingTask = _transactions.GetRecentByStatusAsync(TransferStatus.Pending, DashboardListSize * 2);
+        var verifiedTask = _transactions.GetRecentByStatusAsync(TransferStatus.Verified, DashboardListSize * 2);
+        var completedTask = _transactions.GetRecentByStatusAsync(TransferStatus.Completed, DashboardListSize * 2);
 
         await Task.WhenAll(todayTask, pendingTask, verifiedTask, completedTask);
 
+        var todayFiltered = todayTask.Result;
+        var pendingFiltered = pendingTask.Result;
+        var verifiedFiltered = verifiedTask.Result;
+        var completedFiltered = completedTask.Result;
+
+        DashboardSummaryDto summary;
+        if (stationIdList != null && stationIdList.Count > 0)
+        {
+            var stationSet = new HashSet<string>(stationIdList, StringComparer.OrdinalIgnoreCase);
+            todayFiltered = todayFiltered.Where(t => !string.IsNullOrEmpty(t.StationId) && stationSet.Contains(t.StationId)).ToList();
+            pendingFiltered = pendingFiltered.Where(t => !string.IsNullOrEmpty(t.StationId) && stationSet.Contains(t.StationId)).ToList();
+            verifiedFiltered = verifiedFiltered.Where(t => !string.IsNullOrEmpty(t.StationId) && stationSet.Contains(t.StationId)).ToList();
+            completedFiltered = completedFiltered.Where(t => !string.IsNullOrEmpty(t.StationId) && stationSet.Contains(t.StationId)).ToList();
+
+            summary = new DashboardSummaryDto
+            {
+                PendingTransfers = pendingFiltered.Count,
+                VerifiedTransfers = verifiedFiltered.Count,
+                CompletedTransfers = completedFiltered.Count,
+                TodayTransfers = todayFiltered.Count,
+                FailedTransfers = 0,
+                TotalEnergyTransferred = Math.Round(completedFiltered.Sum(t => t.EnergyAmount), 2),
+                Scope = "Operator"
+            };
+        }
+        else
+        {
+            summary = await GetSummaryAsync(null);
+        }
+
         // Verified transfers are still outstanding work for the operator, so the
         // pending queue shows awaiting-scan and awaiting-confirmation together.
-        var outstanding = verifiedTask.Result
-            .Concat(pendingTask.Result)
+        var outstanding = verifiedFiltered
+            .Concat(pendingFiltered)
             .OrderByDescending(t => t.TransactionDate)
             .Take(DashboardListSize)
             .Select(MapToDto)
@@ -588,9 +639,9 @@ public class EnergyTransactionService : IEnergyTransactionService
         return new OperatorDashboardDto
         {
             Summary = summary,
-            TodayTransfers = todayTask.Result.Select(MapToDto).ToList(),
+            TodayTransfers = todayFiltered.Select(MapToDto).ToList(),
             PendingTransfers = outstanding,
-            RecentCompleted = completedTask.Result.Select(MapToDto).ToList()
+            RecentCompleted = completedFiltered.Select(MapToDto).ToList()
         };
     }
 

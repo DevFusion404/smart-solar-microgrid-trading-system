@@ -20,6 +20,7 @@ namespace backend.Controllers;
 
 [ApiController]
 [Route("api/stations")]
+[Authorize]
 public class StationsController : ControllerBase
 {
 
@@ -38,6 +39,7 @@ public class StationsController : ControllerBase
     /// and uniqueness of StationId before saving.
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = "Backoffice,Administrator")]
     public async Task<IActionResult> CreateStation(
         [FromBody] StationCreateDto dto)
     {
@@ -70,6 +72,7 @@ public class StationsController : ControllerBase
     /// Retrieves all microgrid stations regardless of status.
     /// </summary>
     [HttpGet]
+    [Authorize(Roles = "Backoffice,GridOperator,Prosumer,Administrator")]
     public async Task<IActionResult> GetStations()
     {
         var result = await _service.GetAllStations();
@@ -81,6 +84,7 @@ public class StationsController : ControllerBase
     /// Returns 404 if not found.
     /// </summary>
     [HttpGet("{id}")]
+    [Authorize(Roles = "Backoffice,GridOperator,Prosumer,Administrator")]
     public async Task<IActionResult> GetStationById(string id)
     {
         var result = await _service.GetStationById(id);
@@ -98,6 +102,7 @@ public class StationsController : ControllerBase
     /// Returns 404 if no station matches the given id.
     /// </summary>
     [HttpPut("{id}")]
+    [Authorize(Roles = "Backoffice,Administrator")]
     public async Task<IActionResult> UpdateStation(
         string id,
         [FromBody] StationUpdateDto dto)
@@ -142,6 +147,7 @@ public class StationsController : ControllerBase
     /// All other fields remain unchanged.
     /// </summary>
     [HttpPut("{id}/schedule")]
+    [Authorize(Roles = "Backoffice,GridOperator,Administrator")]
     public async Task<IActionResult> UpdateSchedule(
         string id,
         [FromBody] StationScheduleDto dto)
@@ -171,6 +177,7 @@ public class StationsController : ControllerBase
     /// Returns 400 if active booking slots still exist for this station.
     /// </summary>
     [HttpPut("{id}/deactivate")]
+    [Authorize(Roles = "Backoffice,Administrator")]
     public async Task<IActionResult> DeactivateStation(string id)
     {
         try
@@ -221,6 +228,7 @@ public class StationsController : ControllerBase
     /// and/or availability. Both query parameters are optional.
     /// </summary>
     [HttpGet("search")]
+    [Authorize(Roles = "Backoffice,GridOperator,Prosumer,Administrator")]
     public async Task<IActionResult> SearchStations(
         [FromQuery] string? location,
         [FromQuery] bool? available)
@@ -236,6 +244,7 @@ public class StationsController : ControllerBase
     /// every active station. Used to place Google Maps markers.
     /// </summary>
     [HttpGet("map")]
+    [Authorize(Roles = "Backoffice,GridOperator,Prosumer,Administrator")]
     public async Task<IActionResult> GetMapPins()
     {
         var result = await _service.GetMapPins();
@@ -249,6 +258,7 @@ public class StationsController : ControllerBase
     /// Example: GET /api/stations/nearby?lat=6.9271&amp;lng=79.8612&amp;limit=5
     /// </summary>
     [HttpGet("nearby")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetNearbyStations(
         [FromQuery] double? lat,
         [FromQuery] double? lng,

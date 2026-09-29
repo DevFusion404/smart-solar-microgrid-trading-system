@@ -5,6 +5,7 @@ Description   : Provides REST APIs for station management
 =====================================================
 */
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using backend.Interfaces;
 using backend.Models;
@@ -13,6 +14,7 @@ namespace backend.Controllers;
 
 [ApiController]
 [Route("api/microgrid-stations")]
+[Authorize]
 public class MicrogridStationController : ControllerBase
 {
 
@@ -30,6 +32,7 @@ IMicrogridStationService service)
 /// Validates GPS location and capacity before saving.
 /// </summary>
 [HttpPost]
+[Authorize(Roles = "Backoffice,Administrator")]
 public async Task<IActionResult> CreateStation(
     [FromBody] SolarStationInfo station)
 {
@@ -40,6 +43,7 @@ public async Task<IActionResult> CreateStation(
 
 // Retrieves all microgrid stations.
 [HttpGet]
+[Authorize(Roles = "Backoffice,GridOperator,Prosumer,Administrator")]
 public async Task<IActionResult> GetStations()
 {
 

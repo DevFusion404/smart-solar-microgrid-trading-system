@@ -10,6 +10,7 @@ Author        : Malmi
 =====================================================
 */
 
+using backend.Interfaces;
 using backend.Middleware;
 using backend.Models;
 using backend.Services.Interfaces;
@@ -30,16 +31,20 @@ public class DashboardController : ControllerBase
 {
     private readonly IEnergyTransactionService _transactionService;
     private readonly IAuthorizationService _authorizationService;
+    private readonly INodeAssignmentService _assignmentService;
 
-    /// <summary>Initializes the controller with the transaction service and authorization service.</summary>
+    /// <summary>Initializes the controller with the transaction service, authorization service and node assignment service.</summary>
     /// <param name="transactionService">Energy transfer workflow.</param>
     /// <param name="authorizationService">Evaluates the NIC ownership policy shared with Component 1.</param>
+    /// <param name="assignmentService">Resolves node assignments for operators.</param>
     public DashboardController(
         IEnergyTransactionService transactionService,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService,
+        INodeAssignmentService assignmentService)
     {
         _transactionService = transactionService;
         _authorizationService = authorizationService;
+        _assignmentService = assignmentService;
     }
 
     /// <summary>
@@ -108,14 +113,21 @@ public class DashboardController : ControllerBase
 
     /// <summary>
     /// Grid operator dashboard: counters plus today's, outstanding and recently
-    /// completed transfers.
+    /// completed transfers. Automatically scoped to the operator's assigned nodes.
     /// </summary>
     /// <returns>The assembled operator dashboard.</returns>
     [HttpGet("operator")]
     [Authorize(Roles = "GridOperator,Backoffice")]
     public async Task<IActionResult> GetOperatorDashboard()
     {
-        var dashboard = await _transactionService.GetOperatorDashboardAsync();
+        IEnumerable<string>? stationIds = null;
+        if (User.IsInRole(nameof(UserRole.GridOperator)) && !User.IsInRole(nameof(UserRole.Backoffice)))
+        {
+            var assignedNodes = await _assignmentService.GetNodesByOperatorAsync(CurrentUsername);
+            stationIds = assignedNodes.Select(n => n.StationId).Where(id => !string.IsNullOrEmpty(id)).ToList();
+        }
+
+        var dashboard = await _transactionService.GetOperatorDashboardAsync(stationIds);
         return Ok(dashboard);
     }
 

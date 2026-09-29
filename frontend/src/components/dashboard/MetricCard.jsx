@@ -33,7 +33,7 @@ export function MetricCard({ metric, index }) {
         <p className="mt-1 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
           {metric.value} <span className="text-sm font-medium text-slate-400">{metric.unit}</span>
         </p>
-        <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">vs. last 30 days</p>
+        <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{metric.subtitle || 'Live telemetry'}</p>
       </Panel>
     </motion.div>
   )

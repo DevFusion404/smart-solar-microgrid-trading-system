@@ -11,6 +11,7 @@ Author        : Malmi
 */
 
 using backend.DTOs.Transactions;
+using backend.Interfaces;
 using backend.Middleware;
 using backend.Models;
 using backend.Services.Interfaces;
@@ -33,16 +34,20 @@ public class EnergyTransactionController : ControllerBase
 {
     private readonly IEnergyTransactionService _transactionService;
     private readonly IAuthorizationService _authorizationService;
+    private readonly INodeAssignmentService _assignmentService;
 
-    /// <summary>Initializes the controller with the transaction service and authorization service.</summary>
+    /// <summary>Initializes the controller with the transaction service, authorization service and node assignment service.</summary>
     /// <param name="transactionService">Energy transfer workflow.</param>
     /// <param name="authorizationService">Evaluates the NIC ownership policy shared with Component 1.</param>
+    /// <param name="assignmentService">Grid operator microgrid node scoping.</param>
     public EnergyTransactionController(
         IEnergyTransactionService transactionService,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService,
+        INodeAssignmentService assignmentService)
     {
         _transactionService = transactionService;
         _authorizationService = authorizationService;
+        _assignmentService = assignmentService;
     }
 
     // =========================================================
@@ -100,6 +105,20 @@ public class EnergyTransactionController : ControllerBase
     public async Task<IActionResult> VerifyQr([FromBody] VerifyQrRequestDto request)
     {
         var result = await _transactionService.VerifyQrAsync(request, CurrentUsername);
+        if (result.Success && result.TransactionDetails != null && User.IsInRole(nameof(UserRole.GridOperator)))
+        {
+            var assignedNodes = await _assignmentService.GetNodesByOperatorAsync(CurrentUsername);
+            var assignedStationIds = assignedNodes.Select(n => n.StationId);
+            if (!assignedStationIds.Contains(result.TransactionDetails.StationId, StringComparer.OrdinalIgnoreCase))
+            {
+                return Ok(new QrVerificationResponseDto
+                {
+                    Success = false,
+                    Message = "This QR code belongs to a station not assigned to you.",
+                    ErrorCode = "STATION_NOT_ASSIGNED"
+                });
+            }
+        }
         return Ok(result);
     }
 
@@ -120,6 +139,17 @@ public class EnergyTransactionController : ControllerBase
         string transactionId,
         [FromBody] CompleteTransferRequestDto? request)
     {
+        if (User.IsInRole(nameof(UserRole.GridOperator)))
+        {
+            var tx = await _transactionService.GetTransactionAsync(transactionId);
+            var assignedNodes = await _assignmentService.GetNodesByOperatorAsync(CurrentUsername);
+            var assignedStationIds = assignedNodes.Select(n => n.StationId);
+            if (!assignedStationIds.Contains(tx.StationId, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new ForbiddenException("STATION_NOT_ASSIGNED", "You can only complete transfers at stations assigned to you.");
+            }
+        }
+
         var result = await _transactionService.CompleteTransferAsync(
             transactionId,
             request ?? new CompleteTransferRequestDto(),
@@ -140,6 +170,17 @@ public class EnergyTransactionController : ControllerBase
         string transactionId,
         [FromBody] RejectTransferRequestDto request)
     {
+        if (User.IsInRole(nameof(UserRole.GridOperator)))
+        {
+            var tx = await _transactionService.GetTransactionAsync(transactionId);
+            var assignedNodes = await _assignmentService.GetNodesByOperatorAsync(CurrentUsername);
+            var assignedStationIds = assignedNodes.Select(n => n.StationId);
+            if (!assignedStationIds.Contains(tx.StationId, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new ForbiddenException("STATION_NOT_ASSIGNED", "You can only reject transfers at stations assigned to you.");
+            }
+        }
+
         var result = await _transactionService.RejectTransferAsync(transactionId, request, CurrentUsername);
         return Ok(result);
     }
@@ -157,6 +198,17 @@ public class EnergyTransactionController : ControllerBase
     public async Task<IActionResult> GetTransaction(string transactionId)
     {
         var transaction = await _transactionService.GetTransactionAsync(transactionId);
+
+        // Grid operators are strictly scoped to their assigned stations
+        if (User.IsInRole(nameof(UserRole.GridOperator)))
+        {
+            var assignedNodes = await _assignmentService.GetNodesByOperatorAsync(CurrentUsername);
+            var assignedStationIds = assignedNodes.Select(n => n.StationId);
+            if (!assignedStationIds.Contains(transaction.StationId, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new ForbiddenException("STATION_NOT_ASSIGNED", "This transaction belongs to a station not assigned to you.");
+            }
+        }
 
         // Reuse Component 1's ownership policy so the rule stays in one place.
         await EnsureNicAccessAsync(transaction.ProsumerNIC);
@@ -200,6 +252,7 @@ public class EnergyTransactionController : ControllerBase
 
     /// <summary>
     /// Searches and filters transactions by status, date, station and prosumer NIC.
+    /// Grid operators only see transactions for stations assigned to them.
     /// </summary>
     /// <param name="status">Transfer status, case-insensitive.</param>
     /// <param name="date">Exact slot date, e.g. 2026-09-18.</param>
@@ -222,8 +275,40 @@ public class EnergyTransactionController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
+        IEnumerable<string>? allowedStationIds = null;
+        if (User.IsInRole(nameof(UserRole.GridOperator)))
+        {
+            var assignedNodes = await _assignmentService.GetNodesByOperatorAsync(CurrentUsername);
+            var assignedStationIds = assignedNodes.Select(n => n.StationId).ToList();
+
+            if (assignedStationIds.Count == 0)
+            {
+                return Ok(new PagedResultDto<TransactionResponseDto>
+                {
+                    Items = new List<TransactionResponseDto>(),
+                    TotalCount = 0,
+                    Page = page,
+                    PageSize = pageSize
+                });
+            }
+
+            if (!string.IsNullOrWhiteSpace(stationId) &&
+                !assignedStationIds.Contains(stationId.Trim(), StringComparer.OrdinalIgnoreCase))
+            {
+                return Ok(new PagedResultDto<TransactionResponseDto>
+                {
+                    Items = new List<TransactionResponseDto>(),
+                    TotalCount = 0,
+                    Page = page,
+                    PageSize = pageSize
+                });
+            }
+
+            allowedStationIds = assignedStationIds;
+        }
+
         var result = await _transactionService.SearchAsync(
-            status, date, stationId, prosumerNic, fromDate, toDate, page, pageSize);
+            status, date, stationId, prosumerNic, fromDate, toDate, page, pageSize, allowedStationIds);
 
         return Ok(result);
     }

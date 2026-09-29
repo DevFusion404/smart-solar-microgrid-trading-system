@@ -87,14 +87,14 @@ class OperatorNodesFragment : Fragment() {
                         Toast.makeText(requireContext(), "Assigned nodes refreshed (${assignedStations.size} loaded)", Toast.LENGTH_SHORT).show()
                     }
                 } else {
-                    // Fallback to all stations filtered by operator ID
+                    // Fallback to all stations strictly filtered by operator ID
                     val allResp = RetrofitClient.apiService.getStations()
                     if (allResp.isSuccessful && allResp.body() != null) {
                         val filtered = allResp.body()!!.filter {
                             it.assignedOperatorId?.equals(operatorId, ignoreCase = true) == true ||
                                     it.assignedOperatorName?.equals(operatorId, ignoreCase = true) == true
                         }
-                        assignedStations = if (filtered.isNotEmpty()) filtered else allResp.body()!!.take(2)
+                        assignedStations = filtered
                         submitStationsList(assignedStations)
                     } else {
                         submitStationsList(emptyList())
@@ -103,13 +103,12 @@ class OperatorNodesFragment : Fragment() {
             } catch (e: Exception) {
                 binding.pbNodesLoading.visibility = View.GONE
                 val dbHelper = com.smartsolar.mobile.data.local.DatabaseHelper(requireContext())
-                val cached = dbHelper.getAllStations()
-                if (cached.isNotEmpty()) {
-                    assignedStations = cached
-                    submitStationsList(assignedStations)
-                } else {
-                    submitStationsList(emptyList())
+                val cached = dbHelper.getAllStations().filter {
+                    it.assignedOperatorId?.equals(operatorId, ignoreCase = true) == true ||
+                            it.assignedOperatorName?.equals(operatorId, ignoreCase = true) == true
                 }
+                assignedStations = cached
+                submitStationsList(assignedStations)
             }
         }
     }

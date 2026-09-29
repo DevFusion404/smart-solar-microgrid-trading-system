@@ -60,6 +60,7 @@ public interface IEnergyTransactionRepository
     /// <param name="toDate">Inclusive upper bound on the slot date.</param>
     /// <param name="page">1-based page number.</param>
     /// <param name="pageSize">Items per page.</param>
+    /// <param name="allowedStationIds">Optional station IDs whitelist to scope queries for specific operators.</param>
     /// <returns>The matching page and the total match count.</returns>
     Task<(List<EnergyTransaction> Items, long TotalCount)> SearchAsync(
         string? status,
@@ -69,7 +70,8 @@ public interface IEnergyTransactionRepository
         DateTime? fromDate,
         DateTime? toDate,
         int page,
-        int pageSize);
+        int pageSize,
+        IEnumerable<string>? allowedStationIds = null);
 
     /// <summary>Counts documents matching one transfer status, optionally scoped to a prosumer.</summary>
     /// <param name="transferStatus">Transfer status to count.</param>
