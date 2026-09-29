@@ -11,7 +11,7 @@ Description   : High-tech landing page highlighting solar panel
 
 import { 
   Sun, Moon, Zap, Shield, Activity, BatteryCharging, 
-  ArrowRight, CheckCircle2, UserCheck, Layers, Cpu, LogIn
+  ArrowRight, CheckCircle2, Layers, Cpu, LogIn, Smartphone
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -71,14 +71,6 @@ export function HomePage() {
               <LogIn size={16} />
               Sign In
             </button>
-            <button
-              type="button"
-              id="home-register-btn"
-              onClick={() => navigate('/register')}
-              className="home-btn-primary"
-            >
-              Register Prosumer
-            </button>
           </div>
         </div>
       </header>
@@ -103,10 +95,10 @@ export function HomePage() {
               <button
                 type="button"
                 id="hero-get-started"
-                onClick={() => navigate('/register')}
+                onClick={() => navigate('/login')}
                 className="hero-primary-btn"
               >
-                <span>Join as Prosumer</span>
+                <span>Sign In to the Portal</span>
                 <ArrowRight size={18} />
               </button>
               <button
@@ -276,18 +268,15 @@ export function HomePage() {
             {/* Prosumer Card */}
             <div className="portal-card">
               <div className="portal-badge prosumer-badge">Prosumer</div>
-              <h3 className="portal-title">Prosumer Portal</h3>
+              <h3 className="portal-title">Prosumer Mobile App</h3>
               <p className="portal-desc">
-                For solar panel owners. Track rooftop generation, manage energy sales, view earnings, and update your profile.
+                For solar panel owners. Register with your NIC, reserve energy slots, manage your profile and show your transfer QR code from the SolarGrid Android app.
               </p>
-              <button
-                type="button"
-                onClick={() => navigate('/prosumer/profile')}
-                className="portal-btn prosumer-btn"
-              >
-                <span>Launch Prosumer Portal</span>
-                <ArrowRight size={16} />
-              </button>
+              {/* Prosumers do not use the web portal; this card only points them to the mobile app */}
+              <div className="portal-btn prosumer-btn" aria-disabled="true" style={{ cursor: 'default' }}>
+                <Smartphone size={16} />
+                <span>Available on the Android app</span>
+              </div>
             </div>
 
             {/* Grid Operator Card */}
