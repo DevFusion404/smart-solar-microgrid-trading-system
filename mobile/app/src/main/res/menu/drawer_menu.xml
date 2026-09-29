@@ -33,6 +33,12 @@
             android:icon="@drawable/ic_nav_chart"
             android:title="Reservation History" />
 
+        <!-- Component 4: Energy Transfers -->
+        <item
+            android:id="@+id/nav_transfers"
+            android:icon="@drawable/ic_nav_energy"
+            android:title="Energy Transfers" />
+
         <item
             android:id="@+id/nav_sync"
             android:icon="@drawable/ic_nav_sync"

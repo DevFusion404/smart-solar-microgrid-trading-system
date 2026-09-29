@@ -67,6 +67,9 @@ dependencies {
     // Recycler lists
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
+    // Pull-to-refresh on the Component 4 dashboards
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+
     // Navigation
     implementation("androidx.navigation:navigation-fragment-ktx:2.8.3")
     implementation("androidx.navigation:navigation-ui-ktx:2.8.3")
@@ -89,6 +92,10 @@ dependencies {
 
     // Blur effects (glassmorphism cards, blurred bottom sheets/dialogs)
     implementation("com.github.Dimezis:BlurView:version-2.0.6")
+
+    // QR code generation (Component 4 - prosumer transfer QR) and camera scanning
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

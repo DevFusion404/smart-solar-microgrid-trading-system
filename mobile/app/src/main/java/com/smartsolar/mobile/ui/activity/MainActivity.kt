@@ -18,6 +18,7 @@ import com.smartsolar.mobile.databinding.ActivityMainBinding
 import com.smartsolar.mobile.ui.fragment.MyReservationsFragment
 import com.smartsolar.mobile.ui.fragment.ReservationHistoryFragment
 import com.smartsolar.mobile.ui.fragment.ReserveEnergyFragment
+import com.smartsolar.mobile.ui.activity.transfer.ProsumerDashboardActivity
 import com.smartsolar.mobile.ui.fragment.StationsFragment
 import com.smartsolar.mobile.utils.NetworkUtils
 import kotlinx.coroutines.launch
@@ -100,6 +101,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
             R.id.nav_history -> {
                 showReservationScreen(ReservationHistoryFragment(), "Reservation History")
+            }
+
+            // Component 4: opens the energy transfer dashboard as its own activity.
+            R.id.nav_transfers -> {
+                startActivity(Intent(this, ProsumerDashboardActivity::class.java))
             }
 
             R.id.nav_sync -> {

@@ -6,7 +6,7 @@ object Constants {
      * Synchronized with ApiConfig.BASE_URL.
      */
     //const val BASE_URL = "http://10.0.2.2:5295/"
-    const val BASE_URL = "http://192.168.56.1:5295"
+    const val BASE_URL = "http://192.168.1.4:5295"
 
 
     // Request Timeout
@@ -14,5 +14,5 @@ object Constants {
 
     // Database
     const val DATABASE_NAME = "smart_solar_local.db"
-    const val DATABASE_VERSION = 2
+    const val DATABASE_VERSION = 3
 }
