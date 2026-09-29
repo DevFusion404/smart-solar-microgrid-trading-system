@@ -8,7 +8,7 @@ An end-to-end **client–server** system for trading solar energy in a community
 | | |
 |---|---|
 | **Git repository** | https://github.com/DevFusion404/smart-solar-microgrid-trading-system |
-| **Demo video (≤ 5 min)** | `TODO: add YouTube / OneDrive link` |
+| **Demo video (≤ 5 min)** | `https://youtu.be/1xV0fvgf11I` |
 | **Project report** | Included in the submission zip |
 | **Opening screen screenshot** | [`docs/screenshots/opening-screen.png`](docs/screenshots/opening-screen.png) |
 
