@@ -23,6 +23,7 @@ public class EnergySlotService : IEnergySlotService
 {
     private readonly IMongoCollection<EnergyBookingSlot> _slots;
     private readonly IMongoCollection<SolarStationInfo> _stations;
+    private readonly IMongoCollection<EnergyReservation> _reservations;
 
     // Constructor initializes MongoDB collection
     public EnergySlotService(MongoDbContext context)
@@ -31,6 +32,7 @@ public class EnergySlotService : IEnergySlotService
             .GetCollection<EnergyBookingSlot>("EnergyBookingSlot");
         _stations = context.Database
             .GetCollection<SolarStationInfo>("SolarStationInfo");
+        _reservations = context.Reservations;
     }
 
     /// <summary>
@@ -41,6 +43,9 @@ public class EnergySlotService : IEnergySlotService
     public async Task<EnergyBookingSlot> CreateSlot(
         EnergyBookingSlot slot)
     {
+        // Normalize slot.Date to UTC midnight preserving calendar year, month, and day
+        slot.Date = new DateTime(slot.Date.Year, slot.Date.Month, slot.Date.Day, 0, 0, 0, DateTimeKind.Utc);
+
         // Validate that start time is before end time
         if(slot.StartTime >= slot.EndTime)
         {
@@ -148,7 +153,7 @@ public class EnergySlotService : IEnergySlotService
         // Narrow to the requested calendar date if provided
         if(date.HasValue)
         {
-            var targetDate = date.Value.Date;
+            var targetDate = new DateTime(date.Value.Year, date.Value.Month, date.Value.Day, 0, 0, 0, DateTimeKind.Utc);
 
             filter = filter &
                 Builders<EnergyBookingSlot>.Filter.Gte(
@@ -215,6 +220,23 @@ public class EnergySlotService : IEnergySlotService
             return false;
         }
 
+        // Validate that status can only be Available or Closed
+        if (!string.IsNullOrEmpty(slot.Status) &&
+            !string.Equals(slot.Status, "Available", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(slot.Status, "Closed", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new Exception("Invalid status. Energy slot status can only be 'Available' or 'Closed'.");
+        }
+
+        // If status is being changed to Closed, ensure no reservations exist
+        if (string.Equals(slot.Status, "Closed", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(existing.Status, "Closed", StringComparison.OrdinalIgnoreCase))
+        {
+            await EnsureNoActiveReservations(existing);
+        }
+
+        // Normalize slot.Date to UTC midnight preserving calendar year, month, and day
+        slot.Date = new DateTime(slot.Date.Year, slot.Date.Month, slot.Date.Day, 0, 0, 0, DateTimeKind.Utc);
         slot.Id = existing.Id;
 
         var result =
@@ -277,6 +299,94 @@ public class EnergySlotService : IEnergySlotService
 
         return result.ModifiedCount > 0;
 
+    }
+
+    /// <summary>
+    /// Ensures that no energy has been reserved for the given slot.
+    /// Throws an exception if booked capacity > 0 or if active reservations exist.
+    /// </summary>
+    private async Task EnsureNoActiveReservations(EnergyBookingSlot slot)
+    {
+        // 1. Check if capacity has been consumed (reserved energy > 0)
+        if (slot.TotalCapacity - slot.AvailableCapacity > 0.001)
+        {
+            throw new Exception("Cannot proceed: User has reserved energy for this slot.");
+        }
+
+        // 2. Check if active reservations exist in MongoDB Reservations collection
+        if (_reservations != null)
+        {
+            var idCandidates = new List<string>();
+            if (!string.IsNullOrEmpty(slot.SlotId))
+            {
+                idCandidates.Add(slot.SlotId);
+            }
+            if (!string.IsNullOrEmpty(slot.Id))
+            {
+                idCandidates.Add(slot.Id);
+            }
+
+            var resFilter = Builders<EnergyReservation>.Filter.In(x => x.SlotId, idCandidates);
+            var activeStatuses = new[] { "Confirmed", "Approved", "Pending" };
+            var activeFilter = resFilter & Builders<EnergyReservation>.Filter.In(x => x.Status, activeStatuses);
+
+            var hasActive = await _reservations.Find(activeFilter).AnyAsync();
+            if (hasActive)
+            {
+                throw new Exception("Cannot proceed: User has reserved energy for this slot.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Closes an energy booking slot if no energy has been reserved.
+    /// </summary>
+    public async Task<bool> CloseSlot(string id)
+    {
+        var slot = await GetSlotById(id);
+        if (slot == null)
+        {
+            throw new Exception("Slot not found");
+        }
+
+        if (string.Equals(slot.Status, "Closed", StringComparison.OrdinalIgnoreCase))
+        {
+            return true; // Already closed
+        }
+
+        // Validate that no energy has been reserved
+        await EnsureNoActiveReservations(slot);
+
+        var update = Builders<EnergyBookingSlot>.Update
+            .Set(x => x.Status, "Closed");
+
+        var result = await _slots.UpdateOneAsync(x => x.Id == slot.Id, update);
+        return result.ModifiedCount > 0;
+    }
+
+    /// <summary>
+    /// Permanently deletes an energy booking slot.
+    /// Only slots with status 'Closed' and no reserved energy can be deleted.
+    /// </summary>
+    public async Task<bool> DeleteSlot(string id)
+    {
+        var slot = await GetSlotById(id);
+        if (slot == null)
+        {
+            throw new Exception("Slot not found");
+        }
+
+        // Rule 1: Only closed slots can be deleted
+        if (!string.Equals(slot.Status, "Closed", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new Exception("Only closed slots can be deleted. Please close the slot first.");
+        }
+
+        // Rule 2: Cannot delete if energy has been reserved
+        await EnsureNoActiveReservations(slot);
+
+        var result = await _slots.DeleteOneAsync(x => x.Id == slot.Id);
+        return result.DeletedCount > 0;
     }
 
 }

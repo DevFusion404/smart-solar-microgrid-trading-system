@@ -131,7 +131,7 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- Date Filter Row -->
+        <!-- Filter Controls: Date and Slot Status Dropdown -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -142,18 +142,62 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSelectSlotDate"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1.1"
+                android:minHeight="48dp"
                 android:text="Date: Today"
                 android:textColor="@color/slate_700"
                 android:textSize="12sp"
-                app:cornerRadius="12dp"
+                app:cornerRadius="14dp"
                 app:icon="@drawable/ic_nav_calendar"
                 app:iconGravity="textStart"
                 app:iconPadding="6dp"
                 app:iconSize="16dp"
                 app:iconTint="@color/slate_600"
-                app:strokeColor="@color/slate_300" />
+                app:strokeColor="@color/slate_300"
+                app:strokeWidth="1.5dp" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilSlotStatusFilter"
+                style="@style/Widget.SmartSolar.TextInputLayout.ExposedDropdown"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                app:hintEnabled="false">
+
+                <AutoCompleteTextView
+                    android:id="@+id/actvSlotStatusFilter"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:inputType="none"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="All Statuses"
+                    android:textColor="@color/slate_800"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <!-- Count & Status Filter Indicator Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvActiveFilterIndicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Filter: All"
+                android:textColor="@color/cyan_accent_dark"
+                android:textSize="11sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvSlotsCountBadge"
@@ -164,7 +208,7 @@
                 android:gravity="end"
                 android:text="0 Slots published"
                 android:textColor="@color/slate_500"
-                android:textSize="12sp" />
+                android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
 

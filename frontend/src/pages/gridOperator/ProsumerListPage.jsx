@@ -1,3 +1,13 @@
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : Identity and Account Management (Component 1)
+File          : ProsumerListPage.jsx (grid operator)
+Description   : Read-only prosumer directory for Grid Operators, used to
+                confirm a prosumer's identity and account status.
+=====================================================
+*/
+
 import { motion } from 'framer-motion'
 import {
   ChevronLeft,
@@ -20,15 +30,17 @@ const PAGE_SIZE = 10
 const statusStyle = {
   Active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300',
   PendingActivation: 'bg-amber-100 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300',
-  PendingDeactivation: 'bg-orange-100 text-orange-700 dark:bg-orange-400/10 dark:text-orange-300',
+  DeactivationRequested: 'bg-orange-100 text-orange-700 dark:bg-orange-400/10 dark:text-orange-300',
   Deactivated: 'bg-red-100 text-red-700 dark:bg-red-400/10 dark:text-red-300',
 }
-const statusLabel = { PendingActivation: 'Pending', PendingDeactivation: 'Pend. Deactivation' }
+const statusLabel = { PendingActivation: 'Pending', DeactivationRequested: 'Pend. Deactivation' }
 
+// Coloured pill showing a prosumer's account status
 function StatusBadge({ status }) {
   return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle[status] ?? ''}`}>{statusLabel[status] ?? status}</span>
 }
 
+// Read-only prosumer directory for Grid Operators (they cannot change accounts)
 export function ProsumerListPage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('All')
@@ -39,6 +51,7 @@ export function ProsumerListPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  // Loads the current page, using search when a query is typed
   const fetchProsumers = useCallback(async () => {
     setLoading(true)
     setError('')

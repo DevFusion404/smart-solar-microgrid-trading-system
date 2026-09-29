@@ -55,14 +55,6 @@ export const dashboardMetrics = [
   },
 ]
 
-export const pendingProsumerActions = [
-  { prosumer: 'Alicia Gomez', request: 'Reactivation', node: 'North Ridge', value: '$920.00', status: 'Needs review', time: '12 min ago' },
-  { prosumer: 'Daniel Park', request: 'Meter update', node: 'Lakeview', value: '$240.00', status: 'Approved', time: '28 min ago' },
-  { prosumer: 'Imran Yusuf', request: 'Capacity increase', node: 'Cedar Heights', value: '$1,470.00', status: 'Pending', time: '54 min ago' },
-  { prosumer: 'Priya Nair', request: 'KYC review', node: 'Green Valley', value: '$410.00', status: 'Escalated', time: '1 hr ago' },
-  { prosumer: 'Noah Smith', request: 'Profile update', node: 'Sunset View', value: '$180.00', status: 'Approved', time: '2 hrs ago' },
-]
-
 export const reservationStatus = [
   { name: 'Approved', value: 54, color: '#10b981' },
   { name: 'Pending', value: 26, color: '#3b82f6' },

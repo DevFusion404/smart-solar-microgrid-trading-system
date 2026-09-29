@@ -20,12 +20,14 @@ import {
   Edit2,
   Eye,
   Link as LinkIcon,
+  Lock,
   MapPin,
   Plus,
   RefreshCw,
   Search,
   SlidersHorizontal,
   Sparkles,
+  Trash2,
   Users,
   X,
   Zap,
@@ -38,8 +40,7 @@ import { StatusBadge } from '../../components/common/StatusBadge'
 import { nodeAssignmentService, slotService, stationService } from '../../services'
 import { useAuth } from '../../context/AuthContext'
 
-// Slot Detail Modal
-function SlotDetailModal({ slot, stationName, onClose, onAdjustCapacity, onEdit }) {
+function SlotDetailModal({ slot, stationName, onClose, onAdjustCapacity, onEdit, onDelete, onCloseSlot }) {
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -166,7 +167,7 @@ function SlotDetailModal({ slot, stationName, onClose, onAdjustCapacity, onEdit 
             </div>
           </div>
 
-          <div className="flex gap-2.5 pt-2">
+          <div className="flex flex-wrap items-center gap-2 pt-2">
             <button
               type="button"
               onClick={() => {
@@ -175,7 +176,7 @@ function SlotDetailModal({ slot, stationName, onClose, onAdjustCapacity, onEdit 
               }}
               className="flex-1 rounded-xl border border-slate-200 py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800"
             >
-              Edit Slot Info
+              Edit Info
             </button>
             <button
               type="button"
@@ -185,7 +186,31 @@ function SlotDetailModal({ slot, stationName, onClose, onAdjustCapacity, onEdit 
               }}
               className="flex-1 rounded-xl bg-amber-500 py-2.5 text-xs font-semibold text-slate-950 shadow-sm transition hover:bg-amber-400"
             >
-              Adjust Capacity
+              Capacity
+            </button>
+            {slot.status === 'Available' && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose()
+                  onCloseSlot(slot)
+                }}
+                className="rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 dark:border-amber-900/40 dark:bg-amber-400/10 dark:text-amber-300"
+                title="Close Slot"
+              >
+                Close Slot
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                onClose()
+                onDelete(slot)
+              }}
+              className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-400/10 dark:text-rose-300"
+              title="Delete Energy Slot"
+            >
+              <Trash2 className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -465,9 +490,7 @@ function EditSlotModal({ slot, onClose, onUpdated }) {
               className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-amber-500 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
             >
               <option value="Available">Available</option>
-              <option value="Booked">Booked</option>
               <option value="Closed">Closed</option>
-              <option value="Cancelled">Cancelled</option>
             </select>
           </div>
 
@@ -529,7 +552,15 @@ function AdjustCapacityModal({ slot, onClose, onAdjusted }) {
     }
   }
 
-  return (
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [])
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
       <Panel className="w-full max-w-md overflow-hidden shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
@@ -592,7 +623,118 @@ function AdjustCapacityModal({ slot, onClose, onAdjusted }) {
           </div>
         </form>
       </Panel>
-    </div>
+    </div>,
+    document.body
+  )
+}
+
+// Confirm Slot Delete Modal
+function ConfirmSlotDeleteModal({ slot, onClose, onConfirm, onCloseSlotFirst }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [])
+
+  const total = slot.totalCapacity || 1
+  const available = slot.availableCapacity ?? slot.totalCapacity
+  const booked = Math.max(0, total - available)
+  const hasReservedEnergy = booked > 0.001
+  const isClosed = slot.status === 'Closed'
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
+      <Panel className="w-full max-w-md overflow-hidden shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400">
+              <Trash2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-950 dark:text-white">Delete Energy Slot</h3>
+              <p className="font-mono text-xs text-amber-600 dark:text-amber-400">{slot.slotId}</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4 p-6">
+          {hasReservedEnergy ? (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-medium text-rose-800 dark:border-rose-900/50 dark:bg-rose-400/10 dark:text-rose-300">
+              <div className="flex items-center gap-2 font-bold text-rose-700 dark:text-rose-200">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>Reserved Energy Detected</span>
+              </div>
+              <p className="mt-1.5 leading-relaxed">
+                This slot cannot be deleted or closed because users have currently reserved <strong>{booked.toFixed(1)} kWh</strong> of energy.
+              </p>
+            </div>
+          ) : !isClosed ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-800 dark:border-amber-900/50 dark:bg-amber-400/10 dark:text-amber-300">
+              <div className="flex items-center gap-2 font-bold text-amber-700 dark:text-amber-200">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>Slot is currently {slot.status}</span>
+              </div>
+              <p className="mt-1.5 leading-relaxed">
+                Only <strong>Closed</strong> slots can be permanently deleted. Since no energy is reserved, you can close this slot first.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Are you sure you want to permanently delete slot <strong className="font-mono text-amber-600 dark:text-amber-400">{slot.slotId}</strong>?
+              This action cannot be undone.
+            </p>
+          )}
+
+          <div className="rounded-xl bg-slate-50 p-3.5 text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-400 space-y-1">
+            <p><strong>Date:</strong> {slot.date ? new Date(slot.date).toLocaleDateString('en-GB') : 'N/A'}</p>
+            <p><strong>Time Window:</strong> {slot.startTime} - {slot.endTime}</p>
+            <p><strong>Capacity:</strong> {slot.availableCapacity} / {slot.totalCapacity} kWh</p>
+            <p><strong>Status:</strong> {slot.status}</p>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+            {hasReservedEnergy ? (
+              <button
+                type="button"
+                disabled
+                className="cursor-not-allowed rounded-xl bg-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-400 dark:bg-slate-800 dark:text-slate-600"
+              >
+                Cannot Delete
+              </button>
+            ) : !isClosed ? (
+              <button
+                type="button"
+                onClick={onCloseSlotFirst}
+                className="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-slate-950 shadow-sm transition hover:bg-amber-400"
+              >
+                Close Slot First
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onConfirm}
+                className="rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-500"
+              >
+                Confirm Delete
+              </button>
+            )}
+          </div>
+        </div>
+      </Panel>
+    </div>,
+    document.body
   )
 }
 
@@ -610,12 +752,16 @@ export function ManageEnergySlots({ operatorMode = false }) {
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
 
   // Modals state
   const [selectedSlot, setSelectedSlot] = useState(null)
   const [creatingSlot, setCreatingSlot] = useState(false)
   const [editingSlot, setEditingSlot] = useState(null)
   const [adjustingSlot, setAdjustingSlot] = useState(null)
+  const [deletingSlot, setDeletingSlot] = useState(null)
+  const [actionError, setActionError] = useState(null)
+  const [actionSuccess, setActionSuccess] = useState(null)
 
   // Load stations initially (all stations for Backoffice, assigned nodes only for Grid Operator)
   useEffect(() => {
@@ -669,6 +815,52 @@ export function ManageEnergySlots({ operatorMode = false }) {
     }
   }
 
+  const handleCloseSlot = async (slot) => {
+    try {
+      setActionError(null)
+      setActionSuccess(null)
+      const total = slot.totalCapacity || 1
+      const available = slot.availableCapacity ?? slot.totalCapacity
+      const booked = Math.max(0, total - available)
+      if (booked > 0.001) {
+        setActionError(`Cannot close slot ${slot.slotId}: User has reserved energy (${booked.toFixed(1)} kWh) for this slot.`)
+        return
+      }
+
+      await slotService.closeSlot(slot.id || slot.slotId)
+      setActionSuccess(`Slot ${slot.slotId} has been closed successfully.`)
+      loadSlots()
+    } catch (err) {
+      setActionError(err.response?.data?.message || err.message || 'Failed to close slot')
+    }
+  }
+
+  const handleDeleteSlot = async (slot) => {
+    try {
+      setActionError(null)
+      setActionSuccess(null)
+      if (slot.status !== 'Closed') {
+        setActionError(`Slot ${slot.slotId} is currently ${slot.status}. Only closed slots can be deleted. Please close the slot first.`)
+        return
+      }
+
+      const total = slot.totalCapacity || 1
+      const available = slot.availableCapacity ?? slot.totalCapacity
+      const booked = Math.max(0, total - available)
+      if (booked > 0.001) {
+        setActionError(`Cannot delete slot ${slot.slotId}: User has reserved energy for this slot.`)
+        return
+      }
+
+      await slotService.deleteSlot(slot.id || slot.slotId)
+      setActionSuccess(`Energy slot ${slot.slotId} deleted successfully.`)
+      setDeletingSlot(null)
+      loadSlots()
+    } catch (err) {
+      setActionError(err.response?.data?.message || err.message || 'Failed to delete energy slot')
+    }
+  }
+
   useEffect(() => {
     loadSlots()
   }, [selectedStationId, dateFilter])
@@ -677,16 +869,20 @@ export function ManageEnergySlots({ operatorMode = false }) {
     return stations.find((s) => s.stationId === selectedStationId) || null
   }, [stations, selectedStationId])
 
-  // Filter slots by search keyword
+  // Filter slots by search keyword and status filter
   const visibleSlots = useMemo(() => {
+    let result = slots
+    if (statusFilter && statusFilter !== 'All') {
+      result = result.filter((slot) => slot.status?.toLowerCase() === statusFilter.toLowerCase())
+    }
     const q = searchTerm.trim().toLowerCase()
-    if (!q) return slots
-    return slots.filter((slot) =>
+    if (!q) return result
+    return result.filter((slot) =>
       [slot.slotId, slot.status, slot.startTime, slot.endTime].some((val) =>
         val?.toLowerCase().includes(q)
       )
     )
-  }, [slots, searchTerm])
+  }, [slots, statusFilter, searchTerm])
 
   // Stats calculation
   const stats = useMemo(() => {
@@ -830,6 +1026,20 @@ export function ManageEnergySlots({ operatorMode = false }) {
                 Clear Date
               </button>
             )}
+
+            {/* Status Filter */}
+            <div>
+              <label className="block text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400">Status</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="mt-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 outline-none transition focus:border-amber-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+              >
+                <option value="All">All Statuses</option>
+                <option value="Available">Available</option>
+                <option value="Closed">Closed</option>
+              </select>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -845,7 +1055,31 @@ export function ManageEnergySlots({ operatorMode = false }) {
           </div>
         </div>
 
-        {/* Error message */}
+        {/* Error / Alert messages */}
+        {actionError && (
+          <div className="m-5 flex items-center justify-between gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-400/10 dark:text-rose-300">
+            <div className="flex items-center gap-2.5">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              <span>{actionError}</span>
+            </div>
+            <button type="button" onClick={() => setActionError(null)} className="text-slate-400 hover:text-slate-600">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {actionSuccess && (
+          <div className="m-5 flex items-center justify-between gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-400/10 dark:text-emerald-300">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="h-5 w-5 shrink-0" />
+              <span>{actionSuccess}</span>
+            </div>
+            <button type="button" onClick={() => setActionSuccess(null)} className="text-slate-400 hover:text-slate-600">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {error && (
           <div className="m-5 flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-400/10 dark:text-rose-300">
             <AlertCircle className="h-5 w-5 shrink-0" />
@@ -955,6 +1189,26 @@ export function ManageEnergySlots({ operatorMode = false }) {
                             >
                               <BatteryCharging className="h-4 w-4" />
                             </button>
+
+                            {slot.status === 'Available' && (
+                              <button
+                                type="button"
+                                title="Close energy slot"
+                                onClick={() => handleCloseSlot(slot)}
+                                className="rounded-lg p-1.5 text-amber-600 transition hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-400/10"
+                              >
+                                <Lock className="h-4 w-4" />
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              title="Delete energy slot"
+                              onClick={() => setDeletingSlot(slot)}
+                              className="rounded-lg p-1.5 text-rose-500 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-400/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -985,6 +1239,8 @@ export function ManageEnergySlots({ operatorMode = false }) {
           onClose={() => setSelectedSlot(null)}
           onEdit={(s) => setEditingSlot(s)}
           onAdjustCapacity={(s) => setAdjustingSlot(s)}
+          onDelete={(s) => setDeletingSlot(s)}
+          onCloseSlot={handleCloseSlot}
         />
       )}
 
@@ -1009,6 +1265,19 @@ export function ManageEnergySlots({ operatorMode = false }) {
           slot={adjustingSlot}
           onClose={() => setAdjustingSlot(null)}
           onAdjusted={loadSlots}
+        />
+      )}
+
+      {deletingSlot && (
+        <ConfirmSlotDeleteModal
+          slot={deletingSlot}
+          onClose={() => setDeletingSlot(null)}
+          onConfirm={() => handleDeleteSlot(deletingSlot)}
+          onCloseSlotFirst={() => {
+            const target = deletingSlot
+            setDeletingSlot(null)
+            handleCloseSlot(target)
+          }}
         />
       )}
     </div>

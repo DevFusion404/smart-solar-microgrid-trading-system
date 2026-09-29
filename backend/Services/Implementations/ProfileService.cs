@@ -140,9 +140,18 @@ public class ProfileService : IProfileService
             throw new BadRequestException("INVALID_CURRENT_PASSWORD", "Current password is incorrect.");
         }
 
-        if (request.NewPassword.Length < 6)
+        // Same strength rule as registration and web-user creation
+        if (request.NewPassword.Length < 8 ||
+            !Regex.IsMatch(request.NewPassword, @"[A-Z]") ||
+            !Regex.IsMatch(request.NewPassword, @"[a-z]") ||
+            !Regex.IsMatch(request.NewPassword, @"[0-9]"))
         {
-            throw new BadRequestException("WEAK_PASSWORD", "New password must be at least 6 characters long.");
+            throw new BadRequestException("WEAK_PASSWORD", "New password must be at least 8 characters long and contain uppercase, lowercase, and numeric characters.");
+        }
+
+        if (request.NewPassword == request.CurrentPassword)
+        {
+            throw new BadRequestException("PASSWORD_UNCHANGED", "New password must be different from the current password.");
         }
 
         user.PasswordHash = _passwordHasher.HashPassword(user, request.NewPassword);

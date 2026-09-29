@@ -124,18 +124,18 @@
             android:text="All" />
 
         <com.google.android.material.chip.Chip
-            android:id="@+id/chipReservationPending"
+            android:id="@+id/chipReservationReviewing"
             style="@style/Widget.SmartSolar.ReservationFilterChip"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Pending" />
+            android:text="Reviewing" />
 
         <com.google.android.material.chip.Chip
-            android:id="@+id/chipReservationConfirmed"
+            android:id="@+id/chipReservationApproved"
             style="@style/Widget.SmartSolar.ReservationFilterChip"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Confirmed" />
+            android:text="Approved" />
     </com.google.android.material.chip.ChipGroup>
 
     <TextView

@@ -178,6 +178,20 @@ builder.Services.AddCors(options =>
 // ─── Application Pipeline ────────────────────────────────────────────────────
 var app = builder.Build();
 
+// Seed the first Backoffice account (only when configured and none exists yet)
+var defaultAdminSettings = builder.Configuration
+    .GetSection(DefaultAdminSettings.SectionName)
+    .Get<DefaultAdminSettings>() ?? new DefaultAdminSettings();
+try
+{
+    await DefaultAdminSeeder.SeedAsync(app.Services, defaultAdminSettings, app.Logger);
+}
+catch (Exception ex)
+{
+    // A seeding failure (e.g. MongoDB unreachable at startup) must not stop the API from starting
+    app.Logger.LogError(ex, "Default Backoffice seed failed.");
+}
+
 // Global Exception Middleware Envelope
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 

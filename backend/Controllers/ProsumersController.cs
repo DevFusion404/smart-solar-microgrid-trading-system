@@ -36,6 +36,16 @@ public class ProsumersController : ControllerBase
         return CreatedAtAction(nameof(GetProsumerByNic), new { nic = result.Nic }, result);
     }
 
+    // Creates a prosumer account on behalf of a customer (Backoffice officers only); account is Active immediately
+    [HttpPost]
+    [Authorize(Roles = "Backoffice")]
+    public async Task<IActionResult> CreateProsumer([FromBody] RegisterProsumerDto request)
+    {
+        var actingUsername = User.Identity?.Name ?? "system";
+        var result = await _prosumerService.CreateProsumerByBackofficeAsync(request, actingUsername);
+        return CreatedAtAction(nameof(GetProsumerByNic), new { nic = result.Nic }, result);
+    }
+
     // Retrieves paginated list of prosumer profiles filtered by optional account status
     [HttpGet]
     [Authorize(Roles = "Backoffice,GridOperator")]
@@ -154,13 +164,14 @@ public class ProsumersController : ControllerBase
         return Ok(result);
     }
 
-    // Approves deactivation request and deactivates prosumer account (Backoffice officer only)
+    // Deactivates a prosumer account (Backoffice officer only). Body { reason } is optional when approving
+    // a prosumer's own request, but required when deactivating an Active account directly.
     [HttpPost("{nic}/deactivate")]
     [Authorize(Roles = "Backoffice")]
-    public async Task<IActionResult> ApproveDeactivation(string nic)
+    public async Task<IActionResult> ApproveDeactivation(string nic, [FromBody] DeactivationRequestDto? request)
     {
         var actingUsername = User.Identity?.Name ?? "system";
-        var result = await _prosumerService.ApproveDeactivationAsync(nic, actingUsername);
+        var result = await _prosumerService.ApproveDeactivationAsync(nic, actingUsername, request?.Reason);
         return Ok(result);
     }
 

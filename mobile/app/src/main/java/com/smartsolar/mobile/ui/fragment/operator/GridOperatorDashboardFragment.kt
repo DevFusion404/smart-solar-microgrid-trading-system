@@ -19,8 +19,8 @@ class GridOperatorDashboardFragment : Fragment() {
     private var _binding: FragmentGridOperatorDashboardBinding? = null
     private val binding get() = _binding!!
 
-    private var operatorId: String = "chamithu"
-    private var operatorName: String = "Chamithu"
+    private var operatorId: String = ""
+    private var operatorName: String = "Operator"
     private var assignedStations: List<Station> = emptyList()
 
     override fun onCreateView(
@@ -35,8 +35,12 @@ class GridOperatorDashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        operatorId = activity?.intent?.getStringExtra("OPERATOR_ID") ?: "chamithu"
-        operatorName = activity?.intent?.getStringExtra("USER_NAME") ?: "Chamithu"
+        operatorId = activity?.intent?.getStringExtra("OPERATOR_ID")
+            ?: context?.let { com.smartsolar.mobile.data.local.SessionManager.getUsername(it) }
+            ?: ""
+        operatorName = activity?.intent?.getStringExtra("USER_NAME")
+            ?: context?.let { com.smartsolar.mobile.data.local.SessionManager.getDisplayName(it) }
+            ?: "Operator"
 
         binding.tvDashboardWelcome.text = "Good day, $operatorName"
 

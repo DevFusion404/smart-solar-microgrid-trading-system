@@ -14,6 +14,7 @@ import com.smartsolar.mobile.databinding.ActivityGridOperatorHomeBinding
 import com.smartsolar.mobile.ui.fragment.ProfileFragment
 import com.smartsolar.mobile.ui.fragment.operator.GridOperatorDashboardFragment
 import com.smartsolar.mobile.ui.fragment.operator.OperatorBookingsFragment
+import com.smartsolar.mobile.ui.fragment.operator.OperatorMapFragment
 import com.smartsolar.mobile.ui.fragment.operator.OperatorNodesFragment
 import com.smartsolar.mobile.ui.fragment.operator.OperatorSlotsFragment
 
@@ -34,6 +35,12 @@ class GridOperatorActivity : AppCompatActivity(), NavigationView.OnNavigationIte
         super.onCreate(savedInstanceState)
         binding = ActivityGridOperatorHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Ensure Retrofit token is actively restored from SQLite session
+        if (com.smartsolar.mobile.data.api.RetrofitClient.authToken.isNullOrBlank()) {
+            com.smartsolar.mobile.data.api.RetrofitClient.authToken =
+                com.smartsolar.mobile.data.local.SessionManager.getToken(this)
+        }
 
         setupToolbarAndDrawer()
         setupUserProfileHeader()
@@ -65,14 +72,17 @@ class GridOperatorActivity : AppCompatActivity(), NavigationView.OnNavigationIte
     }
 
     private fun setupUserProfileHeader() {
-        val userName = intent.getStringExtra("USER_NAME") ?: "Chamithu"
+        val userName = intent.getStringExtra("USER_NAME")
+            ?: com.smartsolar.mobile.data.local.SessionManager.getDisplayName(this)
+            ?: com.smartsolar.mobile.data.local.SessionManager.getUsername(this)
+            ?: "Operator"
         val userRole = intent.getStringExtra("USER_ROLE") ?: "Grid Operator"
 
         val headerView = binding.gridOpNavigationView.getHeaderView(0)
         headerView.findViewById<android.widget.TextView>(R.id.tvNavUserName)?.text = userName
         headerView.findViewById<android.widget.TextView>(R.id.tvNavUserRole)?.text = userRole
         headerView.findViewById<android.widget.TextView>(R.id.tvNavUserInitial)?.text =
-            userName.firstOrNull()?.uppercase() ?: "C"
+            userName.firstOrNull()?.uppercase() ?: "O"
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
@@ -101,6 +111,10 @@ class GridOperatorActivity : AppCompatActivity(), NavigationView.OnNavigationIte
                 fragment = OperatorNodesFragment()
                 title = "My Assigned Nodes"
             }
+            R.id.nav_grid_map -> {
+                fragment = OperatorMapFragment()
+                title = "Node Map"
+            }
             R.id.nav_grid_slots -> {
                 fragment = OperatorSlotsFragment()
                 title = "Energy Slots Control"
@@ -114,7 +128,7 @@ class GridOperatorActivity : AppCompatActivity(), NavigationView.OnNavigationIte
                 title = "Operator Profile"
             }
             R.id.nav_grid_logout -> {
-                com.smartsolar.mobile.data.api.RetrofitClient.authToken = null
+                com.smartsolar.mobile.data.local.SessionManager.clearSession(this)
                 val intent = Intent(this, LoginActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)

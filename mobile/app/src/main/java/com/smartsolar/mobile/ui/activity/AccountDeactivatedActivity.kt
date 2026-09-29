@@ -1,3 +1,13 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : AccountDeactivatedActivity.kt
+ * Description : Shown when a deactivated account tries to sign in (API 403
+ *               ACCOUNT_DEACTIVATED). Only a Backoffice officer can reactivate it.
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.ui.activity
 
 import android.content.Intent
@@ -17,6 +27,7 @@ class AccountDeactivatedActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAccountDeactivatedBinding
 
+    // Inflates the screen and wires the back-to-login button
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAccountDeactivatedBinding.inflate(layoutInflater)
@@ -25,12 +36,14 @@ class AccountDeactivatedActivity : AppCompatActivity() {
         setupListeners()
     }
 
+    // "Back to Login" button
     private fun setupListeners() {
         binding.btnDeactivatedBackToLogin.setOnClickListener {
             navigateToLogin()
         }
     }
 
+    // Clears the back stack and opens the login screen
     private fun navigateToLogin() {
         val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -39,6 +52,7 @@ class AccountDeactivatedActivity : AppCompatActivity() {
         finish()
     }
 
+    // Back also returns to login instead of a locked screen
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         navigateToLogin()

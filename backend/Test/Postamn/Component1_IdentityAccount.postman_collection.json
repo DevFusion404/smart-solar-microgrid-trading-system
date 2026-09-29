@@ -1,0 +1,835 @@
+{
+  "info": {
+    "name": "Component 1 - Identity & Account Management",
+    "description": "Run the folders in order (Collection Runner). Covers: login and roles, incorrect password, NIC registration and duplicate NIC rejection, pending-account login restriction, activation, profile update validation, deactivation request/approval, and Backoffice-only reactivation.\n\nSet backoffice_username / backoffice_password to the DefaultAdmin account before running.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Login & roles",
+      "item": [
+        {
+          "name": "Login as Backoffice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/Auth/login",
+            "description": "Uses the DefaultAdmin account seeded on startup (set DefaultAdmin in appsettings.Local.json).",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{backoffice_username}}\",\n  \"password\": \"{{backoffice_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Role is Backoffice', () => pm.expect(body.user.role).to.eql('Backoffice'));",
+                  "pm.collectionVariables.set('backoffice_token', body.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Incorrect password -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/Auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{backoffice_username}}\",\n  \"password\": \"WrongPassword1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('errorCode is INVALID_CREDENTIALS', () => pm.expect(pm.response.json().errorCode).to.eql('INVALID_CREDENTIALS'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Protected endpoint without token -> 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/prosumers",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Current user (me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/Auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{backoffice_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Username returned', () => pm.expect(pm.response.json().username).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Prosumer registration (NIC)",
+      "item": [
+        {
+          "name": "Register prosumer -> 201 PendingActivation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/prosumers/register",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nic\": \"{{test_nic}}\",\n  \"fullName\": \"Test Prosumer\",\n  \"email\": \"{{test_email}}\",\n  \"phoneNumber\": \"0771234567\",\n  \"address\": \"12 Galle Road, Colombo 03\",\n  \"username\": \"{{test_username}}\",\n  \"password\": \"Solar1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Unique test data for every run so the collection can be re-run against the same database",
+                  "const n = Date.now().toString().slice(-9);",
+                  "pm.collectionVariables.set('test_nic', n + 'V');",
+                  "pm.collectionVariables.set('test_username', 'c1test_' + n);",
+                  "pm.collectionVariables.set('test_email', 'c1test_' + n + '@example.com');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Status is PendingActivation', () => pm.expect(pm.response.json().status).to.eql('PendingActivation'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Duplicate NIC -> 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/prosumers/register",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nic\": \"{{test_nic}}\",\n  \"fullName\": \"Test Prosumer\",\n  \"email\": \"dup_{{test_email}}\",\n  \"phoneNumber\": \"0771234567\",\n  \"address\": \"12 Galle Road, Colombo 03\",\n  \"username\": \"{{test_username}}_2\",\n  \"password\": \"Solar1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 409', () => pm.response.to.have.status(409));",
+                  "pm.test('errorCode is DUPLICATE_NIC', () => pm.expect(pm.response.json().errorCode).to.eql('DUPLICATE_NIC'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid NIC format -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/prosumers/register",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nic\": \"12345\",\n  \"fullName\": \"Test Prosumer\",\n  \"email\": \"badnic@example.com\",\n  \"phoneNumber\": \"0771234567\",\n  \"address\": \"12 Galle Road, Colombo 03\",\n  \"username\": \"bad_nic_user\",\n  \"password\": \"Solar1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('errorCode is VALIDATION_FAILED', () => pm.expect(pm.response.json().errorCode).to.eql('VALIDATION_FAILED'));",
+                  "pm.test('nic field error', () => pm.expect(pm.response.json().validationErrors).to.have.property('nic'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Account lifecycle",
+      "item": [
+        {
+          "name": "Pending account login -> 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/Auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{test_username}}\",\n  \"password\": \"Solar1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('errorCode is ACCOUNT_PENDING_ACTIVATION', () => pm.expect(pm.response.json().errorCode).to.eql('ACCOUNT_PENDING_ACTIVATION'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List pending activations (Backoffice)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/prosumers/pending-activations",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{backoffice_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('New prosumer is listed', () => pm.expect(pm.response.json().items.map(p => p.nic)).to.include(pm.collectionVariables.get('test_nic')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Activate prosumer (Backoffice)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{base_url}}/api/prosumers/{{test_nic}}/activate",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{backoffice_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Now Active', () => pm.expect(pm.response.json().status).to.eql('Active'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Prosumer login -> 200",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/Auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{test_username}}\",\n  \"password\": \"Solar1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('prosumer_token', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profile update with invalid phone -> 400",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/profile",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{prosumer_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('errorCode is INVALID_PHONE_FORMAT', () => pm.expect(pm.response.json().errorCode).to.eql('INVALID_PHONE_FORMAT'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profile update valid -> 200",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/profile",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{prosumer_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test Prosumer Updated\",\n  \"phoneNumber\": \"+94771234567\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Name saved', () => pm.expect(pm.response.json().fullName).to.eql('Test Prosumer Updated'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Prosumer cannot list prosumers -> 403",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/prosumers",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{prosumer_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Request deactivation (Prosumer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/profile/request-deactivation",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{prosumer_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Moving to another city\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve deactivation (Backoffice)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/prosumers/{{test_nic}}/deactivate",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{backoffice_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Now Deactivated', () => pm.expect(pm.response.json().status).to.eql('Deactivated'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deactivated account login -> 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/Auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{test_username}}\",\n  \"password\": \"Solar1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('errorCode is ACCOUNT_DEACTIVATED', () => pm.expect(pm.response.json().errorCode).to.eql('ACCOUNT_DEACTIVATED'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Backoffice-only reactivation",
+      "item": [
+        {
+          "name": "Create Grid Operator (Backoffice)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/web-users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{backoffice_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test Operator\",\n  \"email\": \"op_{{test_email}}\",\n  \"phoneNumber\": \"0712345678\",\n  \"username\": \"op_{{test_username}}\",\n  \"password\": \"Operator123\",\n  \"role\": \"GridOperator\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as Grid Operator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/Auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"op_{{test_username}}\",\n  \"password\": \"Operator123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('operator_token', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Grid Operator reactivate -> 403",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{base_url}}/api/prosumers/{{test_nic}}/reactivate",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{operator_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Backoffice reactivate -> 200",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{base_url}}/api/prosumers/{{test_nic}}/reactivate",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{backoffice_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Active again', () => pm.expect(pm.response.json().status).to.eql('Active'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5295"
+    },
+    {
+      "key": "backoffice_username",
+      "value": "admin"
+    },
+    {
+      "key": "backoffice_password",
+      "value": ""
+    },
+    {
+      "key": "backoffice_token",
+      "value": ""
+    },
+    {
+      "key": "prosumer_token",
+      "value": ""
+    },
+    {
+      "key": "operator_token",
+      "value": ""
+    },
+    {
+      "key": "test_nic",
+      "value": ""
+    },
+    {
+      "key": "test_username",
+      "value": ""
+    },
+    {
+      "key": "test_email",
+      "value": ""
+    }
+  ]
+}

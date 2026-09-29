@@ -35,4 +35,9 @@ public interface IEnergySlotService
         string id,
         double availableCapacity);
 
+    // Closes a slot if no energy has been reserved.
+    Task<bool> CloseSlot(string id);
+
+    // Permanently deletes a closed slot if no energy has been reserved.
+    Task<bool> DeleteSlot(string id);
 }

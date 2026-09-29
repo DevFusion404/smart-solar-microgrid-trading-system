@@ -1,3 +1,14 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : RoleRedirectionActivity.kt
+ * Description : Role-based home redirection after login or session restore: shows the
+ *               role for 1.5 s, then opens MainActivity (Prosumer) or
+ *               GridOperatorActivity (Grid Operator).
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.ui.activity
 
 import android.content.Intent
@@ -29,6 +40,7 @@ class RoleRedirectionActivity : AppCompatActivity() {
         const val ROLE_GRID_OPERATOR = "GRID_OPERATOR"
     }
 
+    // Reads the role/name extras, then animates and schedules the redirect
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityRoleRedirectionBinding.inflate(layoutInflater)
@@ -42,6 +54,7 @@ class RoleRedirectionActivity : AppCompatActivity() {
         scheduleRedirection(role, name)
     }
 
+    // Sets the emoji, label and subtitle for the role
     private fun configureForRole(role: String) {
         when (role) {
             ROLE_GRID_OPERATOR -> {
@@ -57,6 +70,7 @@ class RoleRedirectionActivity : AppCompatActivity() {
         }
     }
 
+    // Slides/fades in the brand block and footer
     private fun animateContent() {
         val interpolator = AccelerateDecelerateInterpolator()
 
@@ -78,22 +92,28 @@ class RoleRedirectionActivity : AppCompatActivity() {
             .start()
     }
 
+    // After 1.5 s opens the role's home screen and clears the back stack
     private fun scheduleRedirection(role: String, name: String) {
+        val operatorId = intent.getStringExtra("OPERATOR_ID")
         lifecycleScope.launch {
             delay(1500)
-            val intent = when (role) {
+            val targetIntent = when (role) {
                 ROLE_GRID_OPERATOR -> Intent(this@RoleRedirectionActivity, GridOperatorActivity::class.java)
                 else -> Intent(this@RoleRedirectionActivity, MainActivity::class.java)
             }
-            intent.putExtra("USER_NAME", name)
-            intent.putExtra("USER_ROLE", role)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
+            targetIntent.putExtra("USER_NAME", name)
+            targetIntent.putExtra("USER_ROLE", role)
+            if (!operatorId.isNullOrBlank()) {
+                targetIntent.putExtra("OPERATOR_ID", operatorId)
+            }
+            targetIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(targetIntent)
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
             finish()
         }
     }
 
+    // Back is ignored while redirecting
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         // Prevent back during redirect
