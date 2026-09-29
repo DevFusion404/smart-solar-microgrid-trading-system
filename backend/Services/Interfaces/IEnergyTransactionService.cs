@@ -103,7 +103,7 @@ public interface IEnergyTransactionService
     /// <param name="fromDate">Inclusive lower bound on the slot date.</param>
     /// <param name="toDate">Inclusive upper bound on the slot date.</param>
     /// <param name="page">1-based page number.</param>
-    /// <param name="pageSize">Items per page.</param>
+    /// <param name="allowedStationIds">Optional station IDs whitelist to scope queries for specific operators.</param>
     /// <returns>A page of matching transactions.</returns>
     Task<PagedResultDto<TransactionResponseDto>> SearchAsync(
         string? status,
@@ -113,7 +113,8 @@ public interface IEnergyTransactionService
         DateTime? fromDate,
         DateTime? toDate,
         int page,
-        int pageSize);
+        int pageSize,
+        IEnumerable<string>? allowedStationIds = null);
 
     /// <summary>Headline counters, optionally narrowed to one prosumer.</summary>
     /// <param name="prosumerNic">Optional prosumer scope; null counts every transaction.</param>
@@ -126,7 +127,8 @@ public interface IEnergyTransactionService
     /// <returns>The assembled dashboard.</returns>
     Task<ProsumerDashboardDto> GetProsumerDashboardAsync(string prosumerNic, string? username);
 
-    /// <summary>Full grid operator dashboard: counters plus today's, pending and completed transfers.</summary>
+    /// <summary>Full grid operator dashboard: counters plus today's, pending and completed transfers, optionally scoped to specific stations.</summary>
+    /// <param name="stationIds">Optional station IDs assigned to the calling operator.</param>
     /// <returns>The assembled dashboard.</returns>
-    Task<OperatorDashboardDto> GetOperatorDashboardAsync();
+    Task<OperatorDashboardDto> GetOperatorDashboardAsync(IEnumerable<string>? stationIds = null);
 }
