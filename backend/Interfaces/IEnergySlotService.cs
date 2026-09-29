@@ -1,7 +1,10 @@
 /*
 =====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : Energy Slot Management
 File          : IEnergySlotService.cs
 Description   : Defines energy booking slot operations
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 

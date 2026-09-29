@@ -5,7 +5,7 @@ Component     : Microgrid Node and Energy Slot Management
 File          : StationMapDto.cs
 Description   : Lightweight response object returned by
                 GET /api/stations/map for Google Maps pins
-Author        : Sithmaka
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 

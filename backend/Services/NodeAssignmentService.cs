@@ -5,6 +5,7 @@ Component     : Microgrid Node Assignment Management
 File          : NodeAssignmentService.cs
 Description   : Service implementing operator-to-node
                 assignment business logic with MongoDB persistence
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 

@@ -5,7 +5,7 @@ Component     : Microgrid Node and Energy Slot Management
 File          : StationCreateDto.cs
 Description   : Data transfer object for creating a new
                 solar microgrid station
-Author        : Sithmaka
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 

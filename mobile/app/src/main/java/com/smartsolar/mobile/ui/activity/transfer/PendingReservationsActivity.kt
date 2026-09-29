@@ -55,10 +55,34 @@ class PendingReservationsActivity : AppCompatActivity() {
         if (!isRefresh) binding.swipeRefreshPending.isRefreshing = true
 
         lifecycleScope.launch {
+            val operatorId = com.smartsolar.mobile.data.local.SessionManager.getUsername(this@PendingReservationsActivity) ?: ""
+            val assignedStationIds: Set<String>? = try {
+                if (operatorId.isNotBlank()) {
+                    val resp = com.smartsolar.mobile.data.api.RetrofitClient.apiService.getAssignedNodesByOperator(operatorId)
+                    if (resp.isSuccessful && resp.body() != null) {
+                        resp.body()!!.map { it.stationId }.toSet()
+                    } else null
+                } else null
+            } catch (e: Exception) {
+                val dbHelper = com.smartsolar.mobile.data.local.DatabaseHelper(this@PendingReservationsActivity)
+                val localNodes = dbHelper.getAllStations().filter {
+                    it.assignedOperatorId?.equals(operatorId, ignoreCase = true) == true ||
+                            it.assignedOperatorName?.equals(operatorId, ignoreCase = true) == true
+                }
+                localNodes.map { it.stationId }.toSet()
+            }
+
             val result = repository.getPendingReservations()
             binding.swipeRefreshPending.isRefreshing = false
 
-            result.onSuccess { render(it) }.onFailure { error ->
+            result.onSuccess { list ->
+                val filtered = if (assignedStationIds != null) {
+                    list.filter { assignedStationIds.contains(it.stationId) }
+                } else {
+                    list
+                }
+                render(filtered)
+            }.onFailure { error ->
                 render(emptyList())
                 binding.tvEmptyPending.text =
                     error.message ?: getString(R.string.transfer_error_offline)

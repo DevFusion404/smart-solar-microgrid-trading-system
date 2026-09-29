@@ -5,6 +5,7 @@ Component     : Microgrid Node Assignment Management
 File          : INodeAssignmentService.cs
 Description   : Service interface defining contracts for
                 operator-to-node assignments
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 

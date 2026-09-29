@@ -72,12 +72,14 @@ class OperatorDashboardActivity : AppCompatActivity() {
 
             result.onSuccess { data ->
                 render(data)
-                binding.tvOperatorMessage.visibility =
-                    if (data.pendingTransfers.isEmpty()) View.VISIBLE else View.GONE
-                if (data.pendingTransfers.isEmpty()) {
+                val isEmpty = data.pendingTransfers.isEmpty()
+                binding.cardEmptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
+                binding.tvOperatorMessage.visibility = if (isEmpty) View.VISIBLE else View.GONE
+                if (isEmpty) {
                     binding.tvOperatorMessage.text = getString(R.string.transfer_empty_pending)
                 }
             }.onFailure { error ->
+                binding.cardEmptyState.visibility = View.VISIBLE
                 binding.tvOperatorMessage.visibility = View.VISIBLE
                 binding.tvOperatorMessage.text =
                     error.message ?: getString(R.string.transfer_error_offline)

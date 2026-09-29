@@ -4,7 +4,7 @@ Project       : Smart Solar Microgrid Trading System
 Component     : Microgrid Node and Energy Slot Management
 File          : StationsController.cs
 Description   : Provides REST APIs for station management
-Author        : Sithmaka
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 

@@ -28,8 +28,11 @@ public interface IEnergyReservationService
     // Deletes a prosumer's editable reservation.
     Task DeleteAsync(string userId, string reservationId);
 
-    // Retrieves all reservations for Backoffice use.
-    Task<IReadOnlyList<EnergyReservation>> GetAllForBackofficeAsync();
+    // Retrieves a reservation by its business reservation ID.
+    Task<EnergyReservation?> GetByIdAsync(string reservationId);
+
+    // Retrieves all reservations for Backoffice use, optionally filtered by station IDs.
+    Task<IReadOnlyList<EnergyReservation>> GetAllForBackofficeAsync(IEnumerable<string>? stationIds = null);
 
     // Updates a reservation workflow status for Backoffice use.
     Task<EnergyReservation> UpdateStatusForBackofficeAsync(string reservationId, UpdateReservationStatusDto request);

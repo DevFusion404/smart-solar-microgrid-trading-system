@@ -638,10 +638,6 @@ function ConfirmSlotDeleteModal({ slot, onClose, onConfirm, onCloseSlotFirst }) 
     }
   }, [])
 
-  const total = slot.totalCapacity || 1
-  const available = slot.availableCapacity ?? slot.totalCapacity
-  const booked = Math.max(0, total - available)
-  const hasReservedEnergy = booked > 0.001
   const isClosed = slot.status === 'Closed'
 
   return createPortal(
@@ -663,24 +659,14 @@ function ConfirmSlotDeleteModal({ slot, onClose, onConfirm, onCloseSlotFirst }) 
         </div>
 
         <div className="space-y-4 p-6">
-          {hasReservedEnergy ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-medium text-rose-800 dark:border-rose-900/50 dark:bg-rose-400/10 dark:text-rose-300">
-              <div className="flex items-center gap-2 font-bold text-rose-700 dark:text-rose-200">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>Reserved Energy Detected</span>
-              </div>
-              <p className="mt-1.5 leading-relaxed">
-                This slot cannot be deleted or closed because users have currently reserved <strong>{booked.toFixed(1)} kWh</strong> of energy.
-              </p>
-            </div>
-          ) : !isClosed ? (
+          {!isClosed ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-800 dark:border-amber-900/50 dark:bg-amber-400/10 dark:text-amber-300">
               <div className="flex items-center gap-2 font-bold text-amber-700 dark:text-amber-200">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>Slot is currently {slot.status}</span>
               </div>
               <p className="mt-1.5 leading-relaxed">
-                Only <strong>Closed</strong> slots can be permanently deleted. Since no energy is reserved, you can close this slot first.
+                Only <strong>Closed</strong> slots can be permanently deleted. You can close this slot first.
               </p>
             </div>
           ) : (
@@ -705,15 +691,7 @@ function ConfirmSlotDeleteModal({ slot, onClose, onConfirm, onCloseSlotFirst }) 
             >
               Cancel
             </button>
-            {hasReservedEnergy ? (
-              <button
-                type="button"
-                disabled
-                className="cursor-not-allowed rounded-xl bg-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-400 dark:bg-slate-800 dark:text-slate-600"
-              >
-                Cannot Delete
-              </button>
-            ) : !isClosed ? (
+            {!isClosed ? (
               <button
                 type="button"
                 onClick={onCloseSlotFirst}
@@ -819,14 +797,6 @@ export function ManageEnergySlots({ operatorMode = false }) {
     try {
       setActionError(null)
       setActionSuccess(null)
-      const total = slot.totalCapacity || 1
-      const available = slot.availableCapacity ?? slot.totalCapacity
-      const booked = Math.max(0, total - available)
-      if (booked > 0.001) {
-        setActionError(`Cannot close slot ${slot.slotId}: User has reserved energy (${booked.toFixed(1)} kWh) for this slot.`)
-        return
-      }
-
       await slotService.closeSlot(slot.id || slot.slotId)
       setActionSuccess(`Slot ${slot.slotId} has been closed successfully.`)
       loadSlots()
@@ -841,14 +811,6 @@ export function ManageEnergySlots({ operatorMode = false }) {
       setActionSuccess(null)
       if (slot.status !== 'Closed') {
         setActionError(`Slot ${slot.slotId} is currently ${slot.status}. Only closed slots can be deleted. Please close the slot first.`)
-        return
-      }
-
-      const total = slot.totalCapacity || 1
-      const available = slot.availableCapacity ?? slot.totalCapacity
-      const booked = Math.max(0, total - available)
-      if (booked > 0.001) {
-        setActionError(`Cannot delete slot ${slot.slotId}: User has reserved energy for this slot.`)
         return
       }
 

@@ -1,7 +1,10 @@
 /*
 =====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : Microgrid Station Management
 File          : IMicrogridStationService.cs
 Description   : Defines microgrid station operations
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 
@@ -59,4 +62,4 @@ public interface IMicrogridStationService
         double? radiusKm,
         int? limit);
 
-}
+}
