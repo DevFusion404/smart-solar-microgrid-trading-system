@@ -97,25 +97,29 @@ class GridOperatorDashboardFragment : Fragment() {
                         Toast.makeText(requireContext(), "Dashboard refreshed (${assignedStations.size} nodes)", Toast.LENGTH_SHORT).show()
                     }
                 } else {
-                    // Fallback to all stations if operator route returned empty or restricted
+                    // Fallback to all stations strictly filtered by operator ID
                     val allResp = RetrofitClient.apiService.getStations()
                     if (allResp.isSuccessful && allResp.body() != null) {
                         val filtered = allResp.body()!!.filter {
                             it.assignedOperatorId?.equals(operatorId, ignoreCase = true) == true ||
                                     it.assignedOperatorName?.equals(operatorId, ignoreCase = true) == true
                         }
-                        assignedStations = if (filtered.isNotEmpty()) filtered else allResp.body()!!.take(2)
+                        assignedStations = filtered
+                        updateKpis(assignedStations)
+                    } else {
+                        assignedStations = emptyList()
                         updateKpis(assignedStations)
                     }
                 }
             } catch (e: Exception) {
-                // If offline or network error, fallback gracefully
+                // If offline or network error, fallback to locally cached stations belonging to this operator
                 val dbHelper = com.smartsolar.mobile.data.local.DatabaseHelper(requireContext())
-                val localStations = dbHelper.getAllStations()
-                if (localStations.isNotEmpty()) {
-                    assignedStations = localStations
-                    updateKpis(assignedStations)
+                val localStations = dbHelper.getAllStations().filter {
+                    it.assignedOperatorId?.equals(operatorId, ignoreCase = true) == true ||
+                            it.assignedOperatorName?.equals(operatorId, ignoreCase = true) == true
                 }
+                assignedStations = localStations
+                updateKpis(assignedStations)
             }
         }
     }
