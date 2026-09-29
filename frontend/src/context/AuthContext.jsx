@@ -10,8 +10,18 @@ Description   : React Context providing authentication state, token persistence,
 import { createContext, useContext, useEffect, useState } from 'react';
 import { authService, profileService } from '../services';
 import apiClient from '../config/api';
+import { isWebRole, WEB_ROLE_NOT_ALLOWED } from '../utils/roleRoutes';
 
 const AuthContext = createContext(null);
+
+// Builds the error thrown when a prosumer (or any non-web role) tries to sign in on the web
+function webRoleNotAllowedError() {
+  const error = new Error(
+    'Prosumer accounts cannot sign in to the web portal. Please use the SolarGrid mobile app.'
+  );
+  error.code = WEB_ROLE_NOT_ALLOWED;
+  return error;
+}
 
 // Removes every stored credential from the browser
 function clearStoredSession() {
@@ -36,6 +46,10 @@ export function AuthProvider({ children }) {
       if (activeToken) {
         try {
           const currentUser = await authService.getCurrentUser();
+          // A saved session from a role that cannot use the web app is discarded
+          if (!isWebRole(currentUser?.role)) {
+            throw webRoleNotAllowedError();
+          }
           setUser(currentUser);
           localStorage.setItem('user', JSON.stringify(currentUser));
         } catch (err) {
@@ -71,9 +85,14 @@ export function AuthProvider({ children }) {
     return () => apiClient.interceptors.response.eject(interceptorId);
   }, []);
 
-  // Logs in, stores the JWT, then loads the full user record from /api/Auth/me
+  // Logs in, stores the JWT, then loads the full user record from /api/Auth/me.
+  // Only Backoffice and Grid Operator accounts may use the web app: for any other role the
+  // token is thrown away before it is stored, so no web session is created.
   const login = async (credentials) => {
     const data = await authService.login(credentials);
+    if (data && data.token && !isWebRole(data.user?.role)) {
+      throw webRoleNotAllowedError();
+    }
     if (data && data.token) {
       localStorage.setItem('token', data.token);
       localStorage.setItem('authToken', data.token);

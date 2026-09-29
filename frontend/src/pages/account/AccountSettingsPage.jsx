@@ -3,8 +3,8 @@
 Project       : Smart Solar Microgrid Trading System
 Component     : Identity and Account Management (Component 1)
 File          : AccountSettingsPage.jsx
-Description   : Shared "Account Settings" page for every role
-                (/backoffice/settings, /operator/settings, /prosumer/account).
+Description   : Shared "Account Settings" page for web users
+                (/backoffice/settings, /operator/settings).
                 Shows the account summary and lets the user change their
                 password through POST /api/profile/change-password.
 =====================================================
@@ -13,14 +13,13 @@ Description   : Shared "Account Settings" page for every role
 import { motion } from 'framer-motion'
 import { CheckCircle2, Eye, EyeOff, KeyRound, RefreshCw, Shield, AlertCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { profileService } from '../../services'
 import { useAuth } from '../../context/AuthContext'
 import { validatePassword } from '../../utils/validators'
 
 const EMPTY_FORM = { currentPassword: '', newPassword: '', confirmPassword: '' }
 
-const roleLabel = { Backoffice: 'Backoffice Officer', GridOperator: 'Grid Operator', Prosumer: 'Prosumer' }
+const roleLabel = { Backoffice: 'Backoffice Officer', GridOperator: 'Grid Operator' }
 const statusLabel = {
   Active: 'Active',
   PendingActivation: 'Pending Activation',
@@ -124,7 +123,7 @@ export function AccountSettingsPage() {
     }
   }
 
-  const accent = role === 'Prosumer' ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-amber-400 hover:bg-amber-300 text-slate-950'
+  const accent = 'bg-amber-400 hover:bg-amber-300 text-slate-950'
 
   return (
     <div className="space-y-6">
@@ -139,15 +138,9 @@ export function AccountSettingsPage() {
           <h2 className="mb-2 flex items-center gap-2 font-semibold text-slate-900 dark:text-white"><Shield className="h-4 w-4 text-slate-400" /> Account</h2>
           <SummaryRow label="Username" value={profile?.username ? `@${profile.username}` : '—'} />
           <SummaryRow label="Role" value={roleLabel[profile?.role || role] || role} />
-          {profile?.nic && <SummaryRow label="NIC" value={<span className="font-mono">{profile.nic}</span>} />}
           <SummaryRow label="Status" value={statusLabel[profile?.status] || profile?.status || '—'} />
           <SummaryRow label="Member since" value={formatDate(profile?.createdAt)} />
           <SummaryRow label="Last login" value={formatDate(profile?.lastLoginAt)} />
-          {role === 'Prosumer' && (
-            <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
-              To close your account, submit a deactivation request from <Link to="/prosumer/profile" className="font-medium text-emerald-600 hover:underline">My Profile</Link>.
-            </p>
-          )}
         </motion.section>
 
         {/* Change password */}
