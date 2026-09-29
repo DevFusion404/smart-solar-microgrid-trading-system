@@ -17,6 +17,8 @@ import com.smartsolar.mobile.data.repository.ReservationRepository
 import com.smartsolar.mobile.databinding.ReservationBrowseSlotsBinding
 import com.smartsolar.mobile.databinding.ReservationConfirmBookingBinding
 import com.smartsolar.mobile.ui.adapter.EnergySlotAdapter
+import com.smartsolar.mobile.ui.adapter.StationAdapter
+import com.smartsolar.mobile.utils.LocationHelper
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.util.Locale
@@ -116,11 +118,24 @@ class ReserveEnergyFragment : Fragment(R.layout.reservation_browse_slots) {
         lifecycleScope.launch {
             // Reservation availability must use the live station list, not a potentially stale cache.
             val stationsResult = stationRepository.getStations(forceRefresh = true)
+            if (_binding == null) return@launch
             if (stationsResult.isSuccess) {
                 availableStations = (stationsResult.getOrNull() ?: emptyList())
                     .filter { it.status.equals("Active", ignoreCase = true) }
 
-                // If a station was not passed via arguments, select the first live active station.
+                if (selectedStationId.isBlank()) {
+                    // No station chosen yet: rank first so the NEAREST station becomes the default
+                    availableStations = rankNearestFirst(availableStations)
+                    if (_binding == null) return@launch
+                } else {
+                    // A station was already chosen: rank in the background, only for the picker list
+                    launch {
+                        val ranked = rankNearestFirst(availableStations)
+                        availableStations = ranked
+                    }
+                }
+
+                // If a station was not passed via arguments, select the first (nearest) live active station.
                 if (selectedStationId.isBlank() && availableStations.isNotEmpty()) {
                     val defaultStation = availableStations.first()
                     selectedStationId = defaultStation.stationId.ifBlank { defaultStation.id ?: "" }
@@ -144,6 +159,30 @@ class ReserveEnergyFragment : Fragment(R.layout.reservation_browse_slots) {
         }
     }
 
+    // Orders stations nearest-first using distances from the API. Uses the live location only when
+    // permission was already granted (no prompt here); otherwise the API uses the saved home location.
+    // If nothing is available the original order is returned unchanged.
+    private suspend fun rankNearestFirst(stations: List<Station>): List<Station> {
+        if (stations.isEmpty()) return stations
+        val ctx = context ?: return stations
+
+        val liveLocation = if (LocationHelper.hasPermission(ctx)) {
+            (LocationHelper.getCurrentLocation(ctx, timeoutMs = 4_000) as? LocationHelper.Outcome.Found)?.location
+        } else {
+            null
+        }
+
+        val nearby = stationRepository.findNearestStations(liveLocation).getOrNull() ?: return stations
+        val distanceByKey = nearby.stations
+            .mapNotNull { s -> s.distanceKm?.let { s.stationId.ifBlank { s.id ?: "" } to it } }
+            .toMap()
+        if (distanceByKey.isEmpty()) return stations
+
+        return stations
+            .map { s -> s.copy(distanceKm = distanceByKey[s.stationId.ifBlank { s.id ?: "" }]) }
+            .sortedWith(compareBy(nullsLast<Double>()) { it.distanceKm })
+    }
+
     private fun updateStationBanner() {
         binding.tvSelectedStationName.text = selectedStationName.ifBlank { "Microgrid Node: $selectedStationId" }
         binding.tvSelectedStationAddress.text = selectedStationAddress.ifBlank { "Station ID: $selectedStationId" }
@@ -156,7 +195,8 @@ class ReserveEnergyFragment : Fragment(R.layout.reservation_browse_slots) {
         }
 
         val stationNames = availableStations.map { station ->
-            "${station.stationName} (${station.stationId.ifBlank { station.id?.takeLast(6) }})"
+            val distance = station.distanceKm?.let { " · ${StationAdapter.formatDistance(it)}" } ?: ""
+            "${station.stationName} (${station.stationId.ifBlank { station.id?.takeLast(6) }})$distance"
         }.toTypedArray()
 
         MaterialAlertDialogBuilder(requireContext())

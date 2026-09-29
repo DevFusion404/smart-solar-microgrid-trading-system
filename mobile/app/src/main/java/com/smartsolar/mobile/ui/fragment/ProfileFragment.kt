@@ -22,6 +22,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -36,6 +37,7 @@ import com.smartsolar.mobile.viewmodel.AccountViewModel
 import com.smartsolar.mobile.viewmodel.PasswordChangeState
 import com.smartsolar.mobile.viewmodel.ProfileUpdateState
 import kotlinx.coroutines.launch
+import com.smartsolar.mobile.utils.LocationHelper
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -66,6 +68,18 @@ class ProfileFragment : Fragment() {
     private lateinit var rowPhone: ItemInfoRowBinding
     private lateinit var rowAddress: ItemInfoRowBinding
     private lateinit var rowNic: ItemInfoRowBinding
+    private lateinit var rowHomeLocation: ItemInfoRowBinding
+
+    // Permission request for "Use my current location as home"
+    private val homeLocationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        if (LocationHelper.hasPermission(requireContext())) {
+            saveCurrentLocationAsHome()
+        } else {
+            Toast.makeText(requireContext(), "Location permission is needed to set your home location.", Toast.LENGTH_LONG).show()
+        }
+    }
 
     // Role of the loaded account; address and deactivation apply to prosumers only
     private var isProsumer = false
@@ -89,6 +103,7 @@ class ProfileFragment : Fragment() {
         rowPhone    = binding.rowPhone
         rowAddress  = binding.rowAddress
         rowNic      = binding.rowNic
+        rowHomeLocation = binding.rowHomeLocation
 
         setupRowIcons()
         setupClickListeners()
@@ -109,6 +124,7 @@ class ProfileFragment : Fragment() {
         tint(rowPhone,    R.drawable.ic_phone)
         tint(rowAddress,  R.drawable.ic_home_address)
         tint(rowNic,      R.drawable.ic_id_card)
+        tint(rowHomeLocation, R.drawable.ic_home_address)
     }
 
     // ── Click listeners ───────────────────────────────────────────────────────
@@ -157,6 +173,15 @@ class ProfileFragment : Fragment() {
 
         // Deactivation request: open the dedicated screen, which validates the reason
         // and shows a summary screen after the request is submitted
+        // Home location: read the phone's location once and save it on the account
+        binding.btnSetHomeLocation.setOnClickListener {
+            if (LocationHelper.hasPermission(requireContext())) {
+                saveCurrentLocationAsHome()
+            } else {
+                homeLocationPermissionLauncher.launch(LocationHelper.PERMISSIONS)
+            }
+        }
+
         binding.btnRequestDeactivation.setOnClickListener {
             startActivity(Intent(requireContext(), RequestDeactivationActivity::class.java))
         }
@@ -268,6 +293,18 @@ class ProfileFragment : Fragment() {
         rowNic.root.isVisible = isProsumer
         binding.tilEditAddress.isVisible = isProsumer
 
+        // Home location (prosumers only): used to find the nearest microgrid stations
+        val homeLat = account.homeLatitude
+        val homeLng = account.homeLongitude
+        setRow(
+            rowHomeLocation,
+            "Home Location",
+            if (homeLat != null && homeLng != null) LocationHelper.format(homeLat, homeLng) else null
+        )
+        rowHomeLocation.root.isVisible = isProsumer
+        binding.dividerHomeLocation.isVisible = isProsumer
+        binding.btnSetHomeLocation.isVisible = isProsumer
+
         // Only an Active prosumer can ask for deactivation
         binding.btnRequestDeactivation.isVisible = isProsumer && account.status == "Active"
 
@@ -275,6 +312,32 @@ class ProfileFragment : Fragment() {
         binding.etEditFullName.setText(account.fullName)
         binding.etEditPhone.setText(account.phoneNumber)
         binding.etEditAddress.setText(account.address.orEmpty())
+    }
+
+    // Reads the current location once and saves it as the prosumer's home location
+    private fun saveCurrentLocationAsHome() {
+        binding.btnSetHomeLocation.isEnabled = false
+        binding.btnSetHomeLocation.text = "Getting your location…"
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val outcome = LocationHelper.getCurrentLocation(requireContext(), timeoutMs = 12_000)
+            val b = _binding ?: return@launch
+            b.btnSetHomeLocation.isEnabled = true
+            b.btnSetHomeLocation.text = "Use my current location as home"
+
+            when (outcome) {
+                is LocationHelper.Outcome.Found ->
+                    viewModel.updateHomeLocation(outcome.location.latitude, outcome.location.longitude)
+                LocationHelper.Outcome.LocationOff -> {
+                    Toast.makeText(requireContext(), "Location is off. Turn it on and try again.", Toast.LENGTH_LONG).show()
+                    LocationHelper.openLocationSettings(requireContext())
+                }
+                LocationHelper.Outcome.PermissionMissing ->
+                    Toast.makeText(requireContext(), "Location permission is needed.", Toast.LENGTH_LONG).show()
+                LocationHelper.Outcome.Unavailable ->
+                    Toast.makeText(requireContext(), "Could not get a location fix. Try again near a window or outdoors.", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     // Sets one info row's label and value ("—" when empty)

@@ -46,4 +46,17 @@ public interface IMicrogridStationService
     // Returns lightweight map pin data for all active stations.
     Task<List<StationMapDto>> GetMapPins();
 
+    // Returns active stations sorted nearest-first from a GPS point, with distance in km.
+    Task<List<NearbyStationDto>> GetNearbyStations(
+        double latitude,
+        double longitude,
+        double? radiusKm,
+        int? limit);
+
+    // Same as GetNearbyStations, using the home location saved on the user's account.
+    Task<List<NearbyStationDto>> GetNearbyStationsForUser(
+        string username,
+        double? radiusKm,
+        int? limit);
+
 }

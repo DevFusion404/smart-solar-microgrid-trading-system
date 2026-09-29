@@ -227,6 +227,57 @@
                             android:textSize="15sp" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <!-- Home Location: GPS point used to show the nearest microgrid stations -->
+                    <LinearLayout
+                        android:id="@+id/layoutHomeLocation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:background="@drawable/bg_card_surface"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-bold"
+                            android:text="@string/home_location_title"
+                            android:textColor="@color/slate_900"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvHomeLocationStatus"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/home_location_hint"
+                            android:textColor="@color/slate_500"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/tvNearestStationPreview"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:textColor="@color/reservation_green"
+                            android:textSize="12sp"
+                            android:visibility="gone" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnUseCurrentLocation"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:text="@string/btn_use_current_location"
+                            android:textAllCaps="false"
+                            android:textColor="@color/solar_primary_dark"
+                            app:icon="@drawable/ic_my_location"
+                            app:iconTint="@color/solar_primary_dark"
+                            app:strokeColor="@color/solar_primary" />
+                    </LinearLayout>
+
                     <!-- Password Input -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilRegisterPassword"

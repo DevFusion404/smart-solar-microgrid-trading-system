@@ -349,6 +349,18 @@
 
                     <include layout="@layout/item_info_row"
                         android:id="@+id/rowNic" />
+
+                    <View
+                        android:id="@+id/dividerHomeLocation"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider_light"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="4dp"/>
+
+                    <!-- Prosumer's saved home location (used for nearest-station matching) -->
+                    <include layout="@layout/item_info_row"
+                        android:id="@+id/rowHomeLocation" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -429,6 +441,20 @@
                             android:lines="3"
                             android:gravity="top" />
                     </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Prosumers: save the phone's current location as the home location -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSetHomeLocation"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:text="Use my current location as home"
+                        android:textAllCaps="false"
+                        android:textColor="@color/solar_primary_dark"
+                        app:icon="@drawable/ic_my_location"
+                        app:iconTint="@color/solar_primary_dark"
+                        app:strokeColor="@color/solar_primary" />
 
                     <!-- Save / Cancel row -->
                     <LinearLayout

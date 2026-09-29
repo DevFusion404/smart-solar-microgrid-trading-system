@@ -9,6 +9,9 @@
  *               AccountValidators, then POST /api/prosumers/register creates
  *               the account in PendingActivation status. A duplicate NIC is
  *               rejected by the server (409) and shown in an error dialog.
+ *               The prosumer can also share their home location (GPS, once);
+ *               it is saved with the account and the nearest station is
+ *               previewed using GET /api/stations/nearby.
  * =====================================================
  */
 
@@ -16,6 +19,8 @@ package com.smartsolar.mobile.ui.activity
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
@@ -26,8 +31,11 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.smartsolar.mobile.R
 import com.smartsolar.mobile.data.api.RegisterProsumerRequest
+import com.smartsolar.mobile.data.repository.StationRepository
 import com.smartsolar.mobile.databinding.ActivityRegisterBinding
+import com.smartsolar.mobile.ui.adapter.StationAdapter
 import com.smartsolar.mobile.utils.AccountValidators
+import com.smartsolar.mobile.utils.LocationHelper
 import com.smartsolar.mobile.viewmodel.AuthViewModel
 import com.smartsolar.mobile.viewmodel.RegisterUiState
 import kotlinx.coroutines.launch
@@ -36,6 +44,25 @@ class RegisterActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityRegisterBinding
     private val authViewModel: AuthViewModel by viewModels()
+
+    // Home location captured from the phone (null until the prosumer shares it)
+    private var homeLatitude: Double? = null
+    private var homeLongitude: Double? = null
+
+    // Set when the prosumer chose to register without sharing a location
+    private var continueWithoutLocation = false
+
+    // Runtime permission request for "Use my current location"
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        if (LocationHelper.hasPermission(this)) {
+            captureHomeLocation()
+        } else {
+            binding.tvHomeLocationStatus.text =
+                "Location permission was not given. You can still register; stations will be matched from your live location later."
+        }
+    }
 
     // Inflates the form and wires listeners and state observers
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,6 +73,22 @@ class RegisterActivity : AppCompatActivity() {
         setupListeners()
         clearErrorsWhileTyping()
         observeViewModel()
+
+        // Keep a captured location across screen rotation
+        if (savedInstanceState != null && savedInstanceState.containsKey(KEY_HOME_LAT)) {
+            showCapturedLocation(savedInstanceState.getDouble(KEY_HOME_LAT), savedInstanceState.getDouble(KEY_HOME_LNG))
+        }
+    }
+
+    // Saves the captured location so a rotation does not lose it
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        val lat = homeLatitude
+        val lng = homeLongitude
+        if (lat != null && lng != null) {
+            outState.putDouble(KEY_HOME_LAT, lat)
+            outState.putDouble(KEY_HOME_LNG, lng)
+        }
     }
 
     // Handles the "Sign In" link and the register button
@@ -56,10 +99,97 @@ class RegisterActivity : AppCompatActivity() {
         }
 
         binding.btnRegister.setOnClickListener {
-            if (validateInputs()) {
+            if (!validateInputs()) return@setOnClickListener
+            if (homeLatitude == null && !continueWithoutLocation) {
+                confirmRegisterWithoutLocation()
+            } else {
                 authViewModel.registerProsumer(buildRequest())
             }
         }
+
+        binding.btnUseCurrentLocation.setOnClickListener {
+            if (LocationHelper.hasPermission(this)) {
+                captureHomeLocation()
+            } else {
+                locationPermissionLauncher.launch(LocationHelper.PERMISSIONS)
+            }
+        }
+    }
+
+    // Reads the phone's location once and stores it as the prosumer's home location
+    private fun captureHomeLocation() {
+        binding.btnUseCurrentLocation.isEnabled = false
+        binding.btnUseCurrentLocation.text = "Getting your location…"
+
+        lifecycleScope.launch {
+            when (val outcome = LocationHelper.getCurrentLocation(this@RegisterActivity, timeoutMs = 12_000)) {
+                is LocationHelper.Outcome.Found ->
+                    showCapturedLocation(outcome.location.latitude, outcome.location.longitude)
+                LocationHelper.Outcome.LocationOff -> {
+                    resetLocationButton()
+                    com.google.android.material.dialog.MaterialAlertDialogBuilder(this@RegisterActivity)
+                        .setTitle("Location is off")
+                        .setMessage("Turn on location to share where you live, then tap the button again.")
+                        .setPositiveButton("Open settings") { _, _ -> LocationHelper.openLocationSettings(this@RegisterActivity) }
+                        .setNegativeButton("Cancel", null)
+                        .show()
+                }
+                LocationHelper.Outcome.PermissionMissing -> {
+                    resetLocationButton()
+                    binding.tvHomeLocationStatus.text = "Location permission is needed to use your current location."
+                }
+                LocationHelper.Outcome.Unavailable -> {
+                    resetLocationButton()
+                    binding.tvHomeLocationStatus.text =
+                        "Could not get a location fix. Try again near a window or outdoors, or continue without it."
+                }
+            }
+        }
+    }
+
+    // Shows the captured point and previews the nearest station from the API
+    private fun showCapturedLocation(latitude: Double, longitude: Double) {
+        homeLatitude = latitude
+        homeLongitude = longitude
+        binding.tvHomeLocationStatus.text = "📍 Location captured: ${LocationHelper.format(latitude, longitude)}"
+        binding.btnUseCurrentLocation.isEnabled = true
+        binding.btnUseCurrentLocation.text = "Update location"
+
+        lifecycleScope.launch {
+            val nearest = StationRepository(this@RegisterActivity)
+                .findNearestStationsTo(latitude, longitude, limit = 1)
+                .getOrNull()
+                ?.firstOrNull()
+            if (nearest?.distanceKm != null) {
+                binding.tvNearestStationPreview.text =
+                    "⭐ Nearest station: ${nearest.stationName} · ${StationAdapter.formatDistance(nearest.distanceKm)} away"
+                binding.tvNearestStationPreview.visibility = View.VISIBLE
+            } else {
+                binding.tvNearestStationPreview.visibility = View.GONE
+            }
+        }
+    }
+
+    // Restores the location button after a failed attempt
+    private fun resetLocationButton() {
+        binding.btnUseCurrentLocation.isEnabled = true
+        binding.btnUseCurrentLocation.text = getString(R.string.btn_use_current_location)
+    }
+
+    // Lets the prosumer add a location, or register without one (it can be added later in Profile)
+    private fun confirmRegisterWithoutLocation() {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Register without your location?")
+            .setMessage(
+                "Your location is used to show the microgrid stations nearest to you. " +
+                "You can also add it later from your profile."
+            )
+            .setPositiveButton("Add location") { _, _ -> binding.btnUseCurrentLocation.performClick() }
+            .setNegativeButton("Continue") { _, _ ->
+                continueWithoutLocation = true
+                authViewModel.registerProsumer(buildRequest())
+            }
+            .show()
     }
 
     // Builds the API request from the form; NIC is normalised to upper case like the server stores it
@@ -70,7 +200,9 @@ class RegisterActivity : AppCompatActivity() {
         phoneNumber = textOf(binding.etPhone),
         address = textOf(binding.etAddress),
         username = textOf(binding.etUsername),
-        password = binding.etRegisterPassword.text?.toString().orEmpty()
+        password = binding.etRegisterPassword.text?.toString().orEmpty(),
+        homeLatitude = homeLatitude,
+        homeLongitude = homeLongitude
     )
 
     // Removes a field's error as soon as the user edits it
@@ -171,5 +303,10 @@ class RegisterActivity : AppCompatActivity() {
             check(binding.tilConfirmPassword, confirmPassword == password, getString(R.string.err_password_mismatch))
         )
         return results.all { it }
+    }
+
+    companion object {
+        private const val KEY_HOME_LAT = "home_lat"
+        private const val KEY_HOME_LNG = "home_lng"
     }
 }
