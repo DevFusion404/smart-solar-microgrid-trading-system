@@ -6,6 +6,7 @@
 // ===============================================
 
 using backend.DTOs.Prosumers;
+using backend.Helpers;
 using backend.Middleware;
 using backend.Models;
 using backend.Repositories;
@@ -76,6 +77,9 @@ public class ProsumerService : IProsumerService
             Email = normalizedEmail,
             PhoneNumber = request.PhoneNumber.Trim(),
             Address = request.Address.Trim(),
+            // Optional home GPS location, used later to find the nearest stations
+            HomeLatitude = request.HomeLatitude,
+            HomeLongitude = request.HomeLongitude,
             Username = normalizedUsername,
             Role = UserRole.Prosumer,
             Status = initialStatus, // BR-03: self-registered accounts start as PendingActivation
@@ -415,10 +419,31 @@ public class ProsumerService : IProsumerService
             !Regex.IsMatch(dto.Password, @"[0-9]"))
             errors["password"] = new[] { "Password must be at least 8 characters long and contain uppercase, lowercase, and numeric characters." };
 
+        // Home location is optional, but if sent it must be a complete, valid GPS point
+        var locationError = ValidateHomeLocation(dto.HomeLatitude, dto.HomeLongitude);
+        if (locationError != null)
+            errors["homeLocation"] = new[] { locationError };
+
         if (errors.Count > 0)
         {
             throw new BadRequestException("VALIDATION_FAILED", "One or more validation errors occurred.", errors);
         }
+    }
+
+    // Returns an error message when a home location is incomplete or out of range, otherwise null
+    public static string? ValidateHomeLocation(double? latitude, double? longitude)
+    {
+        if (latitude == null && longitude == null)
+            return null;
+
+        if (latitude == null || longitude == null)
+            return "Home location needs both latitude and longitude.";
+
+        if (!GeoDistance.IsValidCoordinate(latitude.Value, longitude.Value) ||
+            GeoDistance.IsUnset(latitude.Value, longitude.Value))
+            return "Home location must be a valid GPS point (latitude -90..90, longitude -180..180).";
+
+        return null;
     }
 
     // Maps UserDetails domain entity to ProsumerSummaryDto for list responses
@@ -449,6 +474,8 @@ public class ProsumerService : IProsumerService
             Email = user.Email,
             PhoneNumber = user.PhoneNumber,
             Address = user.Address ?? string.Empty,
+            HomeLatitude = user.HomeLatitude,
+            HomeLongitude = user.HomeLongitude,
             Username = user.Username,
             Status = user.Status.ToString(),
             Role = user.Role.ToString(),

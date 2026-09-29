@@ -80,6 +80,24 @@ public class ProfileService : IProfileService
             user.Address = request.Address.Trim();
         }
 
+        // Home location (prosumers only): used to find the nearest microgrid stations
+        if (request.HomeLatitude != null || request.HomeLongitude != null)
+        {
+            if (user.Role != UserRole.Prosumer)
+            {
+                throw new BadRequestException("PROSUMER_ONLY", "Only prosumer accounts have a home location.");
+            }
+
+            var locationError = ProsumerService.ValidateHomeLocation(request.HomeLatitude, request.HomeLongitude);
+            if (locationError != null)
+            {
+                throw new BadRequestException("INVALID_HOME_LOCATION", locationError);
+            }
+
+            user.HomeLatitude = request.HomeLatitude;
+            user.HomeLongitude = request.HomeLongitude;
+        }
+
         await _userRepository.UpdateAsync(user);
         return user;
     }

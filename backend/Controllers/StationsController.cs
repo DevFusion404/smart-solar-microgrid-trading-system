@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using backend.DTOs;
 using backend.Interfaces;
+using backend.Middleware;
 using backend.Models;
 
 namespace backend.Controllers;
@@ -238,6 +239,51 @@ public class StationsController : ControllerBase
     public async Task<IActionResult> GetMapPins()
     {
         var result = await _service.GetMapPins();
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Returns active stations ordered nearest-first from the given GPS point, each with
+    /// its distance in km. Used by the mobile app with the phone's current location
+    /// (also before login, to preview the nearest station during registration).
+    /// Example: GET /api/stations/nearby?lat=6.9271&amp;lng=79.8612&amp;limit=5
+    /// </summary>
+    [HttpGet("nearby")]
+    public async Task<IActionResult> GetNearbyStations(
+        [FromQuery] double? lat,
+        [FromQuery] double? lng,
+        [FromQuery] double? radiusKm,
+        [FromQuery] int? limit)
+    {
+        // Both coordinates are required; a missing value must not silently become 0
+        if (lat == null || lng == null)
+        {
+            throw new BadRequestException("COORDINATES_REQUIRED", "Query parameters 'lat' and 'lng' are required.");
+        }
+
+        // Range and radius validation errors are thrown by the service and formatted by the middleware
+        var result = await _service.GetNearbyStations(lat.Value, lng.Value, radiusKm, limit);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Returns active stations nearest to the logged-in prosumer's saved home location.
+    /// Used by the mobile app when live location is off or permission was denied.
+    /// Returns 404 HOME_LOCATION_NOT_SET when the prosumer has not saved a home location.
+    /// </summary>
+    [HttpGet("nearby/me")]
+    [Authorize(Roles = "Prosumer")]
+    public async Task<IActionResult> GetNearbyStationsForCurrentUser(
+        [FromQuery] double? radiusKm,
+        [FromQuery] int? limit)
+    {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _service.GetNearbyStationsForUser(username, radiusKm, limit);
         return Ok(result);
     }
 

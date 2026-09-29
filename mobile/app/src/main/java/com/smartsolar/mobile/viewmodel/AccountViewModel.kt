@@ -110,6 +110,22 @@ class AccountViewModel(
         }
     }
 
+    // Saves the phone's current location as the prosumer's home location (only these two fields are sent)
+    fun updateHomeLocation(latitude: Double, longitude: Double) {
+        viewModelScope.launch {
+            _updateState.value = ProfileUpdateState.Saving
+            repository.updateProfile(UpdateProfileRequest(homeLatitude = latitude, homeLongitude = longitude)).fold(
+                onSuccess = {
+                    _profileState.value = AccountUiState.Success(it)
+                    _updateState.value = ProfileUpdateState.Saved(it)
+                },
+                onFailure = {
+                    _updateState.value = ProfileUpdateState.Error(it.message ?: "Could not save home location")
+                }
+            )
+        }
+    }
+
     // Returns the edit-form state to Idle after the screen has handled it
     fun resetUpdateState() {
         _updateState.value = ProfileUpdateState.Idle
