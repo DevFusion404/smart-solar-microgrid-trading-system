@@ -39,6 +39,17 @@ public class UserDetails
     [BsonIgnoreIfNull]
     public string? Address { get; set; }
 
+    // Prosumer's home GPS location (optional, captured from the phone with consent).
+    // Used to find the nearest microgrid stations when live location is not available.
+    // Both are null when not set; existing documents without these fields load as null.
+    [BsonElement("HomeLatitude")]
+    [BsonIgnoreIfNull]
+    public double? HomeLatitude { get; set; }
+
+    [BsonElement("HomeLongitude")]
+    [BsonIgnoreIfNull]
+    public double? HomeLongitude { get; set; }
+
     [BsonElement("Username")]
     public string Username { get; set; } = string.Empty;
 

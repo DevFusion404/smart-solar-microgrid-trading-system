@@ -87,5 +87,12 @@ data class RegisterProsumerRequest(
     val username: String,
 
     @SerializedName("password")
-    val password: String
+    val password: String,
+
+    // Optional home location from the phone's GPS (null values are not sent)
+    @SerializedName("homeLatitude")
+    val homeLatitude: Double? = null,
+
+    @SerializedName("homeLongitude")
+    val homeLongitude: Double? = null
 )

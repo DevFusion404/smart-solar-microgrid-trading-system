@@ -318,6 +318,22 @@ export function ProsumerDetailPage() {
                 <InfoRow icon={Mail} label="Email Address" value={prosumer.email} />
                 <InfoRow icon={Phone} label="Phone Number" value={prosumer.phoneNumber} />
                 <InfoRow icon={MapPin} label="Address" value={prosumer.address} />
+                {/* Home GPS location shared from the mobile app (used to find the nearest stations) */}
+                <InfoRow
+                  icon={MapPin}
+                  label="Home location (GPS)"
+                  mono
+                  value={prosumer.homeLatitude != null && prosumer.homeLongitude != null ? (
+                    <a
+                      href={`https://www.openstreetmap.org/?mlat=${prosumer.homeLatitude}&mlon=${prosumer.homeLongitude}#map=15/${prosumer.homeLatitude}/${prosumer.homeLongitude}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-amber-600 hover:underline dark:text-amber-400"
+                    >
+                      {prosumer.homeLatitude.toFixed(5)}, {prosumer.homeLongitude.toFixed(5)}
+                    </a>
+                  ) : undefined}
+                />
               </div>
             )}
           </motion.div>

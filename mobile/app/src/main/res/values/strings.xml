@@ -45,6 +45,9 @@
     <string name="err_invalid_phone">Use 0771234567 or +94771234567</string>
     <string name="err_invalid_username">4–30 letters, numbers or underscores</string>
     <string name="err_invalid_address">Address must be at least 5 characters</string>
+    <string name="home_location_title">Home location (recommended)</string>
+    <string name="home_location_hint">Share your location so we can show the microgrid stations nearest to you. Used only for station matching.</string>
+    <string name="btn_use_current_location">Use my current location</string>
     <string name="err_weak_password">At least 8 characters with an uppercase letter, a lowercase letter and a number</string>
     <string name="btn_register">Create Account</string>
     <string name="already_have_account">Already have an account? </string>

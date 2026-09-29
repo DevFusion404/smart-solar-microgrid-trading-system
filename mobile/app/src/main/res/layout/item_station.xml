@@ -83,6 +83,22 @@
                     android:textColor="@color/slate_500"
                     android:textSize="12sp"
                     tools:text="Godakawela, Sabaragamuwa" />
+
+                <!-- Distance from the prosumer (shown only when the API returned distanceKm) -->
+                <TextView
+                    android:id="@+id/tvStationDistance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/bg_reservation_status_available"
+                    android:fontFamily="sans-serif-medium"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:textColor="@color/reservation_green"
+                    android:textSize="11sp"
+                    android:visibility="gone"
+                    tools:text="⭐ Nearest to you · 2.4 km"
+                    tools:visibility="visible" />
             </LinearLayout>
 
             <TextView

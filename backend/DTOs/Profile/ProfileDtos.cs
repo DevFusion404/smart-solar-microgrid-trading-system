@@ -12,6 +12,10 @@ public class UpdateProfileDto
     public string? FullName { get; set; }
     public string? PhoneNumber { get; set; }
     public string? Address { get; set; } // Prosumers only
+
+    // Prosumers only: new home location from the phone's GPS (send both together)
+    public double? HomeLatitude { get; set; }
+    public double? HomeLongitude { get; set; }
 }
 
 public class ChangePasswordDto

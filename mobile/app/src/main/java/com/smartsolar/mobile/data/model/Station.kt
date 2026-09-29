@@ -43,7 +43,12 @@ data class Station(
     val assignedDate: String? = null,
 
     @SerializedName("assignmentStatus")
-    val assignmentStatus: String? = null
+    val assignmentStatus: String? = null,
+
+    // Straight-line distance in km from the prosumer. Only filled by
+    // GET /api/stations/nearby and /nearby/me; null for every other station response.
+    @SerializedName("distanceKm")
+    val distanceKm: Double? = null
 )
 
 /**

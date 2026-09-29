@@ -35,6 +35,13 @@ data class UserAccount(
     @SerializedName("nic")
     val nic: String? = null,
 
+    // Prosumer's saved home GPS location (null when not set)
+    @SerializedName("homeLatitude")
+    val homeLatitude: Double? = null,
+
+    @SerializedName("homeLongitude")
+    val homeLongitude: Double? = null,
+
     @SerializedName("role")
     val role: String = "",
 
@@ -103,7 +110,14 @@ data class UpdateProfileRequest(
     val phoneNumber: String? = null,
 
     @SerializedName("address")
-    val address: String? = null
+    val address: String? = null,
+
+    // Prosumers only: new home location (sent together, omitted when null)
+    @SerializedName("homeLatitude")
+    val homeLatitude: Double? = null,
+
+    @SerializedName("homeLongitude")
+    val homeLongitude: Double? = null
 )
 
 // ──────────────────────────────────────────────────────────────────────────────
