@@ -130,9 +130,20 @@ public class EnergyTransactionRepository : IEnergyTransactionRepository
         DateTime? fromDate,
         DateTime? toDate,
         int page,
-        int pageSize)
+        int pageSize,
+        IEnumerable<string>? allowedStationIds = null)
     {
         var filter = Filter.Empty;
+
+        if (allowedStationIds != null)
+        {
+            var allowedList = allowedStationIds.ToList();
+            if (allowedList.Count == 0)
+            {
+                return (new List<EnergyTransaction>(), 0);
+            }
+            filter &= Filter.In(x => x.StationId, allowedList);
+        }
 
         if (!string.IsNullOrWhiteSpace(status))
         {
