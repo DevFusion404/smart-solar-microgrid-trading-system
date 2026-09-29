@@ -1,0 +1,700 @@
+I am working on a SE4040 Enterprise Application Development project called:
+
+"Smart Solar Microgrid Trading System"
+
+I have uploaded:
+
+1. My current project source code (C# .NET Backend + React Frontend + MongoDB structure)
+2. The official assignment requirement PDF
+
+First, analyze my existing project completely before making any changes.
+
+DO NOT create a new project.
+DO NOT rewrite existing code.
+DO NOT change other team members' components unnecessarily.
+
+My assigned component is:
+
+Component 4 — Energy Transfer and Transaction Management
+
+My responsibility is to implement the final stage of the solar energy trading workflow.
+
+=================================================
+
+PROJECT CONTEXT
+
+The system workflow is:
+
+Solar Prosumer
+        |
+        |
+Creates Energy Reservation
+        |
+        |
+Reservation Approved
+        |
+        |
+Energy Transfer and Transaction Management (MY COMPONENT)
+        |
+        |
+Generate QR Transaction
+        |
+        |
+Grid Operator Scans QR
+        |
+        |
+Verify Transaction
+        |
+        |
+Complete Energy Transfer
+        |
+        |
+Store Transaction History
+        |
+        |
+Update Dashboard Information
+
+
+The application architecture:
+
+Frontend:
+React.js
+
+Backend:
+C# ASP.NET Core Web API
+
+Database:
+MongoDB
+
+Architecture:
+FAT Service pattern
+
+All business logic must remain inside the Web API.
+
+React should only handle UI and API communication.
+
+=================================================
+
+MY COMPONENT FUNCTIONAL REQUIREMENTS
+
+Implement the following features.
+
+-------------------------------------------------
+1. Energy Transaction Management
+-------------------------------------------------
+
+Create a new transaction management module.
+
+Create:
+
+Models:
+- EnergyTransaction
+
+Repository:
+- EnergyTransactionRepository
+
+Service:
+- EnergyTransactionService
+
+Controller:
+- EnergyTransactionController
+
+
+Transaction should contain:
+
+TransactionId
+
+ReservationId
+
+ProsumerNIC
+
+StationId
+
+EnergyAmount
+
+TransactionDate
+
+QRToken
+
+QRStatus
+
+VerificationStatus
+
+TransferStatus
+
+OperatorId
+
+CompletedDate
+
+
+Transaction statuses:
+
+Pending
+
+Verified
+
+Completed
+
+Failed
+
+Rejected
+
+
+=================================================
+
+2. QR CODE GENERATION
+=================================================
+
+After a reservation is approved, generate a secure transaction QR.
+
+Important:
+
+Do not store sensitive user information inside QR.
+
+QR should contain:
+
+Secure unique token
+
+Example:
+
+{
+   "transactionToken":"ABC123XYZ"
+}
+
+
+Create API:
+
+POST:
+/api/transactions/generate-qr
+
+
+Input:
+
+ReservationId
+
+
+Output:
+
+{
+ transactionId,
+ qrToken,
+ qrImageData,
+ expiryDate
+}
+
+
+Store QR information in MongoDB.
+
+
+=================================================
+
+3. QR VERIFICATION
+=================================================
+
+Grid Operator scans QR code.
+
+The mobile application sends QR token to backend.
+
+
+Create API:
+
+
+POST:
+
+/api/transactions/verify-qr
+
+
+System should check:
+
+
+1.
+Does QR exist?
+
+
+2.
+Is QR expired?
+
+
+3.
+Has QR already been used?
+
+
+4.
+Does related reservation exist?
+
+
+5.
+Is reservation approved?
+
+
+Possible responses:
+
+
+Valid QR:
+
+{
+ success:true,
+ transactionDetails:{}
+}
+
+
+Invalid:
+
+{
+ success:false,
+ message:"Invalid QR Code"
+}
+
+
+Expired:
+
+{
+ success:false,
+ message:"QR Expired"
+}
+
+
+Already Used:
+
+{
+ success:false,
+ message:"Transaction Already Completed"
+}
+
+
+
+=================================================
+
+4. ENERGY TRANSFER COMPLETION
+=================================================
+
+
+After successful verification, Grid Operator confirms transfer.
+
+
+Create API:
+
+
+PUT:
+
+/api/transactions/{transactionId}/complete
+
+
+Business logic:
+
+
+When completed:
+
+
+EnergyTransaction:
+
+TransferStatus:
+
+Completed
+
+
+Reservation:
+
+Status:
+
+Completed
+
+
+Add:
+
+CompletedDate
+
+
+Update:
+
+Slot availability/capacity if required.
+
+
+Return:
+
+{
+ message:"Energy transfer completed successfully"
+}
+
+
+=================================================
+
+5. TRANSACTION HISTORY
+=================================================
+
+Create APIs to view completed transactions.
+
+
+Prosumer should see:
+
+
+- Previous energy transfers
+- Transfer date
+- Energy amount
+- Station
+- Status
+
+
+API:
+
+
+GET:
+
+/api/transactions/history/{prosumerNIC}
+
+
+
+=================================================
+
+6. DASHBOARD APIs
+=================================================
+
+Create dashboard endpoints.
+
+
+Need:
+
+
+Pending transaction count
+
+Completed transfer count
+
+Current bookings
+
+Transaction history
+
+Approved future reservations
+
+
+Example:
+
+
+GET:
+
+/api/dashboard/summary
+
+
+
+Response:
+
+
+{
+ pendingTransfers:20,
+
+ completedTransfers:150,
+
+ todayTransfers:15
+}
+
+
+
+=================================================
+
+7. SEARCH AND FILTER
+=================================================
+
+Implement transaction filtering.
+
+
+Filter by:
+
+- Date
+- Status
+- Station
+- Prosumer NIC
+
+
+API example:
+
+
+GET:
+
+/api/transactions/search?status=Completed&date=2026-09-18
+
+
+
+=================================================
+
+REACT UI REQUIREMENTS
+
+Create only my component UI.
+
+
+Create:
+
+
+=================================================
+
+PROSUMER SIDE
+=================================================
+
+
+1. Energy Transaction Dashboard
+
+
+Display:
+
+Current transactions
+
+Pending transactions
+
+Completed transactions
+
+
+Cards:
+
+Pending
+
+Approved
+
+Completed
+
+
+--------------------------------
+
+
+2. QR Display Page
+
+
+After approved booking:
+
+
+Show:
+
+Transaction details
+
+Energy amount
+
+Station
+
+Date
+
+
+Display QR code.
+
+
+
+=================================================
+
+GRID OPERATOR SIDE
+=================================================
+
+
+1. Operator Dashboard
+
+
+Show:
+
+
+Today's transfers
+
+Pending transfers
+
+Completed transfers
+
+
+Table:
+
+Transaction ID
+
+Prosumer
+
+Energy
+
+Status
+
+
+
+--------------------------------
+
+
+2. QR Scanner Page
+
+
+Function:
+
+
+Scan QR
+
+Send token to API
+
+Display result
+
+
+
+--------------------------------
+
+
+3. Transaction Verification Page
+
+
+Show:
+
+
+Prosumer
+
+Station
+
+Energy amount
+
+Booking time
+
+
+Button:
+
+Complete Transfer
+
+
+
+--------------------------------
+
+
+4. Completion Result Page
+
+
+Show:
+
+
+Transaction completed successfully
+
+Transaction ID
+
+Date/time
+
+
+=================================================
+
+DATABASE REQUIREMENT
+
+Use existing MongoDB structure.
+
+First inspect existing collections.
+
+Do not duplicate existing collections unnecessarily.
+
+
+If required create:
+
+
+EnergyTransactions
+
+
+Example:
+
+
+{
+ "_id": "",
+
+ "transactionId":"TR001",
+
+ "reservationId":"RES001",
+
+ "prosumerNIC":"12345V",
+
+ "stationId":"ST001",
+
+ "energyAmount":25,
+
+ "qrToken":"ABCXYZ",
+
+ "qrStatus":"Active",
+
+ "transferStatus":"Completed",
+
+ "completedDate":""
+}
+
+
+
+=================================================
+
+IMPORTANT DEVELOPMENT RULES
+
+Follow existing coding style.
+
+Before writing code:
+
+1.
+Analyze existing folders.
+
+2.
+Identify:
+- Controllers
+- Services
+- Repositories
+- Models
+- MongoDB configuration
+
+3.
+Reuse existing:
+- Authentication
+- Reservation models
+- Station models
+
+
+Do not break:
+
+Component 1:
+User Management
+
+Component 2:
+Microgrid Node Management
+
+Component 3:
+Reservation Management
+
+
+
+=================================================
+
+OUTPUT EXPECTATION
+
+After analysis provide:
+
+1.
+Current project architecture explanation.
+
+2.
+Files that need to be created.
+
+3.
+Files that need modification.
+
+4.
+MongoDB changes.
+
+5.
+API endpoint list.
+
+6.
+Implementation plan.
+
+
+Then implement step-by-step:
+
+Backend first:
+
+- Models
+- Repository
+- Service
+- Controller
+
+
+Then React:
+
+- Pages
+- Components
+- API integration
+
+
+For every code file:
+
+Include:
+
+- Proper namespaces
+- Error handling
+- Validation
+- Comments explaining methods
+
+
+Make sure the final implementation follows the assignment marking criteria.

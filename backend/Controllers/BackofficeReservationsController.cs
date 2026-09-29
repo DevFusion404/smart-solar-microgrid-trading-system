@@ -7,7 +7,10 @@ namespace backend.Controllers;
 
 [ApiController]
 [Route("api/backoffice/reservations")]
-[Authorize(Roles = "Backoffice")]
+// Grid operators work the same pending queue from the station, so they share
+// these endpoints with Backoffice. Approving here is what mints the QR pass
+// (see EnergyReservationService.UpdateStatusForBackofficeAsync).
+[Authorize(Roles = "Backoffice,GridOperator")]
 public class BackofficeReservationsController : ControllerBase
 {
     private readonly IEnergyReservationService _reservationService;
