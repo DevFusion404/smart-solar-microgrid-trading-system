@@ -4,7 +4,7 @@ Project       : Smart Solar Microgrid Trading System
 Component     : Microgrid Node and Energy Slot Management
 File          : EnergyBookingSlot.cs
 Description   : Stores available energy slots
-Author        : Sithmaka
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 

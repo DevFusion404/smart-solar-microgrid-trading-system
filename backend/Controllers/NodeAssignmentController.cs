@@ -5,6 +5,7 @@ Component     : Microgrid Node Assignment Management
 File          : NodeAssignmentController.cs
 Description   : REST API endpoints for assigning Grid Operators to
                 Microgrid Nodes and querying assignments
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 

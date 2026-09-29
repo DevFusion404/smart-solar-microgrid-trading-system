@@ -4,6 +4,7 @@ Project       : Smart Solar Microgrid Trading System
 Component     : Microgrid Node Assignment Management
 File          : NodeAssignmentDtos.cs
 Description   : Data transfer objects for operator node assignments
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 

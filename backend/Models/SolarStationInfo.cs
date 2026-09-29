@@ -4,7 +4,7 @@ Project       : Smart Solar Microgrid Trading System
 Component     : Microgrid Node and Energy Slot Management
 File          : SolarStationInfo.cs
 Description   : Stores solar microgrid node information
-Author        : Sithmaka
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 

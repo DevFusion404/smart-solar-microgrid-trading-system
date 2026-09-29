@@ -6,6 +6,7 @@
 //              Distance uses the Haversine formula (great-circle distance on a sphere),
 //              which is accurate to well under 1% for distances inside Sri Lanka.
 //              Formula reference: https://en.wikipedia.org/wiki/Haversine_formula
+//Author        : Nanayakkara G.L.C.S
 // ===============================================
 
 namespace backend.Helpers;

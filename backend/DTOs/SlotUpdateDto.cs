@@ -5,7 +5,7 @@ Component     : Microgrid Node and Energy Slot Management
 File          : SlotUpdateDto.cs
 Description   : Data transfer object for updating an
                 existing energy booking slot
-Author        : Sithmaka
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 

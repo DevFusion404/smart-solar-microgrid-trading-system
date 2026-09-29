@@ -1,7 +1,9 @@
 /*
 =====================================================
+Project       : Smart Solar Microgrid Trading System
 File          : MicrogridStationController.cs
 Description   : Provides REST APIs for station management
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 

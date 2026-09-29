@@ -5,7 +5,7 @@ Component     : Microgrid Node and Energy Slot Management
 File          : MicrogridStationService.cs
 Description   : Handles business logic and MongoDB
                 operations related to solar stations
-Author        : Sithmaka
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 

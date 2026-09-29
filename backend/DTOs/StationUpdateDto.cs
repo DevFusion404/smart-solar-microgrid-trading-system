@@ -5,7 +5,7 @@ Component     : Microgrid Node and Energy Slot Management
 File          : StationUpdateDto.cs
 Description   : Data transfer object for updating an
                 existing solar microgrid station
-Author        : Sithmaka
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 

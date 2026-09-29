@@ -5,7 +5,7 @@ Component     : Microgrid Node and Energy Slot Management
 File          : SlotCreateDto.cs
 Description   : Data transfer object for creating a new
                 energy booking slot at a station
-Author        : Sithmaka
+Author        : Nanayakkara G.L.C.S
 =====================================================
 */
 
