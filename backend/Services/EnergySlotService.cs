@@ -302,18 +302,12 @@ public class EnergySlotService : IEnergySlotService
     }
 
     /// <summary>
-    /// Ensures that no energy has been reserved for the given slot.
-    /// Throws an exception if booked capacity > 0 or if active reservations exist.
+    /// Ensures that no energy has been actively reserved for the given slot.
+    /// Active reservations are reservations with status 'Confirmed', 'Approved', 'Pending', or 'Reviewing'.
+    /// Completed or Cancelled reservations do not prevent closing or deleting the slot.
     /// </summary>
     private async Task EnsureNoActiveReservations(EnergyBookingSlot slot)
     {
-        // 1. Check if capacity has been consumed (reserved energy > 0)
-        if (slot.TotalCapacity - slot.AvailableCapacity > 0.001)
-        {
-            throw new Exception("Cannot proceed: User has reserved energy for this slot.");
-        }
-
-        // 2. Check if active reservations exist in MongoDB Reservations collection
         if (_reservations != null)
         {
             var idCandidates = new List<string>();
@@ -327,13 +321,14 @@ public class EnergySlotService : IEnergySlotService
             }
 
             var resFilter = Builders<EnergyReservation>.Filter.In(x => x.SlotId, idCandidates);
-            var activeStatuses = new[] { "Confirmed", "Approved", "Pending" };
+            var activeStatuses = new[] { "Confirmed", "Approved", "Pending", "Reviewing" };
             var activeFilter = resFilter & Builders<EnergyReservation>.Filter.In(x => x.Status, activeStatuses);
 
-            var hasActive = await _reservations.Find(activeFilter).AnyAsync();
-            if (hasActive)
+            var activeReservations = await _reservations.Find(activeFilter).ToListAsync();
+            if (activeReservations.Count > 0)
             {
-                throw new Exception("Cannot proceed: User has reserved energy for this slot.");
+                var activeReserved = activeReservations.Sum(r => r.ReservedCapacity);
+                throw new Exception($"Cannot proceed: User has active reserved energy ({activeReserved:F1} kWh) for this slot.");
             }
         }
     }

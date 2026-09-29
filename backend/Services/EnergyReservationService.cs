@@ -237,10 +237,30 @@ public class EnergyReservationService : IEnergyReservationService
         throw new ConflictException("SLOT_NOT_FOUND", "The related energy slot no longer exists, so this reservation was not deleted.");
     }
 
-    // Retrieves all reservation documents for the Backoffice reservation view.
-    public async Task<IReadOnlyList<EnergyReservation>> GetAllForBackofficeAsync()
+    // Retrieves a reservation by its business reservation ID.
+    public async Task<EnergyReservation?> GetByIdAsync(string reservationId)
     {
-        return await _reservations.Find(Builders<EnergyReservation>.Filter.Empty)
+        if (string.IsNullOrWhiteSpace(reservationId)) return null;
+        return await _reservations
+            .Find(Builders<EnergyReservation>.Filter.Eq(x => x.ReservationId, reservationId.Trim()))
+            .FirstOrDefaultAsync();
+    }
+
+    // Retrieves all reservation documents for the Backoffice reservation view, optionally filtered by station IDs.
+    public async Task<IReadOnlyList<EnergyReservation>> GetAllForBackofficeAsync(IEnumerable<string>? stationIds = null)
+    {
+        var filter = Builders<EnergyReservation>.Filter.Empty;
+        if (stationIds != null)
+        {
+            var stationList = stationIds.ToList();
+            if (stationList.Count == 0)
+            {
+                return new List<EnergyReservation>();
+            }
+            filter = Builders<EnergyReservation>.Filter.In(x => x.StationId, stationList);
+        }
+
+        return await _reservations.Find(filter)
             .SortByDescending(x => x.SlotDate)
             .ThenByDescending(x => x.StartTime)
             .ToListAsync();

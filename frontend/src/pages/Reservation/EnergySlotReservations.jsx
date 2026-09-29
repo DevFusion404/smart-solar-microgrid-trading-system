@@ -4,7 +4,8 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Panel, SectionHeading } from '../../components/common/Panel'
 import { StatusBadge } from '../../components/common/StatusBadge'
-import { reservationService } from '../../services'
+import { nodeAssignmentService, reservationService } from '../../services'
+import { useAuth } from '../../context/AuthContext'
 
 const statusOptions = ['All', 'Reviewing', 'Pending', 'Approved', 'Completed', 'Cancelled']
 
@@ -66,6 +67,7 @@ function toReservationRow(reservation) {
   const dateKey = dateKeyFromApi(reservation.slotDate)
   return {
     id: reservation.reservationId,
+    stationId: reservation.stationId || '',
     nic: reservation.prosumerNic || 'NIC unavailable',
     prosumer: reservation.prosumerName || reservation.userId || 'Unknown prosumer',
     node: reservation.stationName || reservation.stationId || 'Unknown microgrid node',
@@ -194,6 +196,8 @@ function ReservationAction({ reservation, onStatusChange, onViewQr, updating }) 
 export function EnergySlotReservations() {
   const { reservationId } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isOperator = user?.role === 'GridOperator'
   const basePath = useReservationsBasePath()
   const [reservations, setReservations] = useState([])
   const [selectedDate, setSelectedDate] = useState(toDateKey())
@@ -212,15 +216,30 @@ export function EnergySlotReservations() {
     setLoading(true)
     setError('')
     try {
+      let allowedStationIds = null
+      if (isOperator) {
+        const identifier = user?.id || user?.username
+        if (identifier) {
+          const assigned = await nodeAssignmentService.getNodesByOperator(identifier)
+          allowedStationIds = new Set((assigned || []).map((s) => s.stationId || s.id))
+        } else {
+          allowedStationIds = new Set()
+        }
+      }
+
       const response = await reservationService.listBackofficeReservations()
-      setReservations(Array.isArray(response) ? response.map(toReservationRow) : [])
+      let rows = Array.isArray(response) ? response.map(toReservationRow) : []
+      if (allowedStationIds !== null) {
+        rows = rows.filter((r) => allowedStationIds.has(r.stationId))
+      }
+      setReservations(rows)
     } catch (requestError) {
       setReservations([])
       setError(requestError.message || 'Unable to load reservations.')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [isOperator, user?.id, user?.username])
 
   useEffect(() => {
     loadReservations()
@@ -311,14 +330,14 @@ export function EnergySlotReservations() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400"><CircleUserRound className="h-3.5 w-3.5" /> Reservation workflow</div><h1 className="text-2xl font-bold tracking-tight text-slate-950 md:text-3xl dark:text-white">Reservations</h1><p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">Review requests, approve time windows, and keep prosumers informed.</p></div><div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"><CalendarDays className="h-4 w-4 text-slate-400" /> Viewing {dateLabel}</div></div>
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400"><CircleUserRound className="h-3.5 w-3.5" /> Reservation workflow</div><h1 className="text-2xl font-bold tracking-tight text-slate-950 md:text-3xl dark:text-white">Reservations</h1><p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">{isOperator ? 'Review requests and approve time windows for your assigned microgrid nodes.' : 'Review requests, approve time windows, and keep prosumers informed.'}</p></div><div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"><CalendarDays className="h-4 w-4 text-slate-400" /> Viewing {dateLabel}</div></div>
       <Panel className="overflow-hidden">
         <div className="border-b border-slate-200 p-5 dark:border-slate-800 md:px-6">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between"><SectionHeading title="Reservation queue" description={`${visibleReservations.length} reservation${visibleReservations.length === 1 ? '' : 's'} for ${dateLabel}.`} /><div className="flex flex-wrap items-center gap-2"><label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-400"><CalendarDays className="h-4 w-4" /><span className="sr-only">Choose reservation date</span><input type="date" value={viewingDate} onChange={(event) => changeDate(event.target.value)} className="bg-transparent text-xs font-semibold text-slate-700 outline-none dark:text-slate-200" /></label><label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-400"><MapPin className="h-4 w-4" /><select value={nodeFilter} onChange={(event) => setNodeFilter(event.target.value)} aria-label="Filter by microgrid node" className="reservation-node-select w-36 bg-transparent text-xs font-semibold text-slate-700 outline-none dark:text-slate-200"><option value="All">All nodes</option>{nodeOptions.map((node) => <option key={node} value={node}>{node}</option>)}</select></label><label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-400"><Search className="h-4 w-4" /><span className="sr-only">Search reservations</span><input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} aria-label="Search reservations by ID or prosumer name" placeholder="Search ID or name" className="w-32 bg-transparent outline-none placeholder:text-slate-400" /></label><button type="button" title="Clear filters" aria-label="Clear filters" onClick={clearFilters} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800"><RotateCcw className="h-4 w-4" /></button></div></div>
           <div className="mt-5 flex flex-wrap items-center gap-2"><span className="mr-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Status</span>{statusOptions.map((status) => <button key={status} type="button" onClick={() => setStatusFilter(status)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${statusFilter === status ? 'bg-slate-950 text-white dark:bg-amber-400 dark:text-slate-950' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'}`}>{status}</button>)}<SlidersHorizontal className="ml-1 h-4 w-4 text-slate-400" /></div>
         </div>
         {error && <div role="alert" className="mx-5 mt-5 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-400/10 dark:text-rose-300 md:mx-6">{error}</div>}
-        <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-400"><tr><th className="px-5 py-3.5 md:px-6">Reservation</th><th className="px-3 py-3.5">Prosumer</th><th className="px-3 py-3.5">Node</th><th className="px-3 py-3.5">Schedule</th><th className="px-3 py-3.5">Status</th><th className="px-5 py-3.5 text-right md:px-6">Action</th></tr></thead><tbody className="divide-y divide-slate-100 dark:divide-slate-800">{loading ? <tr><td colSpan="6" className="px-6 py-14 text-center text-sm text-slate-500 dark:text-slate-400">Loading reservations...</td></tr> : visibleReservations.length > 0 ? visibleReservations.map((reservation) => <tr key={reservation.id} tabIndex={0} onClick={() => openDetails(reservation.id)} onKeyDown={(event) => openDetailsFromKeyboard(event, reservation.id)} className={reservation.id === reservationId ? 'cursor-pointer bg-blue-50/60 outline-none dark:bg-blue-400/5' : 'cursor-pointer outline-none hover:bg-slate-50/80 focus:bg-blue-50/60 dark:hover:bg-slate-800/30 dark:focus:bg-blue-400/5'}><td className="px-5 py-4 md:px-6"><p className="font-semibold text-slate-800 dark:text-slate-200">{reservation.id}</p><p className="mt-1 text-xs text-slate-400">{reservation.energy}</p></td><td className="px-3 py-4"><p className="text-slate-700 dark:text-slate-300">{reservation.prosumer}</p><p className="mt-1 font-mono text-[11px] text-slate-400">{reservation.nic}</p></td><td className="px-3 py-4 text-slate-600 dark:text-slate-400">{reservation.node}</td><td className="px-3 py-4 whitespace-nowrap"><p className="text-slate-600 dark:text-slate-300">{reservation.date}</p><p className="mt-1 text-xs text-slate-400">{reservation.time}</p></td><td className="px-3 py-4"><StatusBadge status={reservation.status} /></td><td className="px-5 py-4 text-right md:px-6"><ReservationAction reservation={reservation} onStatusChange={updateReservationStatus} onViewQr={showReservationQr} updating={updatingReservationId === reservation.id} /></td></tr>) : <tr><td colSpan="6" className="px-6 py-14 text-center"><CalendarDays className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-600" /><p className="mt-3 text-sm font-semibold text-slate-700 dark:text-slate-200">No reservations found</p><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Try another date or clear the active filters.</p></td></tr>}</tbody></table></div>
+        <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead className="border-b border-slate-200 bg-slate-50/70 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-400"><tr><th className="px-5 py-3.5 md:px-6">Reservation</th><th className="px-3 py-3.5">Prosumer</th><th className="px-3 py-3.5">Node</th><th className="px-3 py-3.5">Schedule</th><th className="px-3 py-3.5">Status</th><th className="px-5 py-3.5 text-right md:px-6">Action</th></tr></thead><tbody className="divide-y divide-slate-100 dark:divide-slate-800">{loading ? <tr><td colSpan="6" className="px-6 py-14 text-center text-sm text-slate-500 dark:text-slate-400">Loading reservations...</td></tr> : visibleReservations.length > 0 ? visibleReservations.map((reservation) => <tr key={reservation.id} tabIndex={0} onClick={() => openDetails(reservation.id)} onKeyDown={(event) => openDetailsFromKeyboard(event, reservation.id)} className={reservation.id === reservationId ? 'cursor-pointer bg-blue-50/60 outline-none dark:bg-blue-400/5' : 'cursor-pointer outline-none hover:bg-slate-50/80 focus:bg-blue-50/60 dark:hover:bg-slate-800/30 dark:focus:bg-blue-400/5'}><td className="px-5 py-4 md:px-6"><p className="font-semibold text-slate-800 dark:text-slate-200">{reservation.id}</p><p className="mt-1 text-xs text-slate-400">{reservation.energy}</p></td><td className="px-3 py-4"><p className="text-slate-700 dark:text-slate-300">{reservation.prosumer}</p><p className="mt-1 font-mono text-[11px] text-slate-400">{reservation.nic}</p></td><td className="px-3 py-4 text-slate-600 dark:text-slate-400">{reservation.node}</td><td className="px-3 py-4 whitespace-nowrap"><p className="text-slate-600 dark:text-slate-300">{reservation.date}</p><p className="mt-1 text-xs text-slate-400">{reservation.time}</p></td><td className="px-3 py-4"><StatusBadge status={reservation.status} /></td><td className="px-5 py-4 text-right md:px-6"><ReservationAction reservation={reservation} onStatusChange={updateReservationStatus} onViewQr={showReservationQr} updating={updatingReservationId === reservation.id} /></td></tr>) : <tr><td colSpan="6" className="px-6 py-14 text-center"><CalendarDays className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-600" /><p className="mt-3 text-sm font-semibold text-slate-700 dark:text-slate-200">No reservations found</p><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{isOperator ? 'No reservations found for your assigned microgrid nodes on this date.' : 'Try another date or clear the active filters.'}</p></td></tr>}</tbody></table></div>
       </Panel>
       {selectedReservation && <ReservationDetail key={selectedReservation.id} reservation={selectedReservation} />}
       {qrReservation && <ReservationQrDialog reservation={qrReservation} imageUrl={qrImageUrl} loading={qrLoading} error={qrError} onClose={closeReservationQr} />}

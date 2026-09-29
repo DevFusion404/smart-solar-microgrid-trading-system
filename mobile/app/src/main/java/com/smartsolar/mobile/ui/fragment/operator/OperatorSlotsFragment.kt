@@ -489,23 +489,10 @@ class OperatorSlotsFragment : Fragment() {
     }
 
     private fun handleDeleteSlot(slot: EnergySlot) {
-        val total = slot.totalCapacity
-        val available = slot.availableCapacity
-        val booked = if (total > available) total - available else 0.0
         val isClosed = slot.status.equals("Closed", ignoreCase = true)
         val slotDocId = slot.id?.ifBlank { slot.slotId } ?: slot.slotId
 
-        // Check 1: Reserved energy check
-        if (booked > 0.001) {
-            AlertDialog.Builder(requireContext())
-                .setTitle("Cannot Delete Slot")
-                .setMessage("User has reserved energy (${String.format(Locale.US, "%.1f", booked)} kWh) for this slot. Slots with active reservations cannot be deleted or closed.")
-                .setPositiveButton("OK", null)
-                .show()
-            return
-        }
-
-        // Check 2: If Available, prompt to Close first
+        // Check 1: If Available, prompt to Close first
         if (!isClosed) {
             AlertDialog.Builder(requireContext())
                 .setTitle("Slot is Available")
@@ -518,7 +505,7 @@ class OperatorSlotsFragment : Fragment() {
             return
         }
 
-        // Check 3: If Closed and no reserved energy, confirm permanent deletion
+        // Check 2: If Closed, confirm permanent deletion
         AlertDialog.Builder(requireContext())
             .setTitle("Delete Energy Slot")
             .setMessage("Are you sure you want to permanently delete slot '${slot.slotId}'? This action cannot be undone.")
