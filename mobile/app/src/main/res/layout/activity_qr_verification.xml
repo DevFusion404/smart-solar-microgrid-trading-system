@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Component 4 - QR verification result.
+    Renders valid, invalid, expired and already-completed outcomes, and lets the
+    operator confirm or reject a valid transfer.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbarVerification"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/surface_card"
+        app:navigationIcon="@android:drawable/ic_menu_close_clear_cancel"
+        app:title="@string/transfer_title_verification"
+        app:titleTextColor="@color/slate_900" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Outcome banner -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardOutcome"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/badge_bg_green"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:id="@+id/tvOutcomeTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/badge_text_green"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        tools:text="QR Code Valid" />
+
+                    <TextView
+                        android:id="@+id/tvOutcomeMessage"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:gravity="center"
+                        android:textColor="@color/badge_text_green"
+                        android:textSize="13sp"
+                        tools:text="Token verified successfully" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <ProgressBar
+                android:id="@+id/progressVerification"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp"
+                android:indeterminateTint="@color/solar_primary"
+                android:visibility="gone" />
+
+            <!-- Booking details, shown only for a valid code -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardDetails"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="@color/surface_card"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeColor="@color/surface_stroke"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/transfer_label_prosumer"
+                        android:textColor="@color/slate_400"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tvProsumerName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/slate_900"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        tools:text="Nimal Perera" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/transfer_label_booking"
+                        android:textColor="@color/slate_400"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tvReservationId"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/slate_700"
+                        android:textSize="15sp"
+                        tools:text="RES-20260921-30ADE6" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/transfer_label_station"
+                        android:textColor="@color/slate_400"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tvStationName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/slate_700"
+                        android:textSize="15sp"
+                        tools:text="Colombo Solar Hub" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/transfer_label_energy"
+                        android:textColor="@color/slate_400"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tvEnergyAmount"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/solar_primary_dark"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        tools:text="19.0 kWh" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/transfer_label_slot"
+                        android:textColor="@color/slate_400"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tvSlot"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/slate_700"
+                        android:textSize="15sp"
+                        tools:text="21 Sep 2026 - 22:50 to 23:50" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Operator actions -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnConfirm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:backgroundTint="@color/status_green"
+                android:text="@string/transfer_btn_confirm"
+                android:textColor="@color/white"
+                android:visibility="gone"
+                app:cornerRadius="12dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnReject"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/transfer_btn_reject"
+                android:textColor="@color/status_red"
+                android:visibility="gone"
+                app:cornerRadius="12dp"
+                app:strokeColor="@color/status_red" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnScanAgain"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/transfer_btn_scan_again"
+                android:textColor="@color/slate_700"
+                app:cornerRadius="12dp"
+                app:strokeColor="@color/surface_stroke" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

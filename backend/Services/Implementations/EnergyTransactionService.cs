@@ -196,6 +196,11 @@ public class EnergyTransactionService : IEnergyTransactionService
 
         var transaction = await _transactions.GetByQrTokenAsync(token);
 
+        // Not one of our transfer tokens. It may be the reservation pass that
+        // Component 3 issues on approval — the only QR the prosumer is ever
+        // shown — so resolve that to this booking's transaction instead.
+        transaction ??= await ResolveFromReservationQrAsync(token, operatorUsername);
+
         // Check 1 (continued) — does the QR exist in our records?
         if (transaction is null)
         {
@@ -612,6 +617,61 @@ public class EnergyTransactionService : IEnergyTransactionService
     /// </summary>
     /// <param name="reservation">The approved reservation.</param>
     /// <param name="requestedByUsername">Caller, used to resolve a missing NIC.</param>
+    /// <summary>
+    /// Resolves a Component 3 reservation pass to this component's transaction,
+    /// so one QR carries the booking from approval through to completion.
+    /// <para>
+    /// An existing transfer for the booking always wins, which keeps a rescan
+    /// idempotent and lets a completed transfer still report itself as such.
+    /// Otherwise the first scan materialises the transaction, and the caller's
+    /// remaining checks (expiry, reservation still approved) then apply to it
+    /// exactly as they would to a QR minted through generate-qr.
+    /// </para>
+    /// </summary>
+    /// <param name="token">Validation token read out of the reservation pass.</param>
+    /// <param name="operatorUsername">Grid operator presenting the scan.</param>
+    /// <returns>The transaction to verify, or null when no active pass matches.</returns>
+    private async Task<EnergyTransaction?> ResolveFromReservationQrAsync(string token, string operatorUsername)
+    {
+        var reservation = await _reservations.GetByQrTokenAsync(token);
+
+        if (reservation is null)
+        {
+            return null;
+        }
+
+        var existing = await _transactions.GetByReservationIdAsync(reservation.ReservationId);
+
+        // Prefer a completed transfer so a reused pass is reported honestly,
+        // then any live one, then whatever history exists for the booking.
+        var resolved = existing.FirstOrDefault(t => t.TransferStatus == TransferStatus.Completed)
+            ?? existing.FirstOrDefault(t =>
+                t.TransferStatus == TransferStatus.Pending || t.TransferStatus == TransferStatus.Verified)
+            ?? existing.FirstOrDefault();
+
+        if (resolved is not null)
+        {
+            return resolved;
+        }
+
+        // Nothing exists yet. Only an approved booking is worth materialising;
+        // anything else is reported through the normal invalid-code path.
+        if (!reservation.IsApproved)
+        {
+            return null;
+        }
+
+        var transaction = await BuildTransactionAsync(reservation, operatorUsername);
+
+        await PersistWithUniqueTokenAsync(transaction);
+
+        _logger.LogInformation(
+            "Materialised transaction {TransactionId} from the reservation pass for {ReservationId}.",
+            transaction.TransactionId, reservation.ReservationId);
+
+        return transaction;
+    }
+
     private async Task<EnergyTransaction> BuildTransactionAsync(ReservationSnapshot reservation, string requestedByUsername)
     {
         var prosumerNic = reservation.ProsumerNic;

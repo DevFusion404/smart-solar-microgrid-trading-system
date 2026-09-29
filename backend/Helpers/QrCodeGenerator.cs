@@ -61,6 +61,9 @@ public class QrCodeGenerator : IQrCodeGenerator
     /// <summary>Property name used inside the QR JSON payload.</summary>
     private const string TokenPropertyName = "transactionToken";
 
+    /// <summary>Label used by Component 3's plain-text reservation pass.</summary>
+    private const string ReservationTokenLabel = "Validation Token:";
+
     /// <inheritdoc />
     public string GenerateSecureToken()
     {
@@ -146,6 +149,29 @@ public class QrCodeGenerator : IQrCodeGenerator
                 // Malformed JSON — treat the whole string as unusable.
                 return null;
             }
+        }
+
+        // Component 3's reservation pass is plain text, one field per line,
+        // carrying the token after a "Validation Token:" label. The prosumer is
+        // shown only that pass, so the scanner hands us the whole block.
+        var labelIndex = trimmed.IndexOf(ReservationTokenLabel, StringComparison.OrdinalIgnoreCase);
+
+        if (labelIndex >= 0)
+        {
+            var value = trimmed[(labelIndex + ReservationTokenLabel.Length)..];
+
+            // The label is the last line in practice, but stop at a newline
+            // regardless so field order cannot break extraction.
+            var lineEnd = value.IndexOfAny(new[] { '\r', '\n' });
+
+            if (lineEnd >= 0)
+            {
+                value = value[..lineEnd];
+            }
+
+            value = value.Trim();
+
+            return string.IsNullOrWhiteSpace(value) ? null : value;
         }
 
         // Otherwise the scanner handed back the bare token.

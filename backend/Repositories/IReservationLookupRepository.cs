@@ -34,6 +34,18 @@ public interface IReservationLookupRepository
     Task<ReservationSnapshot?> GetByReservationIdAsync(string reservationId);
 
     /// <summary>
+    /// Finds a reservation by the QR token Component 3 issues on approval.
+    /// <para>
+    /// The prosumer is shown only that reservation pass, so the grid operator
+    /// scans it rather than a second transfer QR. Only an active pass matches;
+    /// a revoked one is treated as an unknown token.
+    /// </para>
+    /// </summary>
+    /// <param name="qrToken">Validation token read out of the reservation QR.</param>
+    /// <returns>A projection of the reservation, or null when no active pass matches.</returns>
+    Task<ReservationSnapshot?> GetByQrTokenAsync(string qrToken);
+
+    /// <summary>
     /// Lists a prosumer's approved reservations dated on or after the given day.
     /// Used by the prosumer dashboard to offer bookings that still need a QR.
     /// </summary>

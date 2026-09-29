@@ -33,6 +33,12 @@
             android:icon="@drawable/ic_nav_calendar"
             android:title="Bookings" />
 
+        <!-- Component 4: Energy Transfers -->
+        <item
+            android:id="@+id/nav_grid_transfers"
+            android:icon="@drawable/ic_nav_energy"
+            android:title="Energy Transfers" />
+
     </group>
 
     <item android:title="Preferences">

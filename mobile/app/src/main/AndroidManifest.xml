@@ -121,6 +121,89 @@
             android:exported="false"
             android:theme="@style/Theme.SmartSolarMobile" />
 
+        <!-- ============================================================
+             Component 4: Dashboards, QR Verification and Energy Transfer
+             ============================================================ -->
+
+        <!-- Component 4: Prosumer transfer dashboard -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.transfer.ProsumerDashboardActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Component 4: Current bookings (verified, awaiting handover) -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.transfer.CurrentBookingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Component 4: Pending bookings (QR issued, unscanned) -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.transfer.PendingBookingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Component 4: Approved reservations ready for a QR -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.transfer.ApprovedBookingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Component 4: Secure transfer QR display -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.transfer.QRCodeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Component 4: Completed transfer history -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.transfer.BookingHistoryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Component 4: Search and filter bookings -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.transfer.BookingSearchActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Component 4: Grid operator transfer dashboard -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.transfer.OperatorDashboardActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Component 4: Operator-wide transaction history -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.transfer.OperatorTransactionHistoryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Component 4: Reservation approval queue - approving issues the QR pass -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.transfer.PendingReservationsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Component 4: Camera QR scanner - portrait only so the preview does not re-create mid-scan -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.transfer.QRScannerActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Component 4: QR verification result and operator decision -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.transfer.QRVerificationActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
+        <!-- Component 4: Energy transfer completion -->
+        <activity
+            android:name="com.smartsolar.mobile.ui.activity.transfer.CompleteTransferActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SmartSolarMobile" />
+
     </application>
 
 </manifest>

@@ -8,7 +8,9 @@ import android.database.sqlite.SQLiteOpenHelper
 import com.smartsolar.mobile.data.model.EnergySlot
 import com.smartsolar.mobile.data.model.Reservation
 import com.smartsolar.mobile.data.model.SessionRecord
+import com.smartsolar.mobile.data.model.QrGenerationResponse
 import com.smartsolar.mobile.data.model.Station
+import com.smartsolar.mobile.data.model.TransactionResponse
 import com.smartsolar.mobile.utils.Constants
 
 /**
@@ -28,6 +30,10 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
         const val TABLE_SLOTS = "energy_slots"
         const val TABLE_RESERVATIONS = "reservations"
         const val TABLE_SESSIONS = "sessions"
+
+        // Component 4 - Energy Transfer caches
+        const val TABLE_TRANSACTIONS = "transactions"
+        const val TABLE_QR_CODES = "qr_codes"
 
         // Stations Columns
         const val COL_ID = "id"
@@ -70,6 +76,60 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
         const val COL_SESSION_EXPIRES_AT = "expires_at"
         const val COL_SESSION_LOGGED_IN_AT = "logged_in_at"
         const val COL_SESSION_IS_ACTIVE = "is_active_session"
+
+        // Transactions cache columns
+        const val COL_TX_TRANSACTION_ID = "transaction_id"
+        const val COL_TX_RESERVATION_ID = "reservation_id"
+        const val COL_TX_PROSUMER_NIC = "prosumer_nic"
+        const val COL_TX_PROSUMER_NAME = "prosumer_name"
+        const val COL_TX_STATION_NAME = "station_name"
+        const val COL_TX_ENERGY_AMOUNT = "energy_amount"
+        const val COL_TX_SLOT_DATE = "slot_date"
+        const val COL_TX_SLOT_TIME = "slot_time"
+        const val COL_TX_TRANSFER_STATUS = "transfer_status"
+        const val COL_TX_QR_STATUS = "qr_status"
+        const val COL_TX_COMPLETED_DATE = "completed_date"
+        const val COL_TX_CACHED_AT = "cached_at"
+
+        // QR cache columns
+        const val COL_QR_TRANSACTION_ID = "transaction_id"
+        const val COL_QR_RESERVATION_ID = "reservation_id"
+        const val COL_QR_TOKEN = "qr_token"
+        const val COL_QR_PAYLOAD = "qr_payload"
+        const val COL_QR_IMAGE_DATA = "qr_image_data"
+        const val COL_QR_EXPIRY = "expiry_date"
+
+        /** Component 4 - cached transfer rows so history survives a dropped connection. */
+        const val CREATE_TRANSACTIONS_TABLE = """
+            CREATE TABLE IF NOT EXISTS $TABLE_TRANSACTIONS (
+                $COL_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COL_TX_TRANSACTION_ID TEXT UNIQUE NOT NULL,
+                $COL_TX_RESERVATION_ID TEXT,
+                $COL_TX_PROSUMER_NIC TEXT,
+                $COL_TX_PROSUMER_NAME TEXT,
+                $COL_TX_STATION_NAME TEXT,
+                $COL_TX_ENERGY_AMOUNT REAL DEFAULT 0,
+                $COL_TX_SLOT_DATE TEXT,
+                $COL_TX_SLOT_TIME TEXT,
+                $COL_TX_TRANSFER_STATUS TEXT,
+                $COL_TX_QR_STATUS TEXT,
+                $COL_TX_COMPLETED_DATE TEXT,
+                $COL_TX_CACHED_AT TEXT
+            )
+        """
+
+        /** Component 4 - last issued QR per transaction, so the pass reopens offline. */
+        const val CREATE_QR_CODES_TABLE = """
+            CREATE TABLE IF NOT EXISTS $TABLE_QR_CODES (
+                $COL_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COL_QR_TRANSACTION_ID TEXT UNIQUE NOT NULL,
+                $COL_QR_RESERVATION_ID TEXT,
+                $COL_QR_TOKEN TEXT,
+                $COL_QR_PAYLOAD TEXT,
+                $COL_QR_IMAGE_DATA TEXT,
+                $COL_QR_EXPIRY TEXT
+            )
+        """
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -144,6 +204,8 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
         db.execSQL(createSlotsTable)
         db.execSQL(createReservationsTable)
         db.execSQL(createSessionsTable)
+        db.execSQL(CREATE_TRANSACTIONS_TABLE)
+        db.execSQL(CREATE_QR_CODES_TABLE)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -168,6 +230,11 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
                 )
             """.trimIndent()
             db.execSQL(createSessionsTable)
+        }
+        if (oldVersion < 3) {
+            // Version 3: Component 4 transfer + QR caches
+            db.execSQL(CREATE_TRANSACTIONS_TABLE)
+            db.execSQL(CREATE_QR_CODES_TABLE)
         }
     }
 
@@ -408,7 +475,113 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
         db.delete(TABLE_RESERVATIONS, null, null)
         db.delete(TABLE_SLOTS, null, null)
         db.delete(TABLE_STATIONS, null, null)
+        db.delete(TABLE_TRANSACTIONS, null, null)
+        db.delete(TABLE_QR_CODES, null, null)
     }
+
+    // -- Component 4: Transaction and QR Cache ---------------------------------
+
+    /**
+     * Replaces the cached transfer rows with the latest server copy.
+     * MongoDB stays the source of truth; this only backs the offline list.
+     */
+    fun cacheTransactions(transactions: List<TransactionResponse>) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            val cachedAt = System.currentTimeMillis().toString()
+            transactions.forEach { transaction ->
+                val values = ContentValues().apply {
+                    put(COL_TX_TRANSACTION_ID, transaction.transactionId)
+                    put(COL_TX_RESERVATION_ID, transaction.reservationId)
+                    put(COL_TX_PROSUMER_NIC, transaction.prosumerNic)
+                    put(COL_TX_PROSUMER_NAME, transaction.prosumerName)
+                    put(COL_TX_STATION_NAME, transaction.stationName)
+                    put(COL_TX_ENERGY_AMOUNT, transaction.energyAmount)
+                    put(COL_TX_SLOT_DATE, transaction.slotDate)
+                    put(COL_TX_SLOT_TIME, transaction.slotTime)
+                    put(COL_TX_TRANSFER_STATUS, transaction.transferStatus)
+                    put(COL_TX_QR_STATUS, transaction.qrStatus)
+                    put(COL_TX_COMPLETED_DATE, transaction.completedDate)
+                    put(COL_TX_CACHED_AT, cachedAt)
+                }
+                db.insertWithOnConflict(
+                    TABLE_TRANSACTIONS, null, values, SQLiteDatabase.CONFLICT_REPLACE
+                )
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /** Reads cached transfers, newest slot date first. */
+    fun getCachedTransactions(): List<TransactionResponse> {
+        val list = mutableListOf<TransactionResponse>()
+        val cursor: Cursor = readableDatabase.query(
+            TABLE_TRANSACTIONS, null, null, null, null, null, "$COL_TX_SLOT_DATE DESC"
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                list.add(
+                    TransactionResponse(
+                        transactionId = it.getStringOrBlank(COL_TX_TRANSACTION_ID),
+                        reservationId = it.getStringOrBlank(COL_TX_RESERVATION_ID),
+                        prosumerNic = it.getStringOrBlank(COL_TX_PROSUMER_NIC),
+                        prosumerName = it.getStringOrBlank(COL_TX_PROSUMER_NAME),
+                        stationName = it.getStringOrBlank(COL_TX_STATION_NAME),
+                        energyAmount = it.getDouble(it.getColumnIndexOrThrow(COL_TX_ENERGY_AMOUNT)),
+                        slotDate = it.getStringOrBlank(COL_TX_SLOT_DATE),
+                        slotTime = it.getStringOrBlank(COL_TX_SLOT_TIME),
+                        transferStatus = it.getStringOrBlank(COL_TX_TRANSFER_STATUS),
+                        qrStatus = it.getStringOrBlank(COL_TX_QR_STATUS),
+                        completedDate = it.getStringOrBlank(COL_TX_COMPLETED_DATE)
+                    )
+                )
+            }
+        }
+        return list
+    }
+
+    /** Stores the most recent QR issued for a transaction. */
+    fun cacheQrCode(response: QrGenerationResponse, reservationId: String) {
+        val values = ContentValues().apply {
+            put(COL_QR_TRANSACTION_ID, response.transactionId)
+            put(COL_QR_RESERVATION_ID, reservationId)
+            put(COL_QR_TOKEN, response.qrToken)
+            put(COL_QR_PAYLOAD, response.qrPayload)
+            put(COL_QR_IMAGE_DATA, response.qrImageData)
+            put(COL_QR_EXPIRY, response.expiryDate)
+        }
+        writableDatabase.insertWithOnConflict(
+            TABLE_QR_CODES, null, values, SQLiteDatabase.CONFLICT_REPLACE
+        )
+    }
+
+    /** Returns the cached QR for a transaction, or null when none was stored. */
+    fun getCachedQrCode(transactionId: String): QrGenerationResponse? {
+        val cursor: Cursor = readableDatabase.query(
+            TABLE_QR_CODES, null, "$COL_QR_TRANSACTION_ID = ?", arrayOf(transactionId),
+            null, null, null, "1"
+        )
+        return cursor.use {
+            if (it.moveToFirst()) {
+                QrGenerationResponse(
+                    transactionId = it.getStringOrBlank(COL_QR_TRANSACTION_ID),
+                    qrToken = it.getStringOrBlank(COL_QR_TOKEN),
+                    qrImageData = it.getStringOrBlank(COL_QR_IMAGE_DATA),
+                    qrPayload = it.getStringOrBlank(COL_QR_PAYLOAD),
+                    expiryDate = it.getStringOrBlank(COL_QR_EXPIRY)
+                )
+            } else {
+                null
+            }
+        }
+    }
+
+    /** Null-safe column read used by the Component 4 cache readers. */
+    private fun Cursor.getStringOrBlank(column: String): String =
+        getColumnIndex(column).let { if (it < 0 || isNull(it)) "" else getString(it) }
 
     // ── Session CRUD Operations ───────────────────────────────────────────────
 
