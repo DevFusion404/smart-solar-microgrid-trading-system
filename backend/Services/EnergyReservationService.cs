@@ -1,3 +1,11 @@
+/*
+ * File Name    : EnergyReservationService.cs
+ * Project      : Smart Solar Microgrid Trading System
+ * Description  : Manages reservation records, slot capacity changes, prosumer reservation views, Backoffice status updates, and reservation QR pass generation.
+ * Author       : Project Team
+ * Date         : 28 Sep 2026
+ */
+
 using backend.Data;
 using backend.DTOs;
 using backend.Interfaces;
@@ -25,6 +33,7 @@ public class EnergyReservationService : IEnergyReservationService
     private readonly IMongoCollection<SolarStationInfo> _stations;
     private readonly IUserRepository _userRepository;
 
+    // Initializes the service with reservation, slot, station, and user data access.
     public EnergyReservationService(MongoDbContext context, IUserRepository userRepository)
     {
         _reservations = context.Reservations;
@@ -33,6 +42,7 @@ public class EnergyReservationService : IEnergyReservationService
         _userRepository = userRepository;
     }
 
+    // Creates a reservation while enforcing slot capacity and the seven-day reservation window.
     public async Task<EnergyReservation> CreateAsync(string userId, CreateReservationDto request)
     {
         if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(request.SlotId) || request.RequestedCapacity <= 0)
@@ -111,6 +121,7 @@ public class EnergyReservationService : IEnergyReservationService
         }
     }
 
+    // Retrieves a prosumer's reservation documents, optionally filtered to one slot date.
     public async Task<IReadOnlyList<EnergyReservation>> GetAllAsync(string userId, DateTime? date)
     {
         var filter = Builders<EnergyReservation>.Filter.Eq(x => x.UserId, userId);
@@ -125,6 +136,7 @@ public class EnergyReservationService : IEnergyReservationService
             .ToListAsync();
     }
 
+    // Retrieves a prosumer's reservation documents from completed calendar days.
     public async Task<IReadOnlyList<EnergyReservation>> GetHistoryAsync(string userId, DateTime? date)
     {
         // A history record belongs to a completed calendar day in Sri Lanka.
@@ -145,6 +157,7 @@ public class EnergyReservationService : IEnergyReservationService
             .ToListAsync();
     }
 
+    // Updates a reservation's requested capacity while enforcing the 12-hour modification rule.
     public async Task<EnergyReservation> UpdateAsync(string userId, string reservationId, UpdateReservationDto request)
     {
         if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(reservationId) || request.RequestedCapacity <= 0)
@@ -197,6 +210,7 @@ public class EnergyReservationService : IEnergyReservationService
         throw new ConflictException("RESERVATION_NOT_EDITABLE", "The reservation was changed before the update could be completed.");
     }
 
+    // Deletes a reservation within the 12-hour modification rule and restores slot capacity.
     public async Task DeleteAsync(string userId, string reservationId)
     {
         if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(reservationId))
@@ -223,6 +237,7 @@ public class EnergyReservationService : IEnergyReservationService
         throw new ConflictException("SLOT_NOT_FOUND", "The related energy slot no longer exists, so this reservation was not deleted.");
     }
 
+    // Retrieves all reservation documents for the Backoffice reservation view.
     public async Task<IReadOnlyList<EnergyReservation>> GetAllForBackofficeAsync()
     {
         return await _reservations.Find(Builders<EnergyReservation>.Filter.Empty)
@@ -231,6 +246,7 @@ public class EnergyReservationService : IEnergyReservationService
             .ToListAsync();
     }
 
+    // Updates a Backoffice reservation status, managing capacity restoration and QR activation when required.
     public async Task<EnergyReservation> UpdateStatusForBackofficeAsync(
         string reservationId,
         UpdateReservationStatusDto request)
@@ -319,6 +335,7 @@ public class EnergyReservationService : IEnergyReservationService
                ?? throw new ConflictException("RESERVATION_STATUS_CHANGED", "The reservation status changed before the update could be completed.");
     }
 
+    // Generates a PNG QR pass for an approved reservation requested by Backoffice.
     public async Task<byte[]> GetQrPngForBackofficeAsync(string reservationId)
     {
         if (string.IsNullOrWhiteSpace(reservationId))
@@ -348,6 +365,7 @@ public class EnergyReservationService : IEnergyReservationService
         return new PngByteQRCode(qrData).GetGraphic(12);
     }
 
+    // Generates a PNG QR pass for an approved reservation owned by the specified prosumer.
     public async Task<byte[]> GetQrPngForUserAsync(string userId, string reservationId)
     {
         if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(reservationId))
@@ -376,6 +394,7 @@ public class EnergyReservationService : IEnergyReservationService
         return new PngByteQRCode(qrData).GetGraphic(12);
     }
 
+    // Activates and records a QR token for the specified approved reservation.
     private async Task<EnergyReservation> ActivateQrForApprovedReservationAsync(string reservationId)
     {
         return await _reservations.FindOneAndUpdateAsync(
@@ -389,6 +408,7 @@ public class EnergyReservationService : IEnergyReservationService
                ?? throw new ConflictException("RESERVATION_STATUS_CHANGED", "The reservation status changed before a QR code could be issued.");
     }
 
+    // Builds the reservation details encoded into a QR pass.
     private static string BuildQrPayload(EnergyReservation reservation)
     {
         var localDate = TimeZoneInfo.ConvertTimeFromUtc(
@@ -405,14 +425,17 @@ public class EnergyReservationService : IEnergyReservationService
         });
     }
 
+    // Creates a cryptographically random token for an approved reservation QR pass.
     private static string CreateQrToken() => Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
 
+    // Builds the filter that restricts reservation edits to the owner and 12-hour modification window.
     private static FilterDefinition<EnergyReservation> EditableReservationFilter(string userId, string reservationId) =>
         Builders<EnergyReservation>.Filter.Eq(x => x.ReservationId, reservationId)
         & Builders<EnergyReservation>.Filter.Eq(x => x.UserId, userId)
         & Builders<EnergyReservation>.Filter.Ne(x => x.Status, "Cancelled")
         & Builders<EnergyReservation>.Filter.Gte(x => x.CreatedAt, DateTime.UtcNow.AddHours(-12));
 
+    // Builds a slot filter that accepts either a business slot identifier or MongoDB document identifier.
     private static FilterDefinition<EnergyBookingSlot> SlotIdFilter(string slotId)
     {
         var filter = Builders<EnergyBookingSlot>.Filter.Eq(x => x.SlotId, slotId);
@@ -424,6 +447,7 @@ public class EnergyReservationService : IEnergyReservationService
         return filter;
     }
 
+    // Validates and normalizes a requested Backoffice reservation status.
     private static string NormalizeBackofficeStatus(string value)
     {
         var allowedStatuses = new[] { "Reviewing", "Pending", "Approved", "Completed", "Cancelled" };
@@ -435,6 +459,7 @@ public class EnergyReservationService : IEnergyReservationService
             "Status must be Reviewing, Pending, Approved, Completed, or Cancelled.");
     }
 
+    // Builds a filter for reservations scheduled on the supplied Sri Lanka calendar day.
     private static FilterDefinition<EnergyReservation> DateFilter(DateTime date)
     {
         var start = GetReservationDayStartUtc(date);
@@ -442,6 +467,7 @@ public class EnergyReservationService : IEnergyReservationService
             & Builders<EnergyReservation>.Filter.Lt(x => x.SlotDate, start.AddDays(1));
     }
 
+    // Converts a Sri Lanka calendar day into its UTC start boundary.
     private static DateTime GetReservationDayStartUtc(DateTime? date = null)
     {
         var localDate = date?.Date
@@ -450,6 +476,7 @@ public class EnergyReservationService : IEnergyReservationService
         return TimeZoneInfo.ConvertTimeToUtc(localMidnight, ReservationTimeZone);
     }
 
+    // Resolves the Sri Lanka time zone identifier for the current operating system.
     private static TimeZoneInfo GetReservationTimeZone()
     {
         try

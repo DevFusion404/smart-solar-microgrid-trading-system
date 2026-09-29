@@ -9,13 +9,23 @@ import { QuickActions } from '../../components/dashboard/QuickActions'
 import { RecentReservations } from '../../components/dashboard/RecentTransactions'
 import { ReservationActivityChart } from '../../components/dashboard/ReservationActivityChart'
 import { ReservationStatus } from '../../components/dashboard/ReservationStatus'
+import { useAuth } from '../../context/AuthContext'
+
+// Greeting for the logged-in officer based on the local time of day
+function greetingFor(name) {
+  const hour = new Date().getHours()
+  const part = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const firstName = (name || '').trim().split(' ')[0]
+  return firstName ? `${part}, ${firstName}` : part
+}
 
 export function DashboardPage() {
+  const { user } = useAuth()
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <div className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400"><Sparkles className="h-3.5 w-3.5" /> Good morning, Jordan</div>
+          <div className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400"><Sparkles className="h-3.5 w-3.5" /> {greetingFor(user?.fullName || user?.username)}</div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-950 md:text-3xl dark:text-white">Here&apos;s your network overview.</h1>
           <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">Monitor energy flow, prosumer activity, and reservation health at a glance.</p>
         </div>

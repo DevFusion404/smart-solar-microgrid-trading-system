@@ -11,7 +11,9 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 
 object ReservationDatePicker {
-    private const val DAYS_IN_WINDOW = 7L
+    // Inclusive reservation window: today plus the next six calendar days.
+    private const val MAX_RESERVATION_DAYS_AHEAD = 6L
+    private const val HISTORY_DAYS = 7L
 
     fun showUpcoming(
         fragment: Fragment,
@@ -19,11 +21,12 @@ object ReservationDatePicker {
         onDateSelected: (LocalDate) -> Unit,
     ) {
         val today = LocalDate.now()
+        val lastReservableDate = today.plusDays(MAX_RESERVATION_DAYS_AHEAD)
         show(
             fragment = fragment,
-            selectedDate = selectedDate.coerceIn(today, today.plusDays(DAYS_IN_WINDOW - 1)),
+            selectedDate = selectedDate.coerceIn(today, lastReservableDate),
             firstSelectableDate = today,
-            lastSelectableDate = today.plusDays(DAYS_IN_WINDOW - 1),
+            lastSelectableDate = lastReservableDate,
             title = "Choose a reservation day",
             onDateSelected = onDateSelected,
         )
@@ -38,8 +41,8 @@ object ReservationDatePicker {
         val latestHistoryDate = today.minusDays(1)
         show(
             fragment = fragment,
-            selectedDate = selectedDate.coerceIn(today.minusDays(DAYS_IN_WINDOW), latestHistoryDate),
-            firstSelectableDate = today.minusDays(DAYS_IN_WINDOW),
+            selectedDate = selectedDate.coerceIn(today.minusDays(HISTORY_DAYS), latestHistoryDate),
+            firstSelectableDate = today.minusDays(HISTORY_DAYS),
             lastSelectableDate = latestHistoryDate,
             title = "Choose a history day",
             onDateSelected = onDateSelected,
@@ -77,7 +80,10 @@ object ReservationDatePicker {
             .build()
             .apply {
                 addOnPositiveButtonClickListener { selectedMillis ->
-                    onDateSelected(selectedMillis.toLocalDate())
+                    val date = selectedMillis.toLocalDate()
+                    if (!date.isBefore(firstSelectableDate) && !date.isAfter(lastSelectableDate)) {
+                        onDateSelected(date)
+                    }
                 }
                 show(fragment.parentFragmentManager, "reservation_date_picker")
             }

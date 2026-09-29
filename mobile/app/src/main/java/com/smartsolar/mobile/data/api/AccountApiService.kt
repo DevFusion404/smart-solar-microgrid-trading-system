@@ -1,3 +1,13 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : AccountApiService.kt
+ * Description : Retrofit endpoints for the logged-in user's own account
+ *               (api/account/...): profile, password and deactivation request.
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.data.api
 
 import com.smartsolar.mobile.data.model.ChangePasswordRequest

@@ -1,3 +1,15 @@
+/*
+=====================================================
+Project       : Smart Solar Microgrid Trading System
+Component     : Identity and Account Management (Component 1)
+File          : ProsumerDetailPage.jsx
+Description   : Backoffice prosumer profile (by NIC): edit contact
+                details, run lifecycle actions (activate, reject,
+                deactivate, approve deactivation, reactivate) and see
+                the account timeline.
+=====================================================
+*/
+
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft,
@@ -20,19 +32,22 @@ import {
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { prosumerService } from '../../services'
+import { validatePhone, validateEmail, validateReason } from '../../utils/validators'
 
 const statusStyle = {
   Active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300',
   PendingActivation: 'bg-amber-100 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300',
-  PendingDeactivation: 'bg-orange-100 text-orange-700 dark:bg-orange-400/10 dark:text-orange-300',
+  DeactivationRequested: 'bg-orange-100 text-orange-700 dark:bg-orange-400/10 dark:text-orange-300',
   Deactivated: 'bg-red-100 text-red-700 dark:bg-red-400/10 dark:text-red-300',
 }
-const statusLabel = { PendingActivation: 'Pending Activation', PendingDeactivation: 'Pending Deactivation' }
+const statusLabel = { PendingActivation: 'Pending Activation', DeactivationRequested: 'Pending Deactivation' }
 
+// Coloured pill showing the account status
 function StatusBadge({ status }) {
   return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusStyle[status] ?? ''}`}>{statusLabel[status] ?? status}</span>
 }
 
+// One labelled field in the account details card
 function InfoRow({ icon: Icon, label, value, mono }) {
   return (
     <div className="flex items-start gap-3 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
@@ -49,6 +64,7 @@ function InfoRow({ icon: Icon, label, value, mono }) {
   )
 }
 
+// One lifecycle event (registered, activated, deactivated...) in the timeline
 function TimelineItem({ label, date, by, color }) {
   if (!date) return null
   return (
@@ -68,6 +84,7 @@ function TimelineItem({ label, date, by, color }) {
   )
 }
 
+// Backoffice view of one prosumer: details, edit form, lifecycle actions and timeline
 export function ProsumerDetailPage() {
   const { nic } = useParams()
   const navigate = useNavigate()
@@ -81,7 +98,10 @@ export function ProsumerDetailPage() {
   const [confirmAction, setConfirmAction] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
   const [deactivateReason, setDeactivateReason] = useState('')
+  const [actionError, setActionError] = useState('')
+  const [formError, setFormError] = useState('')
 
+  // Loads the prosumer by the NIC in the URL
   const fetchProsumer = useCallback(async () => {
     if (!nic) return
     setLoading(true)
@@ -107,13 +127,22 @@ export function ProsumerDetailPage() {
     fetchProsumer()
   }, [fetchProsumer])
 
+  // Shows a success message for a few seconds
   const showToast = (msg) => {
     setToast(msg)
     setTimeout(() => setToast(''), 3500)
   }
 
+  // Validates and saves the edited contact details
   const handleSave = async (e) => {
     e.preventDefault()
+    const problem = validateEmail(form.email) || validatePhone(form.phoneNumber)
+      || (form.address.trim().length > 0 && form.address.trim().length < 5 ? 'Address must be at least 5 characters.' : '')
+    if (problem) {
+      setFormError(problem)
+      return
+    }
+    setFormError('')
     setSaving(true)
     try {
       await prosumerService.updateProsumer(nic, form)
@@ -121,28 +150,50 @@ export function ProsumerDetailPage() {
       setEditing(false)
       fetchProsumer()
     } catch (err) {
-      alert(err.message || 'Failed to update prosumer profile.')
+      setFormError(err.message || 'Failed to update prosumer profile.')
     } finally {
       setSaving(false)
     }
   }
 
+  // Opens the confirmation dialog for a lifecycle action
+  const openAction = (type) => {
+    setRejectReason('')
+    setDeactivateReason('')
+    setActionError('')
+    setConfirmAction(type)
+  }
+
+  // Runs the confirmed lifecycle action after checking any required reason
   const applyAction = async (type) => {
+    const needsDeactivateReason = type === 'deactivate' && prosumer.status === 'Active'
+    const reasonError = type === 'reject' ? validateReason(rejectReason)
+      : needsDeactivateReason ? validateReason(deactivateReason) : ''
+    if (reasonError) {
+      setActionError(reasonError)
+      return
+    }
+    const doneMessage = {
+      activate: 'Account activated.',
+      reject: 'Registration rejected.',
+      deactivate: 'Account deactivated.',
+      reactivate: 'Account is active again.',
+    }
     try {
       if (type === 'activate') {
         await prosumerService.activateProsumer(nic)
       } else if (type === 'reject') {
         await prosumerService.rejectProsumerActivation(nic, rejectReason)
       } else if (type === 'deactivate') {
-        await prosumerService.approveDeactivation(nic)
+        await prosumerService.approveDeactivation(nic, deactivateReason)
       } else if (type === 'reactivate') {
         await prosumerService.reactivateProsumer(nic)
       }
       setConfirmAction(null)
-      showToast(`✓ Action [${type}] completed successfully.`)
+      showToast(`✓ ${doneMessage[type]}`)
       fetchProsumer()
     } catch (err) {
-      alert(err.message || 'Action failed.')
+      setActionError(err.message || 'Action failed.')
     }
   }
 
@@ -210,18 +261,18 @@ export function ProsumerDetailPage() {
           <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.07 }} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Actions</p>
             {prosumer.status === 'PendingActivation' && <>
-              <button type="button" onClick={() => setConfirmAction('activate')} className="flex w-full items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-600"><UserCheck className="h-4 w-4" /> Activate Account</button>
-              <button type="button" onClick={() => setConfirmAction('reject')} className="flex w-full items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100 dark:border-red-700/40 dark:bg-red-400/5 dark:text-red-400"><UserX className="h-4 w-4" /> Reject Activation</button>
+              <button type="button" onClick={() => openAction('activate')} className="flex w-full items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-600"><UserCheck className="h-4 w-4" /> Activate Account</button>
+              <button type="button" onClick={() => openAction('reject')} className="flex w-full items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100 dark:border-red-700/40 dark:bg-red-400/5 dark:text-red-400"><UserX className="h-4 w-4" /> Reject Activation</button>
             </>}
             {prosumer.status === 'Active' && (
-              <button type="button" onClick={() => setConfirmAction('deactivate')} className="flex w-full items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-600"><UserMinus className="h-4 w-4" /> Deactivate Account</button>
+              <button type="button" onClick={() => openAction('deactivate')} className="flex w-full items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-600"><UserMinus className="h-4 w-4" /> Deactivate Account</button>
             )}
-            {prosumer.status === 'PendingDeactivation' && <>
-              <button type="button" onClick={() => setConfirmAction('deactivate')} className="flex w-full items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-600"><UserMinus className="h-4 w-4" /> Approve Deactivation</button>
-              <button type="button" onClick={() => setConfirmAction('reactivate')} className="flex w-full items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"><RefreshCw className="h-4 w-4" /> Dismiss & Keep Active</button>
+            {prosumer.status === 'DeactivationRequested' && <>
+              <button type="button" onClick={() => openAction('deactivate')} className="flex w-full items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-600"><UserMinus className="h-4 w-4" /> Approve Deactivation</button>
+              <button type="button" onClick={() => openAction('reactivate')} className="flex w-full items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"><RefreshCw className="h-4 w-4" /> Dismiss & Keep Active</button>
             </>}
             {prosumer.status === 'Deactivated' && (
-              <button type="button" onClick={() => setConfirmAction('reactivate')} className="flex w-full items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-600"><RefreshCw className="h-4 w-4" /> Reactivate Account</button>
+              <button type="button" onClick={() => openAction('reactivate')} className="flex w-full items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-600"><RefreshCw className="h-4 w-4" /> Reactivate Account</button>
             )}
             <button type="button" onClick={() => setEditing((v) => !v)} className={`flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition ${editing ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300' : 'border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'}`}>
               {editing ? <><X className="h-4 w-4" /> Cancel Editing</> : <><Edit3 className="h-4 w-4" /> Edit Profile</>}
@@ -236,6 +287,7 @@ export function ProsumerDetailPage() {
             {editing ? (
               <form onSubmit={handleSave} className="p-6 space-y-4">
                 <h2 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2"><Edit3 className="h-4 w-4 text-amber-400" /> Edit Profile</h2>
+                {formError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-400">{formError}</p>}
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Full Name
                   <input type="text" value={form.fullName} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))} required className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
@@ -266,6 +318,22 @@ export function ProsumerDetailPage() {
                 <InfoRow icon={Mail} label="Email Address" value={prosumer.email} />
                 <InfoRow icon={Phone} label="Phone Number" value={prosumer.phoneNumber} />
                 <InfoRow icon={MapPin} label="Address" value={prosumer.address} />
+                {/* Home GPS location shared from the mobile app (used to find the nearest stations) */}
+                <InfoRow
+                  icon={MapPin}
+                  label="Home location (GPS)"
+                  mono
+                  value={prosumer.homeLatitude != null && prosumer.homeLongitude != null ? (
+                    <a
+                      href={`https://www.openstreetmap.org/?mlat=${prosumer.homeLatitude}&mlon=${prosumer.homeLongitude}#map=15/${prosumer.homeLatitude}/${prosumer.homeLongitude}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-amber-600 hover:underline dark:text-amber-400"
+                    >
+                      {prosumer.homeLatitude.toFixed(5)}, {prosumer.homeLongitude.toFixed(5)}
+                    </a>
+                  ) : undefined}
+                />
               </div>
             )}
           </motion.div>
@@ -298,13 +366,16 @@ export function ProsumerDetailPage() {
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white capitalize">{confirmAction.replace(/([A-Z])/g, ' $1')} Account</h3>
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                 {confirmAction === 'activate' && 'This will approve the prosumer registration and grant platform access.'}
-                {confirmAction === 'reject' && 'Provide an optional reason for rejection.'}
-                {confirmAction === 'deactivate' && 'Provide a mandatory reason for this deactivation.'}
+                {confirmAction === 'reject' && 'Give the reason for rejecting this registration (10-500 characters).'}
+                {confirmAction === 'deactivate' && (prosumer.status === 'Active'
+                  ? 'This prosumer did not request deactivation, so a reason (10-500 characters) is required.'
+                  : "Approve the prosumer's own request. Their stated reason is kept unless you enter a new one.")}
                 {confirmAction === 'reactivate' && 'This will restore account access for the prosumer.'}
               </p>
               {(confirmAction === 'reject' || confirmAction === 'deactivate') && (
                 <textarea value={confirmAction === 'reject' ? rejectReason : deactivateReason} onChange={(e) => confirmAction === 'reject' ? setRejectReason(e.target.value) : setDeactivateReason(e.target.value)} placeholder="Enter reason…" rows={3} className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 resize-none" />
               )}
+              {actionError && <p className="mt-2 text-xs text-red-500">{actionError}</p>}
               <div className="mt-5 flex items-center justify-end gap-3">
                 <button type="button" onClick={() => setConfirmAction(null)} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">Cancel</button>
                 <button type="button" onClick={() => applyAction(confirmAction)} className={`rounded-xl px-4 py-2 text-sm font-semibold text-white transition ${confirmAction === 'reactivate' ? 'bg-blue-500 hover:bg-blue-600' : confirmAction === 'activate' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600'}`}>Confirm</button>

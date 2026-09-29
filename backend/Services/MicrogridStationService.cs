@@ -12,7 +12,9 @@ Author        : Sithmaka
 
 using backend.Data;
 using backend.DTOs;
+using backend.Helpers;
 using backend.Interfaces;
+using backend.Middleware;
 using backend.Models;
 
 using MongoDB.Bson;
@@ -21,9 +23,14 @@ using MongoDB.Driver;
 namespace backend.Services;
 public class MicrogridStationService : IMicrogridStationService
 {
+    // Limits for the nearest-station search
+    public const int DefaultNearbyLimit = 20;
+    public const int MaxNearbyLimit = 100;
+
     private readonly IMongoCollection<SolarStationInfo> _stations;
     private readonly IMongoCollection<EnergyBookingSlot> _slots;
     private readonly IMongoCollection<BsonDocument> _reservations;
+    private readonly IMongoCollection<UserDetails> _users;
 
     // Constructor initializes MongoDB collections
     public MicrogridStationService(MongoDbContext context)
@@ -37,6 +44,9 @@ public class MicrogridStationService : IMicrogridStationService
 
         _reservations = context.Database
             .GetCollection<BsonDocument>("EnergyReservations");
+
+        // Used only to read a prosumer's saved home location for the nearest-station search
+        _users = context.Users;
 
     }
 
@@ -363,6 +373,106 @@ public class MicrogridStationService : IMicrogridStationService
             })
             .ToList();
 
+    }
+
+    // Returns active stations ordered from nearest to farthest from the given GPS point
+    public async Task<List<NearbyStationDto>> GetNearbyStations(
+        double latitude,
+        double longitude,
+        double? radiusKm,
+        int? limit)
+    {
+        ValidateNearbyQuery(latitude, longitude, radiusKm);
+
+        var activeStations =
+            await _stations
+            .Find(x => x.Status == "Active")
+            .ToListAsync();
+
+        return RankByDistance(activeStations, latitude, longitude, radiusKm, limit);
+    }
+
+    // Returns active stations nearest to the home location saved on the prosumer's account
+    public async Task<List<NearbyStationDto>> GetNearbyStationsForUser(
+        string username,
+        double? radiusKm,
+        int? limit)
+    {
+        var user = await _users
+            .Find(u => u.Username == username)
+            .FirstOrDefaultAsync();
+
+        if (user == null)
+        {
+            throw new NotFoundException("USER_NOT_FOUND", $"User '{username}' was not found.");
+        }
+
+        if (user.HomeLatitude == null || user.HomeLongitude == null)
+        {
+            throw new NotFoundException(
+                "HOME_LOCATION_NOT_SET",
+                "No home location is saved for this account. Turn on location or set your home location in your profile.");
+        }
+
+        return await GetNearbyStations(user.HomeLatitude.Value, user.HomeLongitude.Value, radiusKm, limit);
+    }
+
+    // Pure ranking step (no database), kept separate so it can be unit tested:
+    // skips stations without coordinates, measures the Haversine distance to each one,
+    // drops stations outside the radius, sorts nearest first and applies the limit.
+    public static List<NearbyStationDto> RankByDistance(
+        IEnumerable<SolarStationInfo> stations,
+        double latitude,
+        double longitude,
+        double? radiusKm,
+        int? limit)
+    {
+        var take = Math.Clamp(limit ?? DefaultNearbyLimit, 1, MaxNearbyLimit);
+
+        return stations
+            .Where(s => GeoDistance.IsValidCoordinate(s.Latitude, s.Longitude) &&
+                        !GeoDistance.IsUnset(s.Latitude, s.Longitude))
+            .Select(s => new
+            {
+                Station = s,
+                Distance = GeoDistance.HaversineKm(latitude, longitude, s.Latitude, s.Longitude)
+            })
+            .Where(x => radiusKm == null || x.Distance <= radiusKm.Value)
+            .OrderBy(x => x.Distance)
+            .ThenBy(x => x.Station.StationName)
+            .Take(take)
+            .Select(x => new NearbyStationDto
+            {
+                Id = x.Station.Id,
+                StationId = x.Station.StationId,
+                StationName = x.Station.StationName,
+                Address = x.Station.Address,
+                Latitude = x.Station.Latitude,
+                Longitude = x.Station.Longitude,
+                EnergyCapacity = x.Station.EnergyCapacity,
+                BatteryStorageCapacity = x.Station.BatteryStorageCapacity,
+                OperationalSchedule = x.Station.OperationalSchedule,
+                Status = x.Station.Status,
+                AssignedOperatorName = x.Station.AssignedOperatorName,
+                DistanceKm = Math.Round(x.Distance, 2)
+            })
+            .ToList();
+    }
+
+    // Rejects out-of-range coordinates and non-positive radius values
+    private static void ValidateNearbyQuery(double latitude, double longitude, double? radiusKm)
+    {
+        if (!GeoDistance.IsValidCoordinate(latitude, longitude))
+        {
+            throw new BadRequestException(
+                "INVALID_COORDINATES",
+                "Latitude must be between -90 and 90 and longitude between -180 and 180.");
+        }
+
+        if (radiusKm.HasValue && (radiusKm.Value <= 0 || radiusKm.Value > 20000))
+        {
+            throw new BadRequestException("INVALID_RADIUS", "Radius must be greater than 0 and at most 20000 km.");
+        }
     }
 
 

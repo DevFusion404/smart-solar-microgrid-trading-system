@@ -80,6 +80,24 @@ public class ProfileService : IProfileService
             user.Address = request.Address.Trim();
         }
 
+        // Home location (prosumers only): used to find the nearest microgrid stations
+        if (request.HomeLatitude != null || request.HomeLongitude != null)
+        {
+            if (user.Role != UserRole.Prosumer)
+            {
+                throw new BadRequestException("PROSUMER_ONLY", "Only prosumer accounts have a home location.");
+            }
+
+            var locationError = ProsumerService.ValidateHomeLocation(request.HomeLatitude, request.HomeLongitude);
+            if (locationError != null)
+            {
+                throw new BadRequestException("INVALID_HOME_LOCATION", locationError);
+            }
+
+            user.HomeLatitude = request.HomeLatitude;
+            user.HomeLongitude = request.HomeLongitude;
+        }
+
         await _userRepository.UpdateAsync(user);
         return user;
     }
@@ -140,9 +158,18 @@ public class ProfileService : IProfileService
             throw new BadRequestException("INVALID_CURRENT_PASSWORD", "Current password is incorrect.");
         }
 
-        if (request.NewPassword.Length < 6)
+        // Same strength rule as registration and web-user creation
+        if (request.NewPassword.Length < 8 ||
+            !Regex.IsMatch(request.NewPassword, @"[A-Z]") ||
+            !Regex.IsMatch(request.NewPassword, @"[a-z]") ||
+            !Regex.IsMatch(request.NewPassword, @"[0-9]"))
         {
-            throw new BadRequestException("WEAK_PASSWORD", "New password must be at least 6 characters long.");
+            throw new BadRequestException("WEAK_PASSWORD", "New password must be at least 8 characters long and contain uppercase, lowercase, and numeric characters.");
+        }
+
+        if (request.NewPassword == request.CurrentPassword)
+        {
+            throw new BadRequestException("PASSWORD_UNCHANGED", "New password must be different from the current password.");
         }
 
         user.PasswordHash = _passwordHasher.HashPassword(user, request.NewPassword);

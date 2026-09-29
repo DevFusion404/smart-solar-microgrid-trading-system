@@ -16,6 +16,10 @@ public class RegisterProsumerDto
     public string Address { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+
+    // Optional home location from the phone's GPS (both or neither)
+    public double? HomeLatitude { get; set; }
+    public double? HomeLongitude { get; set; }
 }
 
 public class UpdateProsumerDto
@@ -42,8 +46,12 @@ public class ProsumerSummaryDto
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+    public DateTime? ActivationRequestedAt { get; set; }
+    public DateTime? DeactivationRequestedAt { get; set; }
+    public string? DeactivationReason { get; set; }
 }
 
 public class ProsumerListResponseDto
@@ -62,6 +70,8 @@ public class ProsumerResponseDto
     public string Email { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
+    public double? HomeLatitude { get; set; }
+    public double? HomeLongitude { get; set; }
     public string Username { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;

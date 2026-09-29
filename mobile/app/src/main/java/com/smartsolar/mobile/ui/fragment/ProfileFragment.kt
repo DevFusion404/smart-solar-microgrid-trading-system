@@ -1,6 +1,18 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : ProfileFragment.kt
+ * Description : "My Account" screen shared by Prosumers and Grid Operators:
+ *               view profile, edit name/phone (and address for prosumers),
+ *               open Change Password, and (prosumers only) request account
+ *               deactivation. Data comes from GET/PATCH api/account/profile.
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.ui.fragment
 
-import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,6 +22,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -17,11 +30,14 @@ import com.smartsolar.mobile.R
 import com.smartsolar.mobile.data.model.UserAccount
 import com.smartsolar.mobile.databinding.FragmentProfileBinding
 import com.smartsolar.mobile.databinding.ItemInfoRowBinding
+import com.smartsolar.mobile.ui.activity.RequestDeactivationActivity
+import com.smartsolar.mobile.utils.AccountValidators
 import com.smartsolar.mobile.viewmodel.AccountUiState
 import com.smartsolar.mobile.viewmodel.AccountViewModel
 import com.smartsolar.mobile.viewmodel.PasswordChangeState
 import com.smartsolar.mobile.viewmodel.ProfileUpdateState
 import kotlinx.coroutines.launch
+import com.smartsolar.mobile.utils.LocationHelper
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -33,10 +49,10 @@ import java.time.format.DateTimeFormatter
 //   • Displaying the logged-in user's profile (avatar, name, role, status, info rows)
 //   • Toggling between view-mode and edit-form for editable fields
 //   • Launching ChangePasswordFragment
-//   • Showing a deactivation-request confirmation dialog
+//   • Opening the deactivation request screen (prosumers only)
 //
 // Uses AccountViewModel for all data and operations.
-// Backend is not yet live — shows error state with Retry when offline.
+// Shows an error state with Retry when the API cannot be reached.
 // ──────────────────────────────────────────────────────────────────────────────
 class ProfileFragment : Fragment() {
 
@@ -52,7 +68,23 @@ class ProfileFragment : Fragment() {
     private lateinit var rowPhone: ItemInfoRowBinding
     private lateinit var rowAddress: ItemInfoRowBinding
     private lateinit var rowNic: ItemInfoRowBinding
+    private lateinit var rowHomeLocation: ItemInfoRowBinding
 
+    // Permission request for "Use my current location as home"
+    private val homeLocationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        if (LocationHelper.hasPermission(requireContext())) {
+            saveCurrentLocationAsHome()
+        } else {
+            Toast.makeText(requireContext(), "Location permission is needed to set your home location.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // Role of the loaded account; address and deactivation apply to prosumers only
+    private var isProsumer = false
+
+    // Inflates the layout with ViewBinding
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -60,6 +92,7 @@ class ProfileFragment : Fragment() {
         return binding.root
     }
 
+    // Binds the info rows, then wires listeners and observers
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -70,6 +103,7 @@ class ProfileFragment : Fragment() {
         rowPhone    = binding.rowPhone
         rowAddress  = binding.rowAddress
         rowNic      = binding.rowNic
+        rowHomeLocation = binding.rowHomeLocation
 
         setupRowIcons()
         setupClickListeners()
@@ -78,6 +112,7 @@ class ProfileFragment : Fragment() {
 
     // ── Setup icon tints for info rows ────────────────────────────────────────
     private fun setupRowIcons() {
+        // Sets a row's icon and applies the muted tint
         fun tint(row: ItemInfoRowBinding, drawableRes: Int) {
             row.ivInfoRowIcon.setImageResource(drawableRes)
             row.ivInfoRowIcon.imageTintList =
@@ -86,9 +121,10 @@ class ProfileFragment : Fragment() {
         tint(rowFullName, R.drawable.ic_person)
         tint(rowUsername, R.drawable.ic_person)
         tint(rowEmail,    R.drawable.ic_email)
-        tint(rowPhone,    R.drawable.ic_email)   // reuse email icon as placeholder
-        tint(rowAddress,  R.drawable.ic_nav_station)
-        tint(rowNic,      R.drawable.ic_role)
+        tint(rowPhone,    R.drawable.ic_phone)
+        tint(rowAddress,  R.drawable.ic_home_address)
+        tint(rowNic,      R.drawable.ic_id_card)
+        tint(rowHomeLocation, R.drawable.ic_home_address)
     }
 
     // ── Click listeners ───────────────────────────────────────────────────────
@@ -107,19 +143,24 @@ class ProfileFragment : Fragment() {
             viewModel.resetUpdateState()
         }
 
-        // Save profile edits
+        // Save profile edits (same rules as the API: name >= 2 chars, Sri Lankan phone, address >= 5 chars)
         binding.btnSaveProfile.setOnClickListener {
-            val fullName    = binding.etEditFullName.text?.toString().orEmpty()
-            val phone       = binding.etEditPhone.text?.toString().orEmpty()
-            val address     = binding.etEditAddress.text?.toString().orEmpty()
+            val fullName    = binding.etEditFullName.text?.toString()?.trim().orEmpty()
+            val phone       = binding.etEditPhone.text?.toString()?.trim().orEmpty()
+            val address     = binding.etEditAddress.text?.toString()?.trim().orEmpty()
 
-            if (fullName.isBlank()) {
-                binding.tilEditFullName.error = "Full name is required"
-                return@setOnClickListener
+            val nameOk = fullName.length >= 2
+            binding.tilEditFullName.error = if (nameOk) null else "Full name must be at least 2 characters"
+
+            val phoneOk = AccountValidators.isValidPhone(phone)
+            binding.tilEditPhone.error = if (phoneOk) null else getString(R.string.err_invalid_phone)
+
+            val addressOk = !isProsumer || AccountValidators.isValidAddress(address)
+            binding.tilEditAddress.error = if (addressOk) null else getString(R.string.err_invalid_address)
+
+            if (nameOk && phoneOk && addressOk) {
+                viewModel.updateProfile(fullName, phone, address)
             }
-            binding.tilEditFullName.error = null
-
-            viewModel.updateProfile(fullName, phone, address)
         }
 
         // Navigate to Change Password fragment
@@ -130,9 +171,19 @@ class ProfileFragment : Fragment() {
                 .commit()
         }
 
-        // Deactivation request
+        // Deactivation request: open the dedicated screen, which validates the reason
+        // and shows a summary screen after the request is submitted
+        // Home location: read the phone's location once and save it on the account
+        binding.btnSetHomeLocation.setOnClickListener {
+            if (LocationHelper.hasPermission(requireContext())) {
+                saveCurrentLocationAsHome()
+            } else {
+                homeLocationPermissionLauncher.launch(LocationHelper.PERMISSIONS)
+            }
+        }
+
         binding.btnRequestDeactivation.setOnClickListener {
-            showDeactivationDialog()
+            startActivity(Intent(requireContext(), RequestDeactivationActivity::class.java))
         }
     }
 
@@ -195,12 +246,14 @@ class ProfileFragment : Fragment() {
 
     // ── UI helpers ────────────────────────────────────────────────────────────
 
+    // Shows the loading spinner
     private fun showLoading() {
         binding.layoutLoading.isVisible  = true
         binding.layoutError.isVisible    = false
         binding.layoutContent.isVisible  = false
     }
 
+    // Shows the error panel with a Retry button
     private fun showError(message: String) {
         binding.layoutLoading.isVisible  = false
         binding.layoutError.isVisible    = true
@@ -208,7 +261,9 @@ class ProfileFragment : Fragment() {
         binding.tvErrorMessage.text      = message
     }
 
+    // Fills the header, info rows and edit form from the loaded account
     private fun showProfile(account: UserAccount) {
+        isProsumer = account.role == "Prosumer"
         binding.layoutLoading.isVisible  = false
         binding.layoutError.isVisible    = false
         binding.layoutContent.isVisible  = true
@@ -233,12 +288,59 @@ class ProfileFragment : Fragment() {
         setRow(rowAddress,  "Address",       account.address)
         setRow(rowNic,      "NIC",           account.nic)
 
+        // Address and NIC only exist for prosumers
+        rowAddress.root.isVisible = isProsumer
+        rowNic.root.isVisible = isProsumer
+        binding.tilEditAddress.isVisible = isProsumer
+
+        // Home location (prosumers only): used to find the nearest microgrid stations
+        val homeLat = account.homeLatitude
+        val homeLng = account.homeLongitude
+        setRow(
+            rowHomeLocation,
+            "Home Location",
+            if (homeLat != null && homeLng != null) LocationHelper.format(homeLat, homeLng) else null
+        )
+        rowHomeLocation.root.isVisible = isProsumer
+        binding.dividerHomeLocation.isVisible = isProsumer
+        binding.btnSetHomeLocation.isVisible = isProsumer
+
+        // Only an Active prosumer can ask for deactivation
+        binding.btnRequestDeactivation.isVisible = isProsumer && account.status == "Active"
+
         // Pre-fill edit form
         binding.etEditFullName.setText(account.fullName)
         binding.etEditPhone.setText(account.phoneNumber)
         binding.etEditAddress.setText(account.address.orEmpty())
     }
 
+    // Reads the current location once and saves it as the prosumer's home location
+    private fun saveCurrentLocationAsHome() {
+        binding.btnSetHomeLocation.isEnabled = false
+        binding.btnSetHomeLocation.text = "Getting your location…"
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val outcome = LocationHelper.getCurrentLocation(requireContext(), timeoutMs = 12_000)
+            val b = _binding ?: return@launch
+            b.btnSetHomeLocation.isEnabled = true
+            b.btnSetHomeLocation.text = "Use my current location as home"
+
+            when (outcome) {
+                is LocationHelper.Outcome.Found ->
+                    viewModel.updateHomeLocation(outcome.location.latitude, outcome.location.longitude)
+                LocationHelper.Outcome.LocationOff -> {
+                    Toast.makeText(requireContext(), "Location is off. Turn it on and try again.", Toast.LENGTH_LONG).show()
+                    LocationHelper.openLocationSettings(requireContext())
+                }
+                LocationHelper.Outcome.PermissionMissing ->
+                    Toast.makeText(requireContext(), "Location permission is needed.", Toast.LENGTH_LONG).show()
+                LocationHelper.Outcome.Unavailable ->
+                    Toast.makeText(requireContext(), "Could not get a location fix. Try again near a window or outdoors.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    // Sets one info row's label and value ("—" when empty)
     private fun setRow(row: ItemInfoRowBinding, label: String, value: String?) {
         row.tvInfoLabel.text = label
         row.tvInfoValue.text = value ?: "—"
@@ -250,6 +352,7 @@ class ProfileFragment : Fragment() {
         )
     }
 
+    // Switches between the read-only card and the edit form
     private fun setEditMode(editing: Boolean) {
         binding.cardViewInfo.isVisible  = !editing
         binding.cardEditForm.isVisible  =  editing
@@ -261,6 +364,7 @@ class ProfileFragment : Fragment() {
         binding.btnToggleEdit.setTextColor(ContextCompat.getColor(requireContext(), txtColor))
     }
 
+    // Shows the "Profile updated" banner for a few seconds
     private fun showSavedBanner() {
         binding.bannerSaved.isVisible = true
         binding.scrollViewProfile.post {
@@ -269,30 +373,9 @@ class ProfileFragment : Fragment() {
         binding.bannerSaved.postDelayed({ binding.bannerSaved.isVisible = false }, 3500)
     }
 
-    // ── Deactivation confirmation dialog ──────────────────────────────────────
-    private fun showDeactivationDialog() {
-        val editText = android.widget.EditText(requireContext()).apply {
-            hint = "Reason for deactivation (optional)"
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or
-                        android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
-            setPadding(48, 32, 48, 16)
-        }
-
-        AlertDialog.Builder(requireContext())
-            .setTitle("Request Account Deactivation")
-            .setMessage(
-                "Are you sure you want to request deactivation? " +
-                "An administrator will review your request."
-            )
-            .setView(editText)
-            .setPositiveButton("Submit Request") { _, _ ->
-                viewModel.requestDeactivation(editText.text.toString().trim())
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
     // ── Date formatting helpers ───────────────────────────────────────────────
+
+    // Formats an ISO timestamp as "dd MMM yyyy, HH:mm" in local time
     private fun formatDateTime(iso: String?): String {
         if (iso.isNullOrBlank()) return "Never"
         return try {
@@ -306,6 +389,7 @@ class ProfileFragment : Fragment() {
         }
     }
 
+    // Formats an ISO timestamp as "MMM yyyy"
     private fun formatMonthYear(iso: String): String {
         return try {
             val instant = Instant.parse(iso)
@@ -318,6 +402,13 @@ class ProfileFragment : Fragment() {
         }
     }
 
+    // Reloads the profile when returning from the deactivation screen so the status is current
+    override fun onResume() {
+        super.onResume()
+        if (_binding != null && binding.layoutContent.isVisible) viewModel.loadProfile()
+    }
+
+    // Releases the binding to avoid leaking the view
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

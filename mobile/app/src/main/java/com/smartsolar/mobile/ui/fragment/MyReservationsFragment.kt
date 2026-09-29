@@ -125,8 +125,8 @@ class MyReservationsFragment : Fragment(R.layout.reservation_my_reservations) {
         val filteredReservations = reservations.filter { reservation ->
             val matchesDate = reservation.reservationDate == selectedReservationDate
             val matchesStatus = when (selectedStatusId) {
-                R.id.chipReservationPending -> reservation.status.equals("Pending", ignoreCase = true)
-                R.id.chipReservationConfirmed -> reservation.status.equals("Confirmed", ignoreCase = true)
+                R.id.chipReservationReviewing -> reservation.status.equals("Reviewing", ignoreCase = true)
+                R.id.chipReservationApproved -> reservation.status.equals("Approved", ignoreCase = true)
                 else -> true
             }
             matchesDate && matchesStatus

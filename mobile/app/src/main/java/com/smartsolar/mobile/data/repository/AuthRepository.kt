@@ -1,6 +1,19 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : AuthRepository.kt
+ * Description : Calls the login and prosumer-registration endpoints. A
+ *               successful login is saved to the SQLite session table via
+ *               SessionManager. Failed calls return an ApiException carrying
+ *               the API's errorCode and message.
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.data.repository
 
 import android.content.Context
+import com.smartsolar.mobile.data.api.ApiException
 import com.smartsolar.mobile.data.api.AuthApiService
 import com.smartsolar.mobile.data.api.AuthLoginRequest
 import com.smartsolar.mobile.data.api.AuthLoginResponse
@@ -12,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
+// Data layer for authentication and self-registration
 class AuthRepository(
     private val authApiService: AuthApiService =
         RetrofitClient.instance.create(AuthApiService::class.java)
@@ -41,8 +55,7 @@ class AuthRepository(
                 )
                 Result.success(body)
             } else {
-                val errorMsg = extractErrorMessage(response.errorBody()?.string(), "Login failed (HTTP ${response.code()})")
-                Result.failure(Exception(errorMsg))
+                Result.failure(toApiException(response.code(), response.errorBody()?.string(), "Login failed (HTTP ${response.code()})"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -60,14 +73,24 @@ class AuthRepository(
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {
-                val errorMsg = extractErrorMessage(response.errorBody()?.string(), "Registration failed (HTTP ${response.code()})")
-                Result.failure(Exception(errorMsg))
+                Result.failure(toApiException(response.code(), response.errorBody()?.string(), "Registration failed (HTTP ${response.code()})"))
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
+    // Builds an ApiException from an error response: HTTP status + errorCode + readable message
+    private fun toApiException(httpStatus: Int, body: String?, defaultMessage: String): ApiException {
+        val errorCode = try {
+            if (body.isNullOrBlank()) null else JSONObject(body).optString("errorCode").ifBlank { null }
+        } catch (e: Exception) {
+            null
+        }
+        return ApiException(httpStatus, errorCode, extractErrorMessage(body, defaultMessage))
+    }
+
+    // Turns the API's error JSON (message / validationErrors) into one readable message
     private fun extractErrorMessage(jsonString: String?, defaultMessage: String): String {
         if (jsonString.isNullOrBlank()) return defaultMessage
         return try {

@@ -1,3 +1,13 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : AuthApiService.kt
+ * Description : Retrofit endpoints and request/response models for login and
+ *               prosumer self-registration.
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.data.api
 
 import com.google.gson.annotations.SerializedName
@@ -8,11 +18,13 @@ import retrofit2.http.POST
 
 interface AuthApiService {
 
+    // Checks credentials and account status; returns a JWT and user summary
     @POST("api/auth/login")
     suspend fun login(
         @Body request: AuthLoginRequest
     ): Response<AuthLoginResponse>
 
+    // Creates a prosumer account (NIC is the unique key); status starts as PendingActivation
     @POST("api/prosumers/register")
     suspend fun registerProsumer(
         @Body request: RegisterProsumerRequest
@@ -75,5 +87,12 @@ data class RegisterProsumerRequest(
     val username: String,
 
     @SerializedName("password")
-    val password: String
+    val password: String,
+
+    // Optional home location from the phone's GPS (null values are not sent)
+    @SerializedName("homeLatitude")
+    val homeLatitude: Double? = null,
+
+    @SerializedName("homeLongitude")
+    val homeLongitude: Double? = null
 )

@@ -17,7 +17,14 @@ class StationAdapter(
 
     private var stations = initialStations.toList()
 
+    // Key of the station shown with the "Nearest to you" badge (first station that has a distance)
+    private var nearestKey: String? = null
+
+    // Stable key for a station (business id, falling back to the MongoDB id)
+    private fun keyOf(station: Station): String = station.stationId.ifBlank { station.id ?: "" }
+
     fun submitStations(newStations: List<Station>) {
+        val previousNearestKey = nearestKey
         val oldStations = stations
         val nextStations = newStations.toList()
         val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
@@ -36,7 +43,16 @@ class StationAdapter(
         })
 
         stations = nextStations
+        nearestKey = nextStations.firstOrNull()?.takeIf { it.distanceKm != null }?.let(::keyOf)
         diff.dispatchUpdatesTo(this)
+
+        // Moved cards are not re-bound by DiffUtil, so refresh the old and new "nearest" cards
+        if (previousNearestKey != nearestKey) {
+            listOfNotNull(previousNearestKey, nearestKey).forEach { key ->
+                val position = stations.indexOfFirst { keyOf(it) == key }
+                if (position >= 0) notifyItemChanged(position)
+            }
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StationViewHolder {
@@ -50,6 +66,12 @@ class StationAdapter(
 
     override fun getItemCount() = stations.size
 
+    companion object {
+        // Formats a distance as "850 m" under 1 km, otherwise "2.4 km"
+        fun formatDistance(km: Double): String =
+            if (km < 1) "${(km * 1000).toInt()} m" else String.format(java.util.Locale.US, "%.1f km", km)
+    }
+
     inner class StationViewHolder(private val binding: ItemStationBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
@@ -60,6 +82,18 @@ class StationAdapter(
             binding.tvStationName.text = station.stationName.ifBlank { "Microgrid Station" }
             binding.tvStationId.text = station.stationId.ifBlank { station.id?.takeLast(6) ?: "STN" }
             binding.tvStationAddress.text = station.address.ifBlank { "Location details unavailable" }
+
+            // Distance badge: the first station in the nearest-first list gets the "Nearest" label
+            val distance = station.distanceKm
+            if (distance != null) {
+                val isNearest = keyOf(station) == nearestKey
+                binding.tvStationDistance.text =
+                    if (isNearest) "⭐ Nearest to you · ${formatDistance(distance)}"
+                    else "📍 ${formatDistance(distance)} away"
+                binding.tvStationDistance.visibility = android.view.View.VISIBLE
+            } else {
+                binding.tvStationDistance.visibility = android.view.View.GONE
+            }
 
             // Capacities
             binding.tvEnergyCapacity.text = "${station.energyCapacity.toInt()} kWh"

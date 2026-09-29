@@ -1,3 +1,13 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : ChangePasswordFragment.kt
+ * Description : Change Password screen (POST api/account/change-password).
+ *               Enforces the same password strength rule as the API.
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.ui.fragment
 
 import android.os.Bundle
@@ -12,6 +22,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.smartsolar.mobile.databinding.FragmentChangePasswordBinding
+import com.smartsolar.mobile.utils.AccountValidators
 import com.smartsolar.mobile.viewmodel.AccountViewModel
 import com.smartsolar.mobile.viewmodel.PasswordChangeState
 import kotlinx.coroutines.launch
@@ -31,6 +42,7 @@ class ChangePasswordFragment : Fragment() {
     // Share ViewModel with the parent activity so it's the same instance as ProfileFragment
     private val viewModel: AccountViewModel by viewModels({ requireActivity() })
 
+    // Inflates the layout with ViewBinding
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -38,6 +50,7 @@ class ChangePasswordFragment : Fragment() {
         return binding.root
     }
 
+    // Wires the back/submit buttons and observes the password-change result
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -63,8 +76,11 @@ class ChangePasswordFragment : Fragment() {
             if (new.isBlank()) {
                 binding.tilNewPassword.error = "New password is required"
                 valid = false
-            } else if (new.length < 6) {
-                binding.tilNewPassword.error = "Minimum 6 characters"
+            } else if (!AccountValidators.isStrongPassword(new)) {
+                binding.tilNewPassword.error = getString(com.smartsolar.mobile.R.string.err_weak_password)
+                valid = false
+            } else if (new == current) {
+                binding.tilNewPassword.error = "New password must be different from the current one"
                 valid = false
             } else {
                 binding.tilNewPassword.error = null
@@ -82,6 +98,7 @@ class ChangePasswordFragment : Fragment() {
         observePasswordState()
     }
 
+    // Shows Saving / Success / Error for the password change request
     private fun observePasswordState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -111,23 +128,27 @@ class ChangePasswordFragment : Fragment() {
 
     // ── UI helpers ────────────────────────────────────────────────────────────
 
+    // Restores the idle button and hides the result banner
     private fun resetUi() {
         binding.btnSubmitPasswordChange.isEnabled = true
         binding.btnSubmitPasswordChange.text = "Update Password"
         binding.bannerPasswordResult.isVisible = false
     }
 
+    // Re-enables the submit button after a request finishes
     private fun resetButtonState() {
         binding.btnSubmitPasswordChange.isEnabled = true
         binding.btnSubmitPasswordChange.text = "Update Password"
     }
 
+    // Empties all three password fields after a successful change
     private fun clearFields() {
         binding.etCurrentPassword.text = null
         binding.etNewPassword.text     = null
         binding.etConfirmPassword.text = null
     }
 
+    // Shows a success (auto-hides) or error banner
     private fun showResultBanner(message: String, isError: Boolean) {
         binding.tvPasswordResultMessage.text = message
         binding.tvPasswordResultMessage.setTextColor(
@@ -144,6 +165,7 @@ class ChangePasswordFragment : Fragment() {
         }
     }
 
+    // Releases the binding to avoid leaking the view
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

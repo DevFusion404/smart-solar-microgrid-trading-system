@@ -1,29 +1,66 @@
 /*
 =====================================================
 Project       : Smart Solar Microgrid Trading System
-Component     : 3D Login Page
+Component     : Identity and Account Management (Component 1)
 File          : LoginPage.jsx
-Description   : Beautiful login form rendered inside the
-                AuthLayout glassmorphism card, with 3D
-                floating effects and micro-animations.
+Description   : Web portal login for Backoffice officers and Grid
+                Operators, rendered inside the AuthLayout card.
+                Prosumer credentials are refused with a popup that
+                points the user to the mobile app.
 =====================================================
 */
 
-import { Eye, EyeOff, AlertCircle, LogIn } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle, LogIn, Smartphone } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout } from './AuthLayout'
 import { useAuth } from '../../context/AuthContext'
+import { homePathForRole, isPathAllowedForRole, WEB_ROLE_NOT_ALLOWED } from '../../utils/roleRoutes'
 
+// Popup shown when prosumer credentials are used on the web portal
+function MobileOnlyDialog({ message, onClose }) {
+  return (
+    <div
+      className="auth-modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mobile-only-title"
+      onClick={onClose}
+    >
+      <div className="auth-card auth-modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="auth-modal-icon">
+          <Smartphone size={26} strokeWidth={2} />
+        </div>
+        <h2 id="mobile-only-title" className="auth-card-title">Web access not available</h2>
+        <p className="auth-card-sub auth-modal-text">{message}</p>
+        <button id="mobile-only-ok-btn" type="button" onClick={onClose} className="auth-submit-btn" autoFocus>
+          OK
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Login form: authenticates against /api/Auth/login and sends the user to their role's home area
 export function LoginPage() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const location = useLocation()
+  const { login, isAuthenticated, role, loading: sessionLoading } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [mobileOnlyMessage, setMobileOnlyMessage] = useState('')
 
+  // Page the user tried to open before being sent to login (set by RequireRole)
+  const requestedPath = location.state?.from
+
+  // Chooses where to go after login: the requested page if the role may open it, otherwise the role's home
+  const destinationFor = (userRole) =>
+    isPathAllowedForRole(requestedPath, userRole) ? requestedPath : homePathForRole(userRole)
+
+  // Submits credentials; on success redirects by role, on failure shows the API's message
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
@@ -31,15 +68,31 @@ export function LoginPage() {
     try {
       const result = await login({ username, password })
       const userRole = result?.user?.role || result?.role
-      if (userRole === 'GridOperator') navigate('/operator')
-      else if (userRole === 'Prosumer') navigate('/prosumer/profile')
-      else navigate('/backoffice')
+      navigate(destinationFor(userRole), { replace: true })
     } catch (err) {
-      console.error('Login failed:', err)
-      setError(err.message || 'Invalid credentials or server error. Please try again.')
+      const apiErrorCode = err.response?.data?.errorCode
+      if (err.code === WEB_ROLE_NOT_ALLOWED) {
+        // Valid prosumer credentials: no web session is created
+        setMobileOnlyMessage(err.message)
+        setPassword('')
+      } else if (apiErrorCode === 'ACCOUNT_PENDING_ACTIVATION') {
+        // Only prosumer registrations can be pending, so this is also a prosumer account
+        setMobileOnlyMessage(
+          'This is a prosumer account and it is still waiting for Backoffice approval. ' +
+          'Prosumers use the SolarGrid mobile app; you can sign in there once the account is activated.'
+        )
+        setPassword('')
+      } else {
+        setError(err.message || 'Invalid credentials or server error. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
+  }
+
+  // Already logged in: skip the form and go straight to the role's area
+  if (!sessionLoading && isAuthenticated) {
+    return <Navigate to={destinationFor(role)} replace />
   }
 
   return (
@@ -51,7 +104,7 @@ export function LoginPage() {
         </div>
         <h1 className="auth-card-title">Welcome Back</h1>
         <p className="auth-card-sub">
-          Sign in to your SolarGrid account
+          Sign in to the SolarGrid Backoffice &amp; Grid Operator portal
         </p>
       </div>
 
@@ -131,18 +184,16 @@ export function LoginPage() {
         </button>
       </form>
 
-      {/* Switch to Register */}
+      {/* Web accounts are created by a Backoffice officer; prosumers use the mobile app */}
       <p className="auth-switch-text">
-        Don&apos;t have an account?{' '}
-        <button
-          id="go-to-register-btn"
-          type="button"
-          onClick={() => navigate('/register')}
-          className="auth-link auth-link-highlight"
-        >
-          Create one →
-        </button>
+        Web accounts are created by a Backoffice officer.
+        <br />
+        Prosumer? Please use the SolarGrid mobile app.
       </p>
+
+      {mobileOnlyMessage && (
+        <MobileOnlyDialog message={mobileOnlyMessage} onClose={() => setMobileOnlyMessage('')} />
+      )}
     </AuthLayout>
   )
 }

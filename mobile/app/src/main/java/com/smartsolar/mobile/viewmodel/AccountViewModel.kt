@@ -1,3 +1,13 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * Component   : Identity and Account Management (Component 1)
+ * File        : AccountViewModel.kt
+ * Description : UI state for the profile, change-password and deactivation screens.
+ *               All calls go through UserAccountRepository (api/account/...).
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.viewmodel
 
 import androidx.lifecycle.ViewModel
@@ -5,6 +15,7 @@ import androidx.lifecycle.viewModelScope
 import com.smartsolar.mobile.data.model.UpdateProfileRequest
 import com.smartsolar.mobile.data.model.UserAccount
 import com.smartsolar.mobile.data.repository.UserAccountRepository
+import com.smartsolar.mobile.utils.AccountValidators
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,6 +78,7 @@ class AccountViewModel(
         loadProfile()
     }
 
+    // Loads the logged-in user's profile from GET api/account/profile
     fun loadProfile() {
         viewModelScope.launch {
             _profileState.value = AccountUiState.Loading
@@ -98,6 +110,23 @@ class AccountViewModel(
         }
     }
 
+    // Saves the phone's current location as the prosumer's home location (only these two fields are sent)
+    fun updateHomeLocation(latitude: Double, longitude: Double) {
+        viewModelScope.launch {
+            _updateState.value = ProfileUpdateState.Saving
+            repository.updateProfile(UpdateProfileRequest(homeLatitude = latitude, homeLongitude = longitude)).fold(
+                onSuccess = {
+                    _profileState.value = AccountUiState.Success(it)
+                    _updateState.value = ProfileUpdateState.Saved(it)
+                },
+                onFailure = {
+                    _updateState.value = ProfileUpdateState.Error(it.message ?: "Could not save home location")
+                }
+            )
+        }
+    }
+
+    // Returns the edit-form state to Idle after the screen has handled it
     fun resetUpdateState() {
         _updateState.value = ProfileUpdateState.Idle
     }
@@ -108,8 +137,10 @@ class AccountViewModel(
             _passwordState.value = PasswordChangeState.Error("Passwords do not match")
             return
         }
-        if (new.length < 6) {
-            _passwordState.value = PasswordChangeState.Error("Password must be at least 6 characters")
+        if (!AccountValidators.isStrongPassword(new)) {
+            _passwordState.value = PasswordChangeState.Error(
+                "Password needs at least 8 characters with an uppercase letter, a lowercase letter and a number"
+            )
             return
         }
         viewModelScope.launch {
@@ -127,6 +158,7 @@ class AccountViewModel(
         }
     }
 
+    // Returns the password state to Idle after the screen has handled it
     fun resetPasswordState() {
         _passwordState.value = PasswordChangeState.Idle
     }
@@ -141,6 +173,7 @@ class AccountViewModel(
         }
     }
 
+    // Clears the last deactivation result after it has been shown
     fun clearDeactivationResult() {
         _deactivationResult.value = null
     }

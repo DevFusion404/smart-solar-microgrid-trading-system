@@ -85,6 +85,22 @@ interface ApiService {
     @GET("api/stations/map")
     suspend fun getMapPins(): Response<List<StationMapPin>>
 
+    // Active stations sorted nearest-first from a GPS point (each has distanceKm)
+    @GET("api/stations/nearby")
+    suspend fun getNearbyStations(
+        @Query("lat") latitude: Double,
+        @Query("lng") longitude: Double,
+        @Query("radiusKm") radiusKm: Double? = null,
+        @Query("limit") limit: Int? = null
+    ): Response<List<Station>>
+
+    // Active stations sorted nearest-first from the logged-in prosumer's saved home location
+    @GET("api/stations/nearby/me")
+    suspend fun getNearbyStationsFromHome(
+        @Query("radiusKm") radiusKm: Double? = null,
+        @Query("limit") limit: Int? = null
+    ): Response<List<Station>>
+
     // ── Energy Slot Endpoints ──────────────────────────────────────────────────
 
     @POST("api/stations/{stationId}/slots")

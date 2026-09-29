@@ -28,7 +28,11 @@ const navigationGroups = [
         end: true,
       },
       {
-        label: 'Pending / Reactivation Requests',
+        label: 'Add New Prosumer',
+        to: '/backoffice/prosumers/new',
+      },
+      {
+        label: 'Activation / Deactivation Requests',
         to: '/backoffice/prosumers/requests',
       },
     ],

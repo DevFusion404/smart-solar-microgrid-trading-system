@@ -1,3 +1,15 @@
+/*
+ * =====================================================
+ * Project     : Smart Solar Microgrid Trading System
+ * File        : StationsFragment.kt
+ * Description : Prosumer station list and map. Stations are ordered nearest
+ *               first using distances calculated by the API
+ *               (GET /api/stations/nearby with the phone's location, or
+ *               /api/stations/nearby/me with the saved home location).
+ *               Search, status filters and the map work as before.
+ * =====================================================
+ */
+
 package com.smartsolar.mobile.ui.fragment
 
 import android.content.Context
@@ -12,8 +24,12 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.smartsolar.mobile.R
+import com.smartsolar.mobile.data.api.ApiException
 import com.smartsolar.mobile.data.model.Station
+import com.smartsolar.mobile.data.repository.NearbyOrigin
 import com.smartsolar.mobile.data.repository.StationRepository
+import com.smartsolar.mobile.utils.LocationHelper
+import com.google.android.material.snackbar.Snackbar
 import com.smartsolar.mobile.databinding.FragmentStationsBinding
 import com.smartsolar.mobile.ui.adapter.StationAdapter
 import kotlinx.coroutines.Job
@@ -49,10 +65,19 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
     private var currentUserLocation: Location? = null
     private var locationManager: LocationManager? = null
 
+    // ── Nearest-station state (distances come from GET /api/stations/nearby) ──
+    private var distanceByStationKey: Map<String, Double> = emptyMap()
+    private var nearbyOrigin: NearbyOrigin? = null
+    private var nearbyHint: String? = null
+    private var lastNearbyLocation: Location? = null
+    private var nearbyJob: Job? = null
+    private var reopenLookupAfterSettings = false
+
     private val locationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) {
             currentUserLocation = location
             updateUserLocationMarker(location)
+            maybeRefreshNearby(location)
         }
         @Deprecated("Deprecated in Java")
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
@@ -72,6 +97,14 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
         }
     }
 
+    // Permission request made when the screen opens, to rank stations by distance.
+    // Whatever the answer, the lookup continues (denied -> falls back to the saved home location).
+    private val nearestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        loadNearestStations()
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentStationsBinding.bind(view)
@@ -89,6 +122,7 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
         setupOsmMap()
 
         loadStations(forceRefresh = false)
+        startNearestStationLookup()
     }
 
     private fun setupRecyclerView() {
@@ -199,6 +233,7 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
     private fun setupListeners() {
         binding.btnRefreshStations.setOnClickListener {
             loadStations(forceRefresh = true)
+            loadNearestStations()
         }
 
         binding.fabMyLocation.setOnClickListener {
@@ -257,6 +292,7 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
             bestLastLocation?.let { loc ->
                 currentUserLocation = loc
                 updateUserLocationMarker(loc)
+                maybeRefreshNearby(loc)
                 if (animateToUser && isMapViewActive) {
                     val userPoint = GeoPoint(loc.latitude, loc.longitude)
                     binding.mapViewStations.controller.setZoom(15.0)
@@ -353,10 +389,19 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
                 }
             }
 
+            // Attach API distances and put the nearest stations first (search/filter results are kept)
+            filteredStations = withDistances(filteredStations)
             stationAdapter.submitStations(filteredStations)
 
             val activeCount = filteredStations.count { it.status.equals("Active", ignoreCase = true) }
-            binding.tvStationsSummary.text = "Showing ${filteredStations.size} stations ($activeCount active)"
+            val summary = "Showing ${filteredStations.size} stations ($activeCount active)"
+            val origin = nearbyOrigin
+            val hint = nearbyHint
+            binding.tvStationsSummary.text = when {
+                origin != null -> "$summary • nearest first from ${origin.label}"
+                hint != null -> "$summary\n$hint"
+                else -> summary
+            }
 
             updateMapMarkers(filteredStations)
 
@@ -445,7 +490,10 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
         val b = _binding ?: return
         b.cardMapStationPreview.visibility = View.VISIBLE
         b.tvPreviewStationName.text = station.stationName
-        b.tvPreviewAddress.text = station.address.ifBlank { "Location details available" }
+        val previewAddress = station.address.ifBlank { "Location details available" }
+        b.tvPreviewAddress.text = station.distanceKm?.let {
+            "$previewAddress · ${StationAdapter.formatDistance(it)} away"
+        } ?: previewAddress
         b.tvPreviewCapacity.text = "⚡ ${station.energyCapacity} kW Capacity"
         b.tvPreviewBattery.text = "🔋 ${station.batteryStorageCapacity} kWh Battery"
 
@@ -473,6 +521,97 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
         }
     }
 
+    // ── Nearest-station lookup ──────────────────────────────────────────────────
+
+    // Asks for location permission once per app session, then looks up the nearest stations
+    private fun startNearestStationLookup() {
+        val ctx = requireContext()
+        if (LocationHelper.hasPermission(ctx) || askedLocationThisSession) {
+            loadNearestStations()
+        } else {
+            askedLocationThisSession = true
+            nearestPermissionLauncher.launch(LocationHelper.PERMISSIONS)
+        }
+    }
+
+    // Gets the phone's location once (if allowed and switched on), then asks the API for the
+    // nearest stations. Without a live location the API uses the prosumer's saved home location.
+    private fun loadNearestStations() {
+        if (_binding == null) return
+        nearbyJob?.cancel()
+        nearbyJob = viewLifecycleOwner.lifecycleScope.launch {
+            val ctx = context ?: return@launch
+            val outcome = LocationHelper.getCurrentLocation(ctx, timeoutMs = 8_000)
+            val liveLocation = (outcome as? LocationHelper.Outcome.Found)?.location
+
+            if (liveLocation != null) {
+                currentUserLocation = liveLocation
+                updateUserLocationMarker(liveLocation)
+            } else if (outcome == LocationHelper.Outcome.LocationOff) {
+                offerToTurnOnLocation()
+            }
+
+            fetchNearest(liveLocation)
+        }
+    }
+
+    // Re-ranks when the user has moved more than 500 m since the last lookup (or on the first fix)
+    private fun maybeRefreshNearby(location: Location) {
+        if (_binding == null) return
+        val last = lastNearbyLocation
+        if (nearbyOrigin == NearbyOrigin.CURRENT_LOCATION && last != null && last.distanceTo(location) < 500f) return
+        nearbyJob?.cancel()
+        nearbyJob = viewLifecycleOwner.lifecycleScope.launch { fetchNearest(location) }
+    }
+
+    // Calls the API and stores each station's distance, then re-applies search and filters
+    private suspend fun fetchNearest(liveLocation: Location?) {
+        val result = stationRepository.findNearestStations(liveLocation)
+        if (_binding == null) return
+
+        result.onSuccess { nearby ->
+            distanceByStationKey = nearby.stations
+                .mapNotNull { s -> s.distanceKm?.let { stationKey(s) to it } }
+                .toMap()
+            nearbyOrigin = nearby.origin
+            nearbyHint = null
+            lastNearbyLocation = liveLocation
+        }.onFailure { error ->
+            distanceByStationKey = emptyMap()
+            nearbyOrigin = null
+            nearbyHint = if ((error as? ApiException)?.errorCode == StationRepository.HOME_LOCATION_NOT_SET) {
+                "Turn on location, or set your home location in Profile, to see the nearest stations first."
+            } else {
+                "Nearest-station sorting is unavailable right now."
+            }
+        }
+
+        applyFilters()
+    }
+
+    // Adds the API distance to each station and sorts nearest first.
+    // Stations without a distance (e.g. deactivated ones) keep their order at the end.
+    private fun withDistances(stations: List<Station>): List<Station> {
+        if (distanceByStationKey.isEmpty()) return stations
+        return stations
+            .map { station -> station.copy(distanceKm = distanceByStationKey[stationKey(station)]) }
+            .sortedWith(compareBy(nullsLast<Double>()) { it.distanceKm })
+    }
+
+    // Stable key used to match stations from different API responses
+    private fun stationKey(station: Station): String = station.stationId.ifBlank { station.id ?: "" }
+
+    // Shows a prompt with a shortcut to the location settings screen
+    private fun offerToTurnOnLocation() {
+        val b = _binding ?: return
+        Snackbar.make(b.root, "Location is off. Turn it on to see stations nearest to you.", Snackbar.LENGTH_LONG)
+            .setAction("Turn on") {
+                reopenLookupAfterSettings = true
+                LocationHelper.openLocationSettings(requireContext())
+            }
+            .show()
+    }
+
     private fun navigateToReserveEnergy(station: Station) {
         val fragment = ReserveEnergyFragment.newInstance(
             stationId = station.stationId.ifBlank { station.id ?: "" },
@@ -490,6 +629,11 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
     override fun onResume() {
         super.onResume()
         _binding?.mapViewStations?.onResume()
+        // User came back from the location settings screen: try the live location again
+        if (reopenLookupAfterSettings) {
+            reopenLookupAfterSettings = false
+            loadNearestStations()
+        }
     }
 
     override fun onPause() {
@@ -499,10 +643,16 @@ class StationsFragment : Fragment(R.layout.fragment_stations) {
     }
 
     override fun onDestroyView() {
+        nearbyJob?.cancel()
         locationManager?.removeUpdates(locationListener)
         userLocationMarker = null
         _binding?.mapViewStations?.onDetach()
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        // The permission dialog is shown at most once per app session (not every time the tab opens)
+        private var askedLocationThisSession = false
     }
 }
