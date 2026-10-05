@@ -129,7 +129,7 @@ class GridOperatorActivity : AppCompatActivity(), NavigationView.OnNavigationIte
             }
             R.id.nav_grid_bookings -> {
                 fragment = OperatorBookingsFragment()
-                title = "Bookings & Telemetry"
+                title = "Bookings & Reservations"
             }
             R.id.nav_grid_profile -> {
                 fragment = ProfileFragment()

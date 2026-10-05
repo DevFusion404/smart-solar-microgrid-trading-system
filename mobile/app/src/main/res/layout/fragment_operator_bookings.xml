@@ -1,89 +1,218 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Grid Operator - Bookings & Reservations.
+    Lists the reservations prosumers placed on the nodes assigned to this operator,
+    with a node filter and a status filter.
+-->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background_light"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:padding="24dp">
+    android:orientation="vertical">
 
-    <com.google.android.material.card.MaterialCardView
+    <!-- Header Bar -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:cardBackgroundColor="@color/surface_light"
-        app:cardCornerRadius="20dp"
-        app:cardElevation="2dp"
-        app:strokeColor="@color/surface_stroke"
-        app:strokeWidth="1dp">
+        android:background="@color/surface_card"
+        android:elevation="2dp"
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="28dp">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <FrameLayout
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:background="@drawable/bg_reservation_icon_cyan"
-                android:padding="16dp">
-
-                <ImageView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:contentDescription="Bookings icon"
-                    android:src="@drawable/ic_nav_calendar"
-                    app:tint="@color/reservation_blue" />
-            </FrameLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:fontFamily="sans-serif-black"
-                android:text="Bookings &amp; Reservations"
-                android:textColor="@color/slate_900"
-                android:textSize="18sp" />
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:background="@drawable/bg_reservation_status_pending"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="4dp"
-                android:text="FEATURE COMING SOON"
-                android:textColor="@color/badge_text_amber"
-                android:textSize="11sp"
-                android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-black"
+                    android:text="Bookings &amp; Reservations"
+                    android:textColor="@color/slate_900"
+                    android:textSize="18sp" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:gravity="center"
-                android:text="Real-time prosumer booking telemetry and reservation approval flows will be unlocked here. As a Grid Operator, you can currently monitor assigned nodes and publish energy slot availability."
-                android:textColor="@color/slate_500"
-                android:textSize="13sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Reservations placed on your assigned nodes"
+                    android:textColor="@color/slate_500"
+                    android:textSize="12sp" />
+            </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnBackToDashboardFromBookings"
-                style="@style/Widget.MaterialComponents.Button"
+                android:id="@+id/btnRefreshBookings"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="↻ Refresh"
+                android:textColor="@color/cyan_accent_dark" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvBookingsSummary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Loading reservations..."
+            android:textColor="@color/slate_600"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <!-- Node filter: all assigned nodes, or one of them -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilBookingNodeFilter"
+            style="@style/Widget.SmartSolar.TextInputLayout.ExposedDropdown"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:hintEnabled="false">
+
+            <AutoCompleteTextView
+                android:id="@+id/actvBookingNodeFilter"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:backgroundTint="@color/cyan_accent_dark"
-                android:text="Back to Dashboard"
-                android:textColor="@color/white"
-                app:cornerRadius="12dp"
-                app:icon="@drawable/ic_arrow_back"
-                app:iconGravity="textStart"
-                app:iconPadding="8dp"
-                app:iconSize="16dp"
-                app:iconTint="@color/white" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+                android:inputType="none"
+                android:minHeight="48dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:saveEnabled="false"
+                android:text="All assigned nodes"
+                android:textColor="@color/slate_800"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Status filter -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:scrollbars="none">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupBookingStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:chipSpacingHorizontal="8dp"
+                app:selectionRequired="true"
+                app:singleLine="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipBookingAll"
+                    style="@style/Widget.SmartSolar.ReservationFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="All" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipBookingPending"
+                    style="@style/Widget.SmartSolar.ReservationFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Pending" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipBookingApproved"
+                    style="@style/Widget.SmartSolar.ReservationFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Approved" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipBookingCompleted"
+                    style="@style/Widget.SmartSolar.ReservationFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Completed" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipBookingCancelled"
+                    style="@style/Widget.SmartSolar.ReservationFilterChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Cancelled" />
+            </com.google.android.material.chip.ChipGroup>
+        </HorizontalScrollView>
+    </LinearLayout>
+
+    <!-- Loading Bar -->
+    <ProgressBar
+        android:id="@+id/pbBookingsLoading"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:indeterminate="true"
+        android:indeterminateTint="@color/cyan_accent_dark"
+        android:visibility="gone" />
+
+    <!-- Empty State (title and message are set by OperatorBookingsFragment) -->
+    <LinearLayout
+        android:id="@+id/layoutEmptyBookings"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <FrameLayout
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_reservation_icon_cyan"
+            android:padding="16dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="Bookings icon"
+                android:src="@drawable/ic_nav_calendar"
+                app:tint="@color/reservation_blue" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tvEmptyBookingsTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="sans-serif-bold"
+            android:gravity="center"
+            android:text="No Reservations Yet"
+            android:textColor="@color/slate_800"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tvEmptyBookingsMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:text="When a prosumer reserves energy at one of your assigned nodes, it will appear here."
+            android:textColor="@color/slate_500"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- Reservations Recycler -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvOperatorBookings"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingVertical="12dp" />
+
 </LinearLayout>

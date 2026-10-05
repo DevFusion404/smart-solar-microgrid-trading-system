@@ -60,6 +60,16 @@ class TransactionRepository(
         }
 
     /**
+     * Every reservation the signed-in grid operator is allowed to see, in any status.
+     * The server limits the list to the operator's assigned nodes
+     * (BackofficeReservationsController.GetAll) and returns the newest slot date first.
+     */
+    suspend fun getOperatorReservations(): Result<List<PendingReservation>> =
+        withContext(Dispatchers.IO) {
+            call("Could not load reservations") { approvalApi.getAllReservations() }
+        }
+
+    /**
      * Approves a reservation. The server mints the QR pass as part of the same
      * update, so nothing further is needed to produce the prosumer's QR.
      */
