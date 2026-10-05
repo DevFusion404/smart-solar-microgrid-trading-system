@@ -16,7 +16,7 @@ namespace backend.Helpers;
 
 public interface IJwtTokenGenerator
 {
-    (string Token, DateTime ExpiresAt) GenerateToken(UserDetails user);
+    (string Token, DateTime ExpiresAt) GenerateToken(UserDetails user, bool mobileSession = false);
 }
 
 public class JwtTokenGenerator : IJwtTokenGenerator
@@ -29,8 +29,9 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         _settings = settings;
     }
 
-    // Generates a signed JWT Bearer token with embedded identity, role, and NIC claims
-    public (string Token, DateTime ExpiresAt) GenerateToken(UserDetails user)
+    // Generates a signed JWT Bearer token with embedded identity, role, and NIC claims.
+    // mobileSession = true uses the longer MobileExpiryMinutes lifetime instead of ExpiryMinutes
+    public (string Token, DateTime ExpiresAt) GenerateToken(UserDetails user, bool mobileSession = false)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.UTF8.GetBytes(_settings.SecretKey);
@@ -54,7 +55,8 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             claims.Add(new Claim("nic", user.Nic));
         }
 
-        var expiresAt = DateTime.UtcNow.AddMinutes(_settings.ExpiryMinutes);
+        var lifetimeMinutes = mobileSession ? _settings.MobileExpiryMinutes : _settings.ExpiryMinutes;
+        var expiresAt = DateTime.UtcNow.AddMinutes(lifetimeMinutes);
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {

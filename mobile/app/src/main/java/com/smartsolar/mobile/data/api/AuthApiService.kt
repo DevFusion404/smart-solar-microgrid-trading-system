@@ -36,7 +36,11 @@ data class AuthLoginRequest(
     val username: String,
 
     @SerializedName("password")
-    val password: String
+    val password: String,
+
+    // Tells the API this login is from the Android app, so it issues the week-long mobile session
+    @SerializedName("clientType")
+    val clientType: String = "Mobile"
 )
 
 data class AuthLoginResponse(

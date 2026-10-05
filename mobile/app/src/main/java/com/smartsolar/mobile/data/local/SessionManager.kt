@@ -4,9 +4,11 @@
  * Component   : Identity and Account Management (Component 1)
  * File        : SessionManager.kt
  * Description : Local login/session persistence using the SQLite `sessions`
- *               table. Saves the session after login, restores it on app
- *               start (only while the JWT is still valid), and ends it on
- *               logout, token expiry or a 401 from the API.
+ *               table. Saves the session after login and restores it on app
+ *               start with no network call, so a saved login also works
+ *               offline. The API issues mobile logins a week-long JWT, and
+ *               its expiry time is stored in SQLite: the session ends on
+ *               logout, when that week is over, or on a 401 from the API.
  * =====================================================
  */
 
@@ -28,8 +30,10 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Flow:
  *   1. User logs in → backend (MongoDB) validates → backend returns JWT + user profile.
  *   2. [saveSession] writes the response into the SQLite sessions table.
- *   3. On subsequent app launches, [getActiveSession] reads the SQLite row.
- *   4. [clearSession] deactivates all rows on logout.
+ *   3. On subsequent app launches, [getActiveSession] reads the SQLite row —
+ *      no network is needed, so the saved login is restored offline too.
+ *   4. [isExpired] ends the saved login once the week-long mobile session is over.
+ *   5. [clearSession] deactivates all rows on logout.
  *
  * MongoDB is the source of truth. SQLite is a local cache that is overwritten
  * on every successful login from the server.
@@ -106,7 +110,9 @@ object SessionManager {
     }
 
     /**
-     * True when the session's JWT expiry time has passed.
+     * True when the session's JWT expiry time has passed. For a mobile login the API
+     * sets this a week after sign-in, and it is read from SQLite, so the weekly limit
+     * is enforced offline as well.
      * If the stored value cannot be parsed, the API's 401 response is used instead.
      */
     fun isExpired(session: SessionRecord, now: Instant = Instant.now()): Boolean {
@@ -124,13 +130,30 @@ object SessionManager {
      */
     fun installSessionExpiryHandler(context: Context) {
         val appContext = context.applicationContext
-        RetrofitClient.onUnauthorized = {
-            if (expiryHandled.compareAndSet(false, true)) {
-                clearSession(appContext)
-                val intent = Intent(appContext, SessionExpiredActivity::class.java)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                appContext.startActivity(intent)
-            }
+        RetrofitClient.onUnauthorized = { expireSession(appContext) }
+    }
+
+    /**
+     * Ends the saved login if its week is over and opens SessionExpiredActivity.
+     * Called when a home screen comes to the foreground, because Android can reopen
+     * the app straight onto that screen without passing through SplashActivity.
+     *
+     * @return true when the session was ended
+     */
+    fun endSessionIfExpired(context: Context): Boolean {
+        val session = getActiveSession(context) ?: return false
+        if (!isExpired(session)) return false
+        expireSession(context.applicationContext)
+        return true
+    }
+
+    // Clears the local session and shows the expired screen (only once per session)
+    private fun expireSession(appContext: Context) {
+        if (expiryHandled.compareAndSet(false, true)) {
+            clearSession(appContext)
+            val intent = Intent(appContext, SessionExpiredActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            appContext.startActivity(intent)
         }
     }
 

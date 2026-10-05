@@ -50,6 +50,14 @@ class GridOperatorActivity : AppCompatActivity(), NavigationView.OnNavigationIte
         }
     }
 
+    // Android can reopen the app straight onto this screen (skipping Splash), so the
+    // saved-login checks are repeated here: the weekly session limit and the 401 handler
+    override fun onResume() {
+        super.onResume()
+        com.smartsolar.mobile.data.local.SessionManager.installSessionExpiryHandler(this)
+        com.smartsolar.mobile.data.local.SessionManager.endSessionIfExpired(this)
+    }
+
     private fun setupToolbarAndDrawer() {
         setSupportActionBar(binding.gridOpToolbar)
         supportActionBar?.title = "Operator Dashboard"
