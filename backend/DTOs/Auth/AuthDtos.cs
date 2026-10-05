@@ -9,8 +9,14 @@ namespace backend.DTOs.Auth;
 
 public class LoginRequestDto
 {
+    // Value of ClientType sent by the Android app
+    public const string MobileClient = "Mobile";
+
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+
+    // Optional. "Mobile" when the login comes from the Android app, which gets the longer mobile session
+    public string? ClientType { get; set; }
 }
 
 public class UserSummaryDto

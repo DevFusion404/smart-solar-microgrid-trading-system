@@ -544,7 +544,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Action: Bookings & Telemetry (Coming Soon) -->
+            <!-- Action: Bookings & Reservations (reservations on the operator's assigned nodes) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardActionBookings"
                 android:layout_width="match_parent"
@@ -590,7 +590,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:fontFamily="sans-serif-bold"
-                            android:text="Bookings &amp; Telemetry"
+                            android:text="Bookings &amp; Reservations"
                             android:textColor="@color/slate_900"
                             android:textSize="15sp" />
 
@@ -598,22 +598,10 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Reservation monitoring (coming soon)"
+                            android:text="Reservations on your assigned nodes"
                             android:textColor="@color/slate_500"
                             android:textSize="12sp" />
                     </LinearLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:background="@drawable/bg_reservation_status_pending"
-                        android:paddingHorizontal="8dp"
-                        android:paddingVertical="3dp"
-                        android:text="COMING SOON"
-                        android:textColor="@color/badge_text_amber"
-                        android:textSize="10sp"
-                        android:textStyle="bold" />
 
                     <ImageView
                         android:layout_width="20dp"

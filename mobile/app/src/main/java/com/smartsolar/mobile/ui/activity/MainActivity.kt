@@ -49,6 +49,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
+    // Android can reopen the app straight onto this screen (skipping Splash), so the
+    // saved-login checks are repeated here: the weekly session limit and the 401 handler
+    override fun onResume() {
+        super.onResume()
+        com.smartsolar.mobile.data.local.SessionManager.installSessionExpiryHandler(this)
+        com.smartsolar.mobile.data.local.SessionManager.endSessionIfExpired(this)
+    }
+
     /**
      * Dynamically updates the user name, role, and avatar initial in the drawer header.
      * Can be passed via Intent extras ("USER_NAME", "USER_ROLE") or loaded from user session.

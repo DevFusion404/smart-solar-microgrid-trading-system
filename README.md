@@ -138,7 +138,7 @@ flowchart LR
 - Operator dashboard, assigned nodes, map, slot availability updates and bookings.
 
 **Local persistence (SQLite)**
-- `sessions` table keeps the logged-in user and JWT (restored on app start, cleared on logout or token expiry).
+- `sessions` table keeps the logged-in user and JWT. The saved login is restored on app start with no network call, so it also works offline. Mobile logins last **7 days** (`JwtSettings:MobileExpiryMinutes`; the web portal keeps `ExpiryMinutes`), then the session is cleared and the user signs in again. It is also cleared on logout.
 - Stations, slots and reservations are cached locally for offline viewing.
 
 ### 4.3 Web service

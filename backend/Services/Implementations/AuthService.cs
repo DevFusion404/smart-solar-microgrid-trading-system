@@ -73,7 +73,13 @@ public class AuthService : IAuthService
         user.LastLoginAt = DateTime.UtcNow;
         await _userRepository.UpdateAsync(user);
 
-        var (token, expiresAt) = _tokenGenerator.GenerateToken(user);
+        // The Android app gets a week-long session; the web portal keeps the standard expiry.
+        // Backoffice is web-only, so it never receives the longer mobile token.
+        var mobileSession =
+            string.Equals(request.ClientType, LoginRequestDto.MobileClient, StringComparison.OrdinalIgnoreCase)
+            && user.Role != UserRole.Backoffice;
+
+        var (token, expiresAt) = _tokenGenerator.GenerateToken(user, mobileSession);
 
         return new LoginResponseDto
         {

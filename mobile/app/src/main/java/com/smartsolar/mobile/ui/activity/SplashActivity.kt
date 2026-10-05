@@ -3,9 +3,11 @@
  * Project     : Smart Solar Microgrid Trading System
  * Component   : Identity and Account Management (Component 1)
  * File        : SplashActivity.kt
- * Description : Launch screen. Restores the saved SQLite session: a valid
- *               session goes straight to the role's home, an expired JWT
- *               goes to the Session Expired screen, no session goes to Login.
+ * Description : Launch screen. Restores the saved SQLite session without any
+ *               network call (so it also works offline): a valid session goes
+ *               straight to the role's home, a session older than the
+ *               week-long mobile limit goes to the Session Expired screen,
+ *               no session goes to Login.
  * =====================================================
  */
 
@@ -94,7 +96,7 @@ class SplashActivity : AppCompatActivity() {
             val session = SessionManager.getActiveSession(this@SplashActivity)
 
             val intent = if (session != null && SessionManager.isExpired(session)) {
-                // The saved JWT is no longer valid: end the session and ask the user to sign in again
+                // The week-long mobile session is over: end it and ask the user to sign in again
                 SessionManager.clearSession(this@SplashActivity)
                 Intent(this@SplashActivity, SessionExpiredActivity::class.java)
             } else if (session != null) {

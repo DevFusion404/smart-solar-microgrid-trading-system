@@ -15,4 +15,7 @@ public class JwtSettings
     public string Issuer { get; set; } = "SmartSolarMicrogrid.Backend";
     public string Audience { get; set; } = "SmartSolarMicrogrid.Clients";
     public int ExpiryMinutes { get; set; } = 60;
+
+    // Token lifetime for logins from the Android app (7 days), so a login saved on the phone lasts a week
+    public int MobileExpiryMinutes { get; set; } = 10080;
 }

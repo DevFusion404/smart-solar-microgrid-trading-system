@@ -35,7 +35,8 @@ public class AuthServiceTests
             SecretKey = "UnitTestSecretKey_ThatIsLongEnough_ForHmacSha256_2026!",
             Issuer = "tests",
             Audience = "tests",
-            ExpiryMinutes = 5
+            ExpiryMinutes = 5,
+            MobileExpiryMinutes = 10080
         });
         _service = new AuthService(_repo, _hasher, jwt);
     }
@@ -122,5 +123,49 @@ public class AuthServiceTests
         var result = await _service.LoginAsync(new LoginRequestDto { Username = "operator1@example.com", Password = TestData.ValidPassword });
 
         Assert.Equal("GridOperator", result.User.Role);
+    }
+
+    // A login from the Android app gets the week-long mobile session
+    [Fact]
+    public async Task Login_FromMobileClient_ReturnsWeekLongToken()
+    {
+        _repo.Users.Add(TestData.User(_hasher, "prosumer1", UserRole.Prosumer, AccountStatus.Active, "901234567V"));
+
+        var result = await _service.LoginAsync(new LoginRequestDto
+        {
+            Username = "prosumer1",
+            Password = TestData.ValidPassword,
+            ClientType = LoginRequestDto.MobileClient
+        });
+
+        var lifetime = result.ExpiresAt - DateTime.UtcNow;
+        Assert.InRange(lifetime, TimeSpan.FromDays(7) - TimeSpan.FromMinutes(1), TimeSpan.FromDays(7));
+    }
+
+    // A login without a client type (the web portal) keeps the standard short expiry
+    [Fact]
+    public async Task Login_WithoutClientType_UsesStandardExpiry()
+    {
+        _repo.Users.Add(TestData.User(_hasher, "prosumer1", UserRole.Prosumer, AccountStatus.Active, "901234567V"));
+
+        var result = await _service.LoginAsync(new LoginRequestDto { Username = "prosumer1", Password = TestData.ValidPassword });
+
+        Assert.True(result.ExpiresAt - DateTime.UtcNow <= TimeSpan.FromMinutes(5));
+    }
+
+    // Backoffice is web-only, so it never gets the long mobile session even if it asks for one
+    [Fact]
+    public async Task Login_BackofficeFromMobileClient_UsesStandardExpiry()
+    {
+        _repo.Users.Add(TestData.User(_hasher, "officer1", UserRole.Backoffice, AccountStatus.Active));
+
+        var result = await _service.LoginAsync(new LoginRequestDto
+        {
+            Username = "officer1",
+            Password = TestData.ValidPassword,
+            ClientType = LoginRequestDto.MobileClient
+        });
+
+        Assert.True(result.ExpiresAt - DateTime.UtcNow <= TimeSpan.FromMinutes(5));
     }
 }
